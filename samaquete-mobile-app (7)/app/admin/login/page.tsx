@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -8,9 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { signIn } from "../auth/actions"
-import { Loader2, LogIn, ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { signIn } from "../auth/actions" // Import the server action
+import { Loader2, LogIn } from "lucide-react"
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("")
@@ -46,8 +46,7 @@ export default function AdminLoginPage() {
       className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 p-4"
     >
       <Card className="w-full max-w-md shadow-xl rounded-lg">
-        <CardHeader className="text-center flex flex-col items-center gap-2">
-          <img src="/placeholder-logo.png" alt="Logo SamaQuête" className="w-16 h-16 mx-auto mb-2" />
+        <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold text-gray-800">Connexion Admin</CardTitle>
           <p className="text-gray-500">Accédez au tableau de bord SamaQuête</p>
           <p className="text-sm text-gray-400 mt-2">(Utilisez: admin@samaquete.com / password)</p>
@@ -77,12 +76,6 @@ export default function AdminLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-11"
               />
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <Link href="/" className="flex items-center gap-1 text-gray-500 hover:text-gray-800 transition">
-                <ArrowLeft className="w-4 h-4" /> Retour à l'accueil
-              </Link>
-              <Link href="#" className="text-blue-600 hover:underline">Mot de passe oublié ?</Link>
             </div>
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
             <Button type="submit" className="w-full h-12 text-lg" disabled={isPending}>

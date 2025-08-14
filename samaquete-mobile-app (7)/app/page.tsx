@@ -15,38 +15,10 @@ import AssistantScreen from "./components/screens/assistant/AssistantScreen"
 import HistoryScreen from "./components/screens/history/HistoryScreen"
 import NotificationsScreen from "./components/screens/notifications/NotificationsScreen"
 import SettingsScreen from "./components/screens/settings/SettingsScreen"
-import Link from "next/link"
-
-const parishes = [
-  {
-    name: "Cathédrale du Souvenir Africain",
-    location: "Dakar",
-    image: "/placeholder.svg?height=120&width=200",
-    description: "Cathédrale principale de Dakar",
-  },
-  {
-    name: "Paroisse Sainte-Anne",
-    location: "Rufisque",
-    image: "/placeholder.svg?height=120&width=200",
-    description: "Communauté dynamique de Rufisque",
-  },
-  {
-    name: "Paroisse Saint-Joseph",
-    location: "Thiès",
-    image: "/placeholder.svg?height=120&width=200",
-    description: "Au cœur de la région de Thiès",
-  },
-  {
-    name: "Paroisse Notre-Dame",
-    location: "Saint-Louis",
-    image: "/placeholder.svg?height=120&width=200",
-    description: "Patrimoine spirituel de Saint-Louis",
-  },
-]
 
 export default function SamaQueteApp() {
   const [currentScreen, setCurrentScreen] = useState("splash")
-  const [selectedParish, setSelectedParish] = useState(parishes[0].name) // Default to the first parish
+  const [selectedParish, setSelectedParish] = useState("")
   const [selectedDonationType, setSelectedDonationType] = useState("")
   const [selectedAmount, setSelectedAmount] = useState("")
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("")
@@ -83,24 +55,45 @@ export default function SamaQueteApp() {
     setIsAuthenticated,
     selectionContext,
     setSelectionContext,
-    parishes,
   }
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
       <AnimatePresence mode="wait">
         {currentScreen === "splash" && <SplashScreen key="splash" {...screenProps} />}
-        {currentScreen === "dashboard" && <DashboardScreen key="dashboard" {...screenProps} />}
-        {currentScreen === "parish-selection" && (
-          <ParishSelectionScreen
-            key="parish"
+        {currentScreen === "dashboard" && (
+          <DashboardScreen
+            key="dashboard"
             {...screenProps}
-            onSelect={(parish: string) => {
-              setSelectedParish(parish)
-              setCurrentScreen("dashboard")
-            }}
+            parishes={[
+              {
+                name: "Cathédrale du Souvenir Africain",
+                location: "Dakar",
+                image: "/placeholder.svg?height=120&width=200",
+                description: "Cathédrale principale de Dakar",
+              },
+              {
+                name: "Paroisse Sainte-Anne",
+                location: "Rufisque",
+                image: "/placeholder.svg?height=120&width=200",
+                description: "Communauté dynamique de Rufisque",
+              },
+              {
+                name: "Paroisse Saint-Joseph",
+                location: "Thiès",
+                image: "/placeholder.svg?height=120&width=200",
+                description: "Au cœur de la région de Thiès",
+              },
+              {
+                name: "Paroisse Notre-Dame",
+                location: "Saint-Louis",
+                image: "/placeholder.svg?height=120&width=200",
+                description: "Patrimoine spirituel de Saint-Louis",
+              },
+            ]}
           />
         )}
+        {currentScreen === "parish-selection" && <ParishSelectionScreen key="parish" {...screenProps} />}
         {currentScreen === "donations" && <DonationsScreen key="donations" {...screenProps} />}
         {currentScreen === "donation-type" && <DonationTypeScreen key="donation-type" {...screenProps} />}
         {currentScreen === "auth" && <AuthScreen key="auth" {...screenProps} />}
@@ -112,12 +105,6 @@ export default function SamaQueteApp() {
         {currentScreen === "notifications" && <NotificationsScreen key="notifications" {...screenProps} />}
         {currentScreen === "settings" && <SettingsScreen key="settings" {...screenProps} />}
       </AnimatePresence>
-      <Link
-        href="/admin/login"
-        className="absolute bottom-4 right-4 bg-gray-800 text-white p-2 rounded-full shadow-lg z-50"
-      >
-        Admin
-      </Link>
     </div>
   )
 }

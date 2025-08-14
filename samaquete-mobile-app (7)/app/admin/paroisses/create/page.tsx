@@ -44,7 +44,6 @@ export default function CreateParishPage() {
       const newParish = {
         id: Date.now(),
         ...form,
-        communities: Number(form.communities)
       }
       parishes.unshift(newParish)
       localStorage.setItem("admin_parishes", JSON.stringify(parishes))

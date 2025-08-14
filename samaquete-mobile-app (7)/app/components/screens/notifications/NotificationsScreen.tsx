@@ -151,43 +151,6 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
       </motion.div>
 
       <div className="p-6 -mt-4 space-y-6">
-        {/* Notification settings */}
-        <motion.div
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-        >
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl p-6 rounded-2xl">
-            <h3 className="font-bold text-gray-800 mb-4 text-xl">Paramètres de notification</h3>
-            <div className="space-y-4">
-              {[
-                { key: "masses", label: "Messes et célébrations", description: "Horaires et rappels" },
-                { key: "donations", label: "Dons et quêtes", description: "Rappels de contribution" },
-                { key: "news", label: "Actualités paroissiales", description: "Événements et nouvelles" },
-                { key: "prayers", label: "Intentions de prière", description: "Demandes de prière" },
-                { key: "events", label: "Événements spéciaux", description: "Fêtes et célébrations" },
-                { key: "reminders", label: "Rappels personnels", description: "Vos rendez-vous spirituels" },
-              ].map((setting, index) => (
-                <motion.div
-                  key={setting.key}
-                  initial={{ x: -30, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.4 + index * 0.1, duration: 0.6 }}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
-                >
-                  <div className="flex-1">
-                    <div className="font-semibold text-gray-800">{setting.label}</div>
-                    <div className="text-gray-500 text-sm">{setting.description}</div>
-                  </div>
-                  <Switch
-                    checked={notificationSettings[setting.key as keyof typeof notificationSettings]}
-                    onCheckedChange={() => handleSettingChange(setting.key)}
-                  />
-                </motion.div>
-              ))}
-            </div>
-          </Card>
-        </motion.div>
 
         {/* Notifications list */}
         <motion.div
@@ -244,6 +207,44 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
                       </div>
                     </div>
                   </div>
+                </motion.div>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Notification settings */}
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
+        >
+          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl p-6 rounded-2xl">
+            <h3 className="font-bold text-gray-800 mb-4 text-xl">Paramètres de notification</h3>
+            <div className="space-y-4">
+              {[
+                { key: "masses", label: "Messes et célébrations", description: "Horaires et rappels" },
+                { key: "donations", label: "Dons et quêtes", description: "Rappels de contribution" },
+                { key: "news", label: "Actualités paroissiales", description: "Événements et nouvelles" },
+                { key: "prayers", label: "Intentions de prière", description: "Demandes de prière" },
+                { key: "events", label: "Événements spéciaux", description: "Fêtes et célébrations" },
+                { key: "reminders", label: "Rappels personnels", description: "Vos rendez-vous spirituels" },
+              ].map((setting, index) => (
+                <motion.div
+                  key={setting.key}
+                  initial={{ x: -30, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 + index * 0.1, duration: 0.6 }}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+                >
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-800">{setting.label}</div>
+                    <div className="text-gray-500 text-sm">{setting.description}</div>
+                  </div>
+                  <Switch
+                    checked={notificationSettings[setting.key as keyof typeof notificationSettings]}
+                    onCheckedChange={() => handleSettingChange(setting.key)}
+                  />
                 </motion.div>
               ))}
             </div>

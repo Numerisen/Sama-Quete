@@ -164,9 +164,9 @@ export default function AdminDonationsPage() {
               <Download className="w-5 h-5" /> Export CSV
             </Button>
             <Link href="/admin/donations/create">
-              <Button className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white shadow-lg rounded-xl px-4 py-2">
+              {/* <Button className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white shadow-lg rounded-xl px-4 py-2">
                 <Plus className="w-5 h-5" /> Nouveau don
-              </Button>
+              </Button> */}
             </Link>
           </div>
         </CardHeader>
@@ -182,7 +182,7 @@ export default function AdminDonationsPage() {
                   <th className="py-3 px-4">Mode de paiement</th>
                   <th className="py-3 px-4">Paroisse</th>
                   <th className="py-3 px-4">Date/Heure</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                  {/* <th className="py-3 px-4 text-right">Actions</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -238,8 +238,8 @@ export default function AdminDonationsPage() {
                         <td className="py-2 px-4">{item.parish}</td>
                         <td className="py-2 px-4">{item.date}</td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
+                          {/*<Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button> */}
+                          {/* <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button> */}
                         </td>
                       </>
                     )}

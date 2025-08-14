@@ -24,6 +24,18 @@ export interface News {
   created_at: string
 }
 
+export interface AdminUser {
+  id: string
+  email: string
+  password_hash: string // In a real app, this would be hashed
+  full_name: string
+  role: "admin_general" | "admin_diocesan" | "admin_parishial"
+  diocese_id?: string // For diocesan admins
+  parish_id?: string // For parishial admins
+  created_at: string
+  updated_at: string
+}
+
 // Initial mock data
 let mockDioceses: Diocese[] = [
   {
@@ -92,6 +104,38 @@ const mockNews: News[] = [
   },
 ]
 
+let mockAdminUsers: AdminUser[] = [
+  {
+    id: uuidv4(),
+    email: "superadmin@samaquete.com",
+    password_hash: "password", // In a real app, hash this!
+    full_name: "Super Admin",
+    role: "admin_general",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: uuidv4(),
+    email: "dakaradmin@samaquete.com",
+    password_hash: "password",
+    full_name: "Admin Diocèse Dakar",
+    role: "admin_diocesan",
+    diocese_id: mockDioceses[0].id, // Link to Archidiocèse de Dakar
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: uuidv4(),
+    email: "parishadmin@samaquete.com",
+    password_hash: "password",
+    full_name: "Admin Paroisse St-Joseph",
+    role: "admin_parishial",
+    parish_id: "mock-parish-id-1", // Placeholder for a specific parish
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+]
+
 export const db = {
   dioceses: {
     getAll: async (): Promise<Diocese[]> => {
@@ -129,5 +173,42 @@ export const db = {
       return Promise.resolve([...mockNews])
     },
     // Add create, update, delete for news if needed later
+  },
+  adminUsers: {
+    getAll: async (): Promise<AdminUser[]> => {
+      return Promise.resolve([...mockAdminUsers])
+    },
+    getById: async (id: string): Promise<AdminUser | undefined> => {
+      return Promise.resolve(mockAdminUsers.find((u) => u.id === id))
+    },
+    getByEmail: async (email: string): Promise<AdminUser | undefined> => {
+      return Promise.resolve(mockAdminUsers.find((u) => u.email === email))
+    },
+    create: async (data: Omit<AdminUser, "id" | "created_at" | "updated_at">): Promise<AdminUser> => {
+      const newAdminUser: AdminUser = {
+        id: uuidv4(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        ...data,
+      }
+      mockAdminUsers.push(newAdminUser)
+      return Promise.resolve(newAdminUser)
+    },
+    update: async (
+      id: string,
+      data: Partial<Omit<AdminUser, "id" | "created_at" | "updated_at">>,
+    ): Promise<AdminUser | undefined> => {
+      const index = mockAdminUsers.findIndex((u) => u.id === id)
+      if (index > -1) {
+        mockAdminUsers[index] = { ...mockAdminUsers[index], ...data, updated_at: new Date().toISOString() }
+        return Promise.resolve(mockAdminUsers[index])
+      }
+      return Promise.resolve(undefined)
+    },
+    delete: async (id: string): Promise<boolean> => {
+      const initialLength = mockAdminUsers.length
+      mockAdminUsers = mockAdminUsers.filter((u) => u.id !== id)
+      return Promise.resolve(mockAdminUsers.length < initialLength)
+    },
   },
 }

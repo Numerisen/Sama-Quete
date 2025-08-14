@@ -2,25 +2,18 @@
 
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
-
-// Mock user data
-const MOCK_ADMIN_USER = {
-  id: "mock-admin-id-123",
-  email: "admin@samaquete.com",
-  adminProfile: {
-    full_name: "Admin Général",
-    role: "admin_general",
-  },
-}
+import { db, type AdminUser } from "@/lib/mock-db" // Import db and AdminUser type
 
 export async function signIn(formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
 
-  // Simulate authentication
-  if (email === MOCK_ADMIN_USER.email && password === "password") {
-    // Set a mock session cookie
-    cookies().set("admin_session", JSON.stringify(MOCK_ADMIN_USER), {
+  // Simulate authentication using mock db
+  const user = await db.adminUsers.getByEmail(email)
+
+  if (user && user.password_hash === password) {
+    // Set a mock session cookie with the full user object
+    cookies().set("admin_session", JSON.stringify(user), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24, // 1 day
@@ -37,18 +30,19 @@ export async function signOut() {
   redirect("/admin/login")
 }
 
-export async function getAdminUser() {
+export async function getAdminUser(): Promise<AdminUser | null> {
   const sessionCookie = cookies().get("admin_session")?.value
   if (!sessionCookie) {
     return null
   }
 
   try {
-    const user = JSON.parse(sessionCookie)
+    const user: AdminUser = JSON.parse(sessionCookie)
     // In a real app, you'd validate this session with a backend/DB
-    // For mock, we just return the parsed user if it matches our mock user
-    if (user.id === MOCK_ADMIN_USER.id) {
-      return user
+    // For mock, we just return the parsed user if it exists in our mock db
+    const foundUser = await db.adminUsers.getById(user.id)
+    if (foundUser && foundUser.email === user.email && foundUser.role === user.role) {
+      return foundUser
     }
     return null
   } catch (e) {

@@ -5,7 +5,21 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ArrowRight, User, Bell, Shield, Palette, Edit, Save, X, Church, Check } from "lucide-react"
+import {
+  ArrowRight,
+  User,
+  Bell,
+  Shield,
+  Palette,
+  Edit,
+  Save,
+  X,
+  Church,
+  Check,
+  BookOpen,
+  Star,
+  MessageCircle,
+} from "lucide-react"
 
 export interface SettingsScreenProps {
   setCurrentScreen: (screen: string) => void
@@ -35,6 +49,12 @@ export default function SettingsScreen({
     pushNotifications: true,
     biometricAuth: false,
   })
+
+  const recentActivity = [
+    { type: "Lecture spirituelle", title: "Évangile du jour", date: "Aujourd'hui", icon: BookOpen },
+    { type: "Prière du matin", title: "Laudes", date: "Aujourd'hui", icon: Star },
+    { type: "Méditation", title: "Parole du jour", date: "Hier", icon: MessageCircle },
+  ]
 
   /* -------------------------------------------------------------------------- */
   /*                              HANDLER FUNCTIONS                             */
@@ -180,6 +200,40 @@ export default function SettingsScreen({
             active={prefs.biometricAuth}
             toggle={() => handleTogglePref("biometricAuth")}
           />
+        </Card>
+
+        {/* --------------------------- Recent Activity --------------------------- */}
+        <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg p-6 rounded-2xl space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 text-lg">Activité récente</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentScreen("history")} // Link to HistoryScreen
+              className="text-amber-600 hover:bg-amber-50 rounded-lg"
+            >
+              Voir tout
+            </Button>
+          </div>
+          <div className="space-y-3">
+            {recentActivity.map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.1 + index * 0.1, duration: 0.4 }}
+                className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full flex items-center justify-center">
+                  <item.icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-gray-800">{item.type}</div>
+                  <div className="text-gray-500 text-sm">{item.date}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </Card>
       </div>
     </motion.div>

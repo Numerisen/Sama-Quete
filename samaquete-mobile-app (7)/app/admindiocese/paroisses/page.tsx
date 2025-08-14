@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Plus, Edit, Trash2, Download, MapPin, UserCircle, Users, Upload, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { useSearchParams } from "next/navigation"
 import * as XLSX from 'xlsx'
 import { Pagination } from "@/components/ui/pagination"
 import { useToastContext } from "@/components/toast-provider"
@@ -23,13 +24,12 @@ const diocesesList = [
 const initialParishes = [
   {
     id: 1,
-    name: "Paroisse Saint-Joseph de Medina",
-    diocese: "Archidiocèse de Dakar",
-    city: "Dakar",
+    name: "Paroisse Saint-Joseph de Thiès",
+    diocese: "Diocèse de Thiès",
+    city: "Thiès",
     cure: "Père Jean Sarr",
     vicaire: "Père Paul Diouf",
     catechists: "Sœur Marie, M. Ndiaye",
-  
   },
   {
     id: 2,
@@ -37,17 +37,26 @@ const initialParishes = [
     diocese: "Diocèse de Thiès",
     city: "Thiès",
     cure: "Père André Faye",
-    vicaire: "",
+    vicaire: "Père Pierre Sall",
     catechists: "M. Fall, Mme Diop",
   },
   {
     id: 3,
-    name: "Paroisse Sacré-Cœur de Kaolack",
-    diocese: "Diocèse de Kaolack",
-    city: "Kaolack",
+    name: "Paroisse Sacré-Cœur de Thiès",
+    diocese: "Diocèse de Thiès",
+    city: "Thiès",
     cure: "Père Martin Sagna",
     vicaire: "Père Luc Badiane",
     catechists: "Mme Sarr",
+  },
+  {
+    id: 4,
+    name: "Paroisse Notre-Dame de Thiès",
+    diocese: "Diocèse de Thiès",
+    city: "Thiès",
+    cure: "Père Michel Diop",
+    vicaire: "",
+    catechists: "Sœur Anne, M. Ba",
   },
 ]
 
@@ -80,7 +89,7 @@ function downloadTemplate() {
 }
 
 // Fonction pour importer depuis Excel
-function importFromExcel(file: File, setParishes: Function, setImportModal: Function, setMissingColumns: Function, toast: any) {
+function importFromExcel(file: File, setParishes: Function, setImportModal: Function, setMissingColumns: Function, currentDiocese: string, toast: any) {
   const reader = new FileReader()
   
   reader.onload = (e) => {
@@ -114,7 +123,7 @@ function importFromExcel(file: File, setParishes: Function, setImportModal: Func
           return {
             id,
             name: headers.includes("Nom") ? (row[headers.indexOf("Nom")] || "") : "Nom non spécifié",
-            diocese: headers.includes("Diocèse") ? (row[headers.indexOf("Diocèse")] || "") : "Diocèse non spécifié",
+            diocese: headers.includes("Diocèse") ? (row[headers.indexOf("Diocèse")] || currentDiocese) : currentDiocese,
             city: headers.includes("Ville") ? (row[headers.indexOf("Ville")] || "") : "Ville non spécifiée",
             cure: headers.includes("Curé") ? (row[headers.indexOf("Curé")] || "") : "",
             vicaire: headers.includes("Vicaire") ? (row[headers.indexOf("Vicaire")] || "") : "",
@@ -133,7 +142,7 @@ function importFromExcel(file: File, setParishes: Function, setImportModal: Func
         return {
           id,
           name: row[headers.indexOf("Nom")] || "",
-          diocese: row[headers.indexOf("Diocèse")] || "",
+          diocese: row[headers.indexOf("Diocèse")] || currentDiocese,
           city: row[headers.indexOf("Ville")] || "",
           cure: row[headers.indexOf("Curé")] || "",
           vicaire: row[headers.indexOf("Vicaire")] || "",
@@ -154,13 +163,15 @@ function importFromExcel(file: File, setParishes: Function, setImportModal: Func
   reader.readAsArrayBuffer(file)
 }
 
-export default function AdminParishesPage() {
+export default function AdminDioceseParishesPage() {
+  const searchParams = useSearchParams()
+  const diocese = searchParams.get('diocese') || 'Archidiocèse de Dakar'
   const toast = useToastContext()
+  
   const [parishes, setParishes] = useState<any[]>([])
   const [search, setSearch] = useState("")
-  const [dioceseFilter, setDioceseFilter] = useState("all")
   const [editId, setEditId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState<any>({ name: "", diocese: diocesesList[0], city: "", cure: "", vicaire: "", catechists: "" })
+  const [editForm, setEditForm] = useState<any>({ name: "", diocese: diocese, city: "", cure: "", vicaire: "", catechists: "" })
   const [importModal, setImportModal] = useState(false)
   const [missingColumns, setMissingColumns] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -170,24 +181,35 @@ export default function AdminParishesPage() {
   useEffect(() => {
     const stored = localStorage.getItem("admin_parishes")
     if (stored) {
-      setParishes(JSON.parse(stored))
+      const allParishes = JSON.parse(stored)
+      // Filtrer par diocèse
+      const dioceseParishes = allParishes.filter((p: any) => p.diocese === diocese)
+      setParishes(dioceseParishes)
     } else {
-      setParishes(initialParishes)
+      // Initialiser avec les paroisses du diocèse
+      const dioceseParishes = initialParishes.filter(p => p.diocese === diocese)
+      setParishes(dioceseParishes)
       localStorage.setItem("admin_parishes", JSON.stringify(initialParishes))
     }
-  }, [])
+  }, [diocese])
+
   // Sauvegarde à chaque modification
   useEffect(() => {
     if (parishes.length > 0) {
-      localStorage.setItem("admin_parishes", JSON.stringify(parishes))
+      const stored = localStorage.getItem("admin_parishes")
+      const allParishes = stored ? JSON.parse(stored) : []
+      const otherParishes = allParishes.filter((p: any) => p.diocese !== diocese)
+      const updatedParishes = [...otherParishes, ...parishes]
+      localStorage.setItem("admin_parishes", JSON.stringify(updatedParishes))
     }
-  }, [parishes])
+  }, [parishes, diocese])
 
   // Filtres et recherche
   const filteredParishes = parishes.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.city.toLowerCase().includes(search.toLowerCase()) || p.cure.toLowerCase().includes(search.toLowerCase())
-    const matchDiocese = dioceseFilter === "all" || p.diocese === dioceseFilter
-    return matchSearch && matchDiocese
+    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
+                       p.city.toLowerCase().includes(search.toLowerCase()) || 
+                       p.cure.toLowerCase().includes(search.toLowerCase())
+    return matchSearch
   })
 
   // Pagination
@@ -199,7 +221,7 @@ export default function AdminParishesPage() {
   // Réinitialiser la page courante quand les filtres changent
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, dioceseFilter, parishes])
+  }, [search, parishes])
 
   // Suppression
   const handleDelete = (id: number) => {
@@ -208,6 +230,7 @@ export default function AdminParishesPage() {
       toast.success("Paroisse supprimée", "La paroisse a été supprimée avec succès")
     }
   }
+
   // Edition inline
   const handleEdit = (item: any) => {
     setEditId(item.id)
@@ -231,7 +254,7 @@ export default function AdminParishesPage() {
     if (file) {
       if (file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || 
           file.type === "application/vnd.ms-excel") {
-        importFromExcel(file, setParishes, setImportModal, setMissingColumns, toast)
+        importFromExcel(file, setParishes, setImportModal, setMissingColumns, diocese, toast)
       } else {
         toast.error("Type de fichier invalide", "Veuillez sélectionner un fichier Excel (.xlsx ou .xls)")
       }
@@ -245,8 +268,12 @@ export default function AdminParishesPage() {
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-3xl font-bold text-blue-900 mb-1">Gestion des paroisses</CardTitle>
-            <p className="text-blue-800/80 text-sm">Gérez les paroisses, curés, vicaires, catéchistes et communautés.</p>
+            <CardTitle className="text-3xl font-bold text-blue-900 mb-1">
+              Gestion des paroisses - {diocese}
+            </CardTitle>
+            <p className="text-blue-800/80 text-sm">
+              Gérez les paroisses de votre diocèse, curés, vicaires, catéchistes et communautés.
+            </p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Input
@@ -255,10 +282,6 @@ export default function AdminParishesPage() {
               onChange={e => setSearch(e.target.value)}
               className="h-10 w-40 bg-white/90 border-gray-200"
             />
-            <select value={dioceseFilter} onChange={e => setDioceseFilter(e.target.value)} className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
-              <option value="all">Tous les diocèses</option>
-              {diocesesList.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
             
             {/* Bouton d'import Excel */}
             <div className="relative">
@@ -286,7 +309,7 @@ export default function AdminParishesPage() {
             <Button onClick={() => exportToCSV(filteredParishes)} variant="outline" className="flex items-center gap-2 text-blue-900 border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2">
               <Download className="w-5 h-5" /> Export CSV
             </Button>
-            <Link href="/admin/paroisses/create">
+            <Link href={`/admindiocese/paroisses/create?diocese=${encodeURIComponent(diocese)}`}>
               <Button className="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 text-white shadow-lg rounded-xl px-4 py-2">
                 <Plus className="w-5 h-5" /> Nouvelle paroisse
               </Button>
@@ -299,7 +322,6 @@ export default function AdminParishesPage() {
               <thead>
                 <tr className="text-blue-900/80 text-sm bg-blue-50">
                   <th className="py-3 px-4">Nom</th>
-                  <th className="py-3 px-4">Diocèse</th>
                   <th className="py-3 px-4">Ville</th>
                   <th className="py-3 px-4">Curé</th>
                   <th className="py-3 px-4">Vicaire</th>
@@ -322,11 +344,6 @@ export default function AdminParishesPage() {
                           <Input name="name" value={editForm.name} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="diocese" value={editForm.diocese} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
-                            {diocesesList.map(d => <option key={d} value={d}>{d}</option>)}
-                          </select>
-                        </td>
-                        <td className="py-2 px-4">
                           <Input name="city" value={editForm.city} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
@@ -346,7 +363,6 @@ export default function AdminParishesPage() {
                     ) : (
                       <>
                         <td className="py-2 px-4 font-semibold text-blue-900">{item.name}</td>
-                        <td className="py-2 px-4">{item.diocese}</td>
                         <td className="py-2 px-4">{item.city}</td>
                         <td className="py-2 px-4">{item.cure}</td>
                         <td className="py-2 px-4">{item.vicaire}</td>
@@ -362,7 +378,7 @@ export default function AdminParishesPage() {
               </tbody>
             </table>
             {paginatedParishes.length === 0 && (
-              <div className="text-center text-blue-900/60 py-8">Aucune paroisse trouvée.</div>
+              <div className="text-center text-blue-900/60 py-8">Aucune paroisse trouvée dans ce diocèse.</div>
             )}
           </div>
         </CardContent>
@@ -434,4 +450,4 @@ export default function AdminParishesPage() {
       )}
     </div>
   )
-} 
+}
