@@ -1,6 +1,59 @@
 {
-  "dependencies": {
-    "chart.js": "^4.5.0",
-    "react-chartjs-2": "^5.3.0"
+  "name": "samaquete",
+  "version": "1.0.0",
+  "description": "Plateforme de gestion des quêtes paroissiales pour l'Église catholique du Sénégal",
+  "main": "index.js",
+  "scripts": {
+    "install:mobile": "cd samaquete-mobile && npm install",
+    "install:admin": "cd samaquete-admin && npm install",
+    "install:all": "npm run install:mobile && npm run install:admin",
+    "dev:mobile": "cd samaquete-mobile && npm start",
+    "dev:admin": "cd samaquete-admin && npm run dev",
+    "build:mobile": "cd samaquete-mobile && npm run build",
+    "build:admin": "cd samaquete-admin && npm run build",
+    "build:all": "npm run build:mobile && npm run build:admin",
+    "test:mobile": "cd samaquete-mobile && npm test",
+    "test:admin": "cd samaquete-admin && npm test",
+    "test:all": "npm run test:mobile && npm run test:admin",
+    "lint:mobile": "cd samaquete-mobile && npx eslint src/",
+    "lint:admin": "cd samaquete-admin && npm run lint",
+    "lint:all": "npm run lint:mobile && npm run lint:admin",
+    "clean:mobile": "cd samaquete-mobile && rm -rf node_modules && rm -rf .expo",
+    "clean:admin": "cd samaquete-admin && rm -rf node_modules && rm -rf .next",
+    "clean:all": "npm run clean:mobile && npm run clean:admin",
+    "setup": "npm run install:all",
+    "start": "npm run dev:mobile",
+    "dev": "npm run dev:admin"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/votre-username/samaquete.git"
+  },
+  "keywords": [
+    "samaquete",
+    "quete",
+    "paroisse",
+    "eglise",
+    "catholique",
+    "senegal",
+    "donation",
+    "mobile",
+    "react-native",
+    "nextjs",
+    "firebase"
+  ],
+  "author": "Votre Nom <votre.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/votre-username/samaquete/issues"
+  },
+  "homepage": "https://github.com/votre-username/samaquete#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3"
   }
 }
