@@ -93,8 +93,8 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
     },
   ];
 
-  // Utiliser les paroisses de Firebase avec des données simulées pour les visites
-  const mostVisitedParishes = parishes.slice(0, 3).map((parish, index) => ({
+  // Utiliser les paroisses disponibles avec des données simulées pour les visites
+  const mostVisitedParishes = availableParishes.slice(0, 3).map((parish, index) => ({
     name: parish.name,
     location: parish.location,
     visits: 45 - (index * 10), // Simulation des visites

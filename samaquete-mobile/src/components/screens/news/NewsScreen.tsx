@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../../../lib/ThemeContext';
 
 interface NewsScreenProps {
   setCurrentScreen: (screen: string) => void;
 }
 
 export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
+  const { colors } = useTheme();
   const [selectedParish, setSelectedParish] = useState('Paroisse Saint-Joseph');
 
   const newsItems = [
@@ -79,10 +81,10 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header vert avec gradient */}
-        <LinearGradient colors={['#10b981', '#059669']} style={styles.header}>
+        <LinearGradient colors={colors.header as any} style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => setCurrentScreen('dashboard')}
@@ -104,21 +106,21 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
         </LinearGradient>
 
         {/* Sélection de paroisse */}
-        <View style={styles.parishSelector}>
-          <TouchableOpacity style={styles.parishButton} onPress={handleParishChange}>
-            <Ionicons name="location" size={16} color="#10b981" />
-            <Text style={styles.parishText}>{selectedParish}</Text>
-            <Ionicons name="chevron-down" size={16} color="#10b981" />
+        <View style={[styles.parishSelector, { backgroundColor: colors.background }]}>
+          <TouchableOpacity style={[styles.parishButton, { backgroundColor: colors.card }]} onPress={handleParishChange}>
+            <Ionicons name="location" size={16} color={colors.primary} />
+            <Text style={[styles.parishText, { color: colors.text }]}>{selectedParish}</Text>
+            <Ionicons name="chevron-down" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
         {/* Liste des actualités */}
-        <View style={styles.newsContainer}>
+        <View style={[styles.newsContainer, { backgroundColor: colors.background }]}>
           {newsItems.map((item) => (
-            <View key={item.id} style={styles.newsItem}>
+            <View key={item.id} style={[styles.newsItem, { backgroundColor: colors.card }]}>
               {/* Image placeholder */}
-              <View style={styles.newsImage}>
-                <Ionicons name="image" size={24} color="#9ca3af" />
+              <View style={[styles.newsImage, { backgroundColor: colors.surface }]}>
+                <Ionicons name="image" size={24} color={colors.textSecondary} />
               </View>
               
               {/* Contenu de l'actualité */}
@@ -135,28 +137,28 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
                 </View>
 
                 {/* Titre */}
-                <Text style={styles.newsTitle}>{item.title}</Text>
+                <Text style={[styles.newsTitle, { color: colors.text }]}>{item.title}</Text>
                 
                 {/* Description */}
-                <Text style={styles.newsDescription}>{item.description}</Text>
+                <Text style={[styles.newsDescription, { color: colors.textSecondary }]}>{item.description}</Text>
                 
                 {/* Métadonnées */}
                 <View style={styles.newsMetadata}>
                   <View style={styles.metadataItem}>
-                    <Ionicons name="calendar" size={14} color="#6b7280" />
-                    <Text style={styles.metadataText}>{item.date}</Text>
+                    <Ionicons name="calendar" size={14} color={colors.textSecondary} />
+                    <Text style={[styles.metadataText, { color: colors.textSecondary }]}>{item.date}</Text>
                   </View>
                   
                   {item.time && (
                     <View style={styles.metadataItem}>
-                      <Ionicons name="time" size={14} color="#6b7280" />
-                      <Text style={styles.metadataText}>{item.time}</Text>
+                      <Ionicons name="time" size={14} color={colors.textSecondary} />
+                      <Text style={[styles.metadataText, { color: colors.textSecondary }]}>{item.time}</Text>
                     </View>
                   )}
                   
                   <View style={styles.metadataItem}>
-                    <Ionicons name="location" size={14} color="#6b7280" />
-                    <Text style={styles.metadataText}>{item.location}</Text>
+                    <Ionicons name="location" size={14} color={colors.textSecondary} />
+                    <Text style={[styles.metadataText, { color: colors.textSecondary }]}>{item.location}</Text>
                   </View>
                 </View>
               </View>
@@ -165,7 +167,7 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
         </View>
 
         {/* Footer pour les notifications */}
-        <LinearGradient colors={['#10b981', '#059669']} style={styles.footer}>
+        <LinearGradient colors={colors.header as any} style={styles.footer}>
           <View style={styles.footerContent}>
             <Ionicons name="heart" size={32} color="#ffffff" style={styles.footerIcon} />
             <Text style={styles.footerTitle}>Restez connecté</Text>
@@ -173,8 +175,8 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
               Activez les notifications pour ne manquer aucune actualité de votre paroisse
             </Text>
             
-            <TouchableOpacity style={styles.notificationsButton} onPress={handleNotifications}>
-              <Text style={styles.notificationsButtonText}>Gérer les notifications</Text>
+            <TouchableOpacity style={[styles.notificationsButton, { backgroundColor: colors.surface }]} onPress={handleNotifications}>
+              <Text style={[styles.notificationsButtonText, { color: colors.text }]}>Gérer les notifications</Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>

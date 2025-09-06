@@ -587,5 +587,5 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 
 <div align="center">
   <p>Fait avec ❤️ pour l'Église catholique du Sénégal</p>
-  <p>© 2024 SamaQuête. Tous droits réservés.</p>
+  <p>© 2025 SamaQuête. Tous droits réservés.</p>
 </div>
