@@ -2,55 +2,103 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { formatNumber, formatAmount } from '../../../../lib/numberFormat';
-import { useTheme } from '../../../../lib/ThemeContext';
 
 interface DonationTypeScreenProps {
   setCurrentScreen: (screen: string) => void;
   setSelectedAmount: (amount: string) => void;
   setSelectedDonationType: (type: string) => void;
   selectionContext: string;
+  selectedParish: string;
 }
 
-export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount, selectionContext }: DonationTypeScreenProps) {
-  const { colors } = useTheme();
-  const [customAmount, setCustomAmount] = useState('122 222');
+export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount, selectionContext, selectedParish }: DonationTypeScreenProps) {
+  const [customAmount, setCustomAmount] = useState('');
   const [selectedAmount, setSelectedAmountLocal] = useState('');
 
-  const predefinedAmounts = [
-    '2 000 FCFA',
-    '5 000 FCFA',
-    '10 000 FCFA',
-    '15 000 FCFA'
-  ];
+  // Tarifs spécifiques par église et type de don
+  const parishPricing = {
+    "Cathédrale du Souvenir Africain": {
+      quete: ["2,000", "5,000", "10,000", "15,000"],
+      denier: ["10,000", "20,000", "30,000", "50,000"],
+      cierge: ["1,000", "2,000", "3,000", "5,000"],
+      messe: ["15,000", "25,000", "35,000", "50,000"],
+    },
+    "Paroisse Sainte-Anne": {
+      quete: ["1,500", "3,000", "7,000", "12,000"],
+      denier: ["8,000", "15,000", "25,000", "40,000"],
+      cierge: ["800", "1,500", "2,500", "4,000"],
+      messe: ["12,000", "20,000", "30,000", "45,000"],
+    },
+    "Paroisse Saint-Joseph": {
+      quete: ["1,000", "2,500", "6,000", "10,000"],
+      denier: ["7,000", "12,000", "20,000", "35,000"],
+      cierge: ["600", "1,200", "2,000", "3,500"],
+      messe: ["10,000", "18,000", "28,000", "40,000"],
+    },
+    "Paroisse Notre-Dame": {
+      quete: ["1,200", "3,000", "6,500", "11,000"],
+      denier: ["6,000", "13,000", "22,000", "38,000"],
+      cierge: ["700", "1,300", "2,200", "3,800"],
+      messe: ["11,000", "19,000", "29,000", "42,000"],
+    },
+  };
 
-  const handleAmountSelection = (amount: string) => {
+  const donationInfo = {
+    quete: {
+      title: "Quête dominicale",
+      description: "Soutien hebdomadaire à la paroisse",
+    },
+    denier: {
+      title: "Denier du culte",
+      description: "Contribution annuelle diocésaine",
+    },
+    cierge: {
+      title: "Cierge Pascal",
+      description: "Lumière pour vos intentions",
+    },
+    messe: {
+      title: "Messe d'intention",
+      description: "Messe célébrée pour vos proches",
+    },
+  };
+
+  // Déterminer le type de don à partir du contexte
+  const getDonationType = () => {
+    if (selectionContext.includes('Quête')) return 'quete';
+    if (selectionContext.includes('Denier')) return 'denier';
+    if (selectionContext.includes('Cierge')) return 'cierge';
+    if (selectionContext.includes('Messe')) return 'messe';
+    return 'quete'; // par défaut
+  };
+
+  const donationType = getDonationType();
+  const currentPricing = parishPricing[selectedParish as keyof typeof parishPricing] || parishPricing["Cathédrale du Souvenir Africain"];
+  const amounts = currentPricing[donationType as keyof typeof currentPricing] || [];
+  const currentDonation = donationInfo[donationType as keyof typeof donationInfo];
+
+  const handleAmountSelect = (amount: string) => {
     setSelectedAmountLocal(amount);
     setCustomAmount('');
   };
 
-  const handleCustomAmountChange = (amount: string) => {
-    // Formater le montant avec des espaces
-    const formattedAmount = formatNumber(amount.replace(/\s/g, ''));
-    setCustomAmount(formattedAmount);
+  const handleCustomAmount = (value: string) => {
+    setCustomAmount(value);
     setSelectedAmountLocal('');
   };
 
-  const handleContinue = () => {
-    const finalAmount = selectedAmount || customAmount;
-    setSelectedAmount(finalAmount);
-    setCurrentScreen('auth');
-  };
+  const finalAmount = customAmount || selectedAmount;
 
-  const getParishName = () => {
-    // En production, cela viendrait du contexte de sélection
-    return 'Cathédrale du Souvenir Africain';
+  const handleContinue = () => {
+    if (finalAmount) {
+      setSelectedAmount(finalAmount);
+      setCurrentScreen('auth'); // Rediriger vers la page de connexion
+    }
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* En-tête orange avec gradient */}
-      <LinearGradient colors={colors.header as any} style={styles.header}>
+    <SafeAreaView style={styles.container}>
+      {/* Header ambre avec gradient */}
+      <LinearGradient colors={['#f59e0b', '#d97706']} style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => setCurrentScreen('donations')}
@@ -59,36 +107,34 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
         </TouchableOpacity>
         
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{selectionContext || 'Quête dominicale'}</Text>
+          <Text style={styles.headerTitle}>{currentDonation?.title}</Text>
           <View style={styles.parishInfo}>
             <Ionicons name="location" size={16} color="#ffffff" />
-            <Text style={styles.parishName}>{getParishName()}</Text>
+            <Text style={styles.parishName}>{selectedParish}</Text>
           </View>
         </View>
       </LinearGradient>
 
-      {/* Zone de sélection du montant */}
-      <View style={[styles.amountSection, { backgroundColor: colors.background }]}>
-        <Text style={[styles.amountTitle, { color: colors.text }]}>Choisissez le montant</Text>
+      {/* Zone de sélection du montant avec gradient d'arrière-plan */}
+      <LinearGradient colors={['#fffbeb', '#ffffff', '#eff6ff']} style={styles.amountSection}>
+        <Text style={styles.amountTitle}>Choisissez le montant</Text>
         
-        {/* Grille des montants prédéfinis */}
+        {/* Grille des montants prédéfinis 2x2 */}
         <View style={styles.predefinedGrid}>
-          {predefinedAmounts.map((amount, index) => (
+          {amounts.map((amount, index) => (
             <TouchableOpacity
               key={index}
               style={[
                 styles.amountButton,
-                { backgroundColor: colors.card, borderColor: colors.border },
                 selectedAmount === amount && styles.selectedAmountButton
               ]}
-              onPress={() => handleAmountSelection(amount)}
+              onPress={() => handleAmountSelect(amount)}
             >
               <Text style={[
                 styles.amountButtonText,
-                { color: colors.text },
                 selectedAmount === amount && styles.selectedAmountButtonText
               ]}>
-                {amount}
+                {amount} FCFA
               </Text>
             </TouchableOpacity>
           ))}
@@ -97,32 +143,37 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
         {/* Champ montant personnalisé */}
         <View style={styles.customAmountContainer}>
           <TextInput
-            style={[styles.customAmountInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.text }]}
+            style={[
+              styles.customAmountInput,
+              (customAmount && !selectedAmount) && styles.selectedCustomAmountInput
+            ]}
             value={customAmount}
-            onChangeText={handleCustomAmountChange}
-            placeholder="Montant personnalisé"
+            onChangeText={handleCustomAmount}
+            placeholder="Montant personnalisé (FCFA)"
             keyboardType="numeric"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor="#6b7280"
           />
           <TouchableOpacity style={styles.adjustButton}>
             <Ionicons name="chevron-up" size={16} color="#f59e0b" />
             <Ionicons name="chevron-down" size={16} color="#f59e0b" />
           </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Footer orange avec bouton de paiement */}
-      <LinearGradient colors={colors.header as any} style={styles.footer}>
-        <Text style={styles.selectedAmountLabel}>Montant sélectionné</Text>
-        <Text style={styles.selectedAmountValue}>
-          {selectedAmount || customAmount}
-        </Text>
-        
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-          <Text style={styles.continueButtonText}>Continuer vers le paiement</Text>
-          <Ionicons name="chevron-forward" size={20} color="#d97706" />
-        </TouchableOpacity>
       </LinearGradient>
+
+      {/* Footer ambre avec montant sélectionné et bouton de continuation - SEULEMENT si un montant est sélectionné */}
+      {finalAmount && (
+        <LinearGradient colors={['#f59e0b', '#d97706']} style={styles.footer}>
+          <Text style={styles.selectedAmountLabel}>Montant sélectionné</Text>
+          <Text style={styles.selectedAmountValue}>
+            {finalAmount} FCFA
+          </Text>
+          
+          <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+            <Text style={styles.continueButtonText}>Continuer vers le paiement</Text>
+            <Ionicons name="chevron-forward" size={20} color="#d97706" />
+          </TouchableOpacity>
+        </LinearGradient>
+      )}
     </SafeAreaView>
   );
 }
@@ -130,7 +181,7 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fefce8',
+    backgroundColor: '#fffbeb', // from-amber-50
   },
   header: {
     paddingTop: 20,
@@ -165,7 +216,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   amountSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // bg-white/90 backdrop-blur-sm
     margin: 20,
     marginTop: -15,
     borderRadius: 20,
@@ -175,11 +226,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb', // border-gray-200
   },
   amountTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#1f2937', // text-gray-800
     marginBottom: 25,
     textAlign: 'center',
   },
@@ -193,47 +246,50 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#e5e7eb', // border-gray-200
     borderRadius: 12,
     padding: 15,
     alignItems: 'center',
     marginBottom: 10,
   },
   selectedAmountButton: {
+    backgroundColor: '#f59e0b', // bg-gradient-to-r from-amber-500 to-amber-600
     borderColor: '#f59e0b',
-    backgroundColor: '#fef3c7',
   },
   amountButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1e293b',
+    color: '#1f2937', // text-gray-800
   },
   selectedAmountButtonText: {
-    color: '#d97706',
+    color: '#ffffff',
   },
   customAmountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#f59e0b',
+    borderWidth: 1,
+    borderColor: '#e5e7eb', // border-gray-200
     borderRadius: 12,
     paddingHorizontal: 15,
     paddingVertical: 12,
+    backgroundColor: '#ffffff',
+  },
+  selectedCustomAmountInput: {
+    borderWidth: 3,
+    borderColor: '#f59e0b', // border-amber-500
   },
   customAmountInput: {
     flex: 1,
-    fontSize: 18,
-    color: '#1e293b',
-    fontWeight: '600',
+    fontSize: 16,
+    color: '#1f2937', // text-gray-800
+    fontWeight: '500',
   },
   adjustButton: {
     alignItems: 'center',
     padding: 5,
   },
   footer: {
-    flex: 1,
     padding: 20,
-    justifyContent: 'flex-end',
     paddingBottom: 40,
   },
   selectedAmountLabel: {
@@ -263,7 +319,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   continueButtonText: {
-    color: '#d97706',
+    color: '#d97706', // text-amber-600
     fontSize: 18,
     fontWeight: 'bold',
     marginRight: 10,

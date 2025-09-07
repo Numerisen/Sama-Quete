@@ -3,8 +3,6 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } fr
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice } from '../../../../lib/numberFormat';
-import { useTheme } from '../../../../lib/ThemeContext';
-// import { useParishes } from '../../../../hooks/useFirebaseData'; // Temporairement désactivé
 
 interface DonationsScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -15,28 +13,14 @@ interface DonationsScreenProps {
 }
 
 export default function DonationsScreen({ setCurrentScreen, selectedParish, setSelectionContext, setSelectedDonationType, setSelectedAmount }: DonationsScreenProps) {
-  const { colors } = useTheme();
-  // const { parishes, loading } = useParishes(); // Temporairement désactivé
   const [currentParish, setCurrentParish] = useState<any>(null);
 
-  // Données statiques par défaut
-  const parishes: any[] = [];
-  const loading = false;
-
-  // Trouver la paroisse sélectionnée dans les données Firebase (temporairement désactivé)
-  // useEffect(() => {
-  //   const parish = parishes.find(p => p.name === selectedParish);
-  //   if (parish) {
-  //     setCurrentParish(parish);
-  //   }
-  // }, [parishes, selectedParish]);
-
-  // Tarifs par défaut si pas de données Firebase (avec formatage espaces)
+  // Données statiques par défaut avec les montants exacts de l'image
   const defaultPricing = {
-    quete: ["1 000", "2 500", "6 000", "10 000"],
-    denier: ["7 000", "12 000", "20 000", "35 000"],
-    cierge: ["600", "1 200", "2 000", "3 500"],
-    messe: ["10 000", "18 000", "28 000", "40 000"],
+    quete: ["1,500", "3,000", "7,000"],
+    denier: ["8,000", "15,000", "25,000"],
+    cierge: ["800", "1,500", "2,500"],
+    messe: ["12,000", "20,000", "30,000"],
   };
 
   const currentPricing = currentParish?.pricing || defaultPricing;
@@ -47,7 +31,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
       icon: "heart-outline",
       title: "Quête dominicale",
       description: "Soutien hebdomadaire à la paroisse",
-      color: "#ef4444",
+      gradientColors: ["#f87171", "#ef4444"], // from-red-400 to-red-500
       prices: currentPricing.quete,
     },
     {
@@ -55,7 +39,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
       icon: "add",
       title: "Denier du culte",
       description: "Contribution annuelle diocésaine",
-      color: "#f59e0b",
+      gradientColors: ["#fbbf24", "#f59e0b"], // from-amber-400 to-amber-500
       prices: currentPricing.denier,
     },
     {
@@ -63,7 +47,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
       icon: "flame",
       title: "Cierge Pascal",
       description: "Lumière pour vos intentions",
-      color: "#f59e0b",
+      gradientColors: ["#facc15", "#eab308"], // from-yellow-400 to-yellow-500
       prices: currentPricing.cierge,
     },
     {
@@ -71,7 +55,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
       icon: "business",
       title: "Messe d'intention",
       description: "Messe célébrée pour vos proches",
-      color: "#3b82f6",
+      gradientColors: ["#60a5fa", "#3b82f6"], // from-blue-400 to-blue-500
       prices: currentPricing.messe,
     },
   ];
@@ -89,10 +73,10 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header rouge avec gradient */}
-        <LinearGradient colors={colors.header as any} style={styles.header}>
+        <LinearGradient colors={['#ef4444', '#dc2626']} style={styles.header}>
           <View style={styles.headerContent}>
             <TouchableOpacity
               style={styles.backButton}
@@ -109,62 +93,62 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
             </View>
           </View>
 
-          {/* Bouton tarifs spéciaux */}
-          <View style={styles.specialRatesButton}>
+          {/* Carte tarifs spéciaux intégrée dans le header */}
+          <View style={styles.specialRatesCard}>
             <Text style={styles.specialRatesTitle}>Tarifs spéciaux</Text>
             <Text style={styles.specialRatesSubtitle}>Pour {selectedParish}</Text>
           </View>
         </LinearGradient>
 
-        {/* Contenu principal avec les types de dons */}
-        <View style={[styles.content, { backgroundColor: colors.background }]}>
+        {/* Contenu principal avec gradient d'arrière-plan */}
+        <LinearGradient colors={['#fef2f2', '#ffffff', '#fffbeb']} style={styles.content}>
           {donationTypes.map((type, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.donationCard, { backgroundColor: colors.card }]}
+              style={styles.donationCard}
               onPress={() => handleDonationSelect(type)}
             >
               <View style={styles.cardHeader}>
-                <View style={[styles.cardIcon, { backgroundColor: type.color }]}>
+                <LinearGradient colors={type.gradientColors} style={styles.cardIcon}>
                   <Ionicons name={type.icon as any} size={24} color="#ffffff" />
-                </View>
+                </LinearGradient>
                 <View style={styles.cardInfo}>
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>{type.title}</Text>
-                  <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>{type.description}</Text>
+                  <Text style={styles.cardTitle}>{type.title}</Text>
+                  <Text style={styles.cardDescription}>{type.description}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={20} color="#4b5563" />
               </View>
 
               <View style={styles.amountOptions}>
-                {type.prices.slice(0, 3).map((price, amountIndex) => (
+                {type.prices.map((price, amountIndex) => (
                   <TouchableOpacity
                     key={amountIndex}
-                    style={[styles.amountButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    style={styles.amountButton}
                     onPress={() => handleDonationSelect(type, price)}
                   >
-                    <Text style={[styles.amountText, { color: colors.text }]}>{formatPrice(price)} FCFA</Text>
+                    <Text style={styles.amountText}>{price} FCFA</Text>
                   </TouchableOpacity>
                 ))}
                 <TouchableOpacity
-                  style={[styles.plusButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  style={styles.plusButton}
                   onPress={() => handleDonationSelect(type)}
                 >
-                  <Text style={[styles.plusText, { color: colors.text }]}>+plus</Text>
+                  <Text style={styles.plusText}>+plus</Text>
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
           ))}
-        </View>
+        </LinearGradient>
 
         {/* Footer pour changer d'église */}
-        <View style={[styles.footer, { backgroundColor: colors.background }]}>
-          <View style={[styles.changeChurchCard, { backgroundColor: colors.card }]}>
+        <View style={styles.footer}>
+          <View style={styles.changeChurchCard}>
             <View style={styles.changeChurchInfo}>
-              <Text style={[styles.changeChurchTitle, { color: colors.text }]}>Changer d'église ?</Text>
-              <Text style={[styles.changeChurchSubtitle, { color: colors.textSecondary }]}>Chaque église a ses propres tarifs</Text>
+              <Text style={styles.changeChurchTitle}>Changer d'église ?</Text>
+              <Text style={styles.changeChurchSubtitle}>Chaque église a ses propres tarifs</Text>
             </View>
             <TouchableOpacity
-              style={[styles.changeButton, { backgroundColor: colors.primary }]}
+              style={styles.changeButton}
               onPress={() => setCurrentScreen('parish-selection')}
             >
               <Text style={styles.changeButtonText}>Changer</Text>
@@ -179,7 +163,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fef2f2', // from-red-50
   },
   scrollView: {
     flex: 1,
@@ -218,7 +202,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
-  specialRatesButton: {
+  specialRatesCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,
     padding: 20,
@@ -238,9 +222,10 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     gap: 12,
+    flex: 1,
   },
   donationCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // bg-white/90 backdrop-blur-sm
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -248,6 +233,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: '#e5e7eb', // border-gray-200
   },
   cardHeader: {
     flexDirection: 'row',
@@ -268,12 +255,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#1f2937', // text-gray-800
     marginBottom: 4,
   },
   cardDescription: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#4b5563', // text-gray-600
   },
   amountOptions: {
     flexDirection: 'row',
@@ -281,7 +268,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   amountButton: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#f3f4f6', // bg-gray-100
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -290,11 +277,11 @@ const styles = StyleSheet.create({
   },
   amountText: {
     fontSize: 12,
-    color: '#1e293b',
+    color: '#374151', // text-gray-700
     fontWeight: '500',
   },
   plusButton: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: '#fef3c7', // bg-amber-100
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -303,7 +290,7 @@ const styles = StyleSheet.create({
   },
   plusText: {
     fontSize: 12,
-    color: '#1e293b',
+    color: '#b45309', // text-amber-700
     fontWeight: '500',
   },
   footer: {
@@ -311,7 +298,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   changeChurchCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // bg-white/90 backdrop-blur-sm
     borderRadius: 16,
     padding: 20,
     flexDirection: 'row',
@@ -322,6 +309,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    borderWidth: 1,
+    borderColor: '#e5e7eb', // border-gray-200
   },
   changeChurchInfo: {
     flex: 1,
@@ -329,12 +318,12 @@ const styles = StyleSheet.create({
   changeChurchTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#1f2937', // text-gray-800
     marginBottom: 4,
   },
   changeChurchSubtitle: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#4b5563', // text-gray-600
   },
   changeButton: {
     backgroundColor: '#6b7280',

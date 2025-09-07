@@ -12,9 +12,11 @@ import DashboardScreen from './src/components/screens/DashboardScreen';
 import ParishSelectionScreen from './src/components/screens/ParishSelectionScreen';
 import DonationsScreen from './src/components/screens/donations/DonationsScreen';
 import DonationTypeScreen from './src/components/screens/donations/DonationTypeScreen';
+import DonationHistoryScreen from './src/components/screens/donations/DonationHistoryScreen';
 import AuthScreen from './src/components/screens/AuthScreen';
 import PaymentScreen from './src/components/screens/donations/PaymentScreen';
 import LiturgyScreen from './src/components/screens/liturgy/LiturgyScreen';
+import PrayerCalendarScreen from './src/components/screens/prayer/PrayerCalendarScreen';
 import NewsScreen from './src/components/screens/news/NewsScreen';
 import AssistantScreen from './src/components/screens/assistant/AssistantScreen';
 import HistoryScreen from './src/components/screens/history/HistoryScreen';
@@ -96,6 +98,8 @@ export default function App() {
         />;
       case 'donation-type':
         return <DonationTypeScreen {...screenProps} />;
+      case 'donation-history':
+        return <DonationHistoryScreen {...screenProps} />;
       case 'auth':
         return <AuthScreen {...screenProps} />;
       case 'payment':
@@ -107,6 +111,8 @@ export default function App() {
         />;
       case 'liturgy':
         return <LiturgyScreen {...screenProps} />;
+      case 'prayer-calendar':
+        return <PrayerCalendarScreen {...screenProps} />;
       case 'news':
         return <NewsScreen {...screenProps} />;
       case 'assistant':

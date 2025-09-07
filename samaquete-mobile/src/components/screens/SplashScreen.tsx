@@ -39,7 +39,10 @@ export default function SplashScreen({ setCurrentScreen }: SplashScreenProps) {
         ]}
       >
         <View style={styles.iconContainer}>
-          <Ionicons name="add" size={60} color="#ffffff" />
+          <View style={styles.plusIcon}>
+            <View style={styles.plusHorizontal} />
+            <View style={styles.plusVertical} />
+          </View>
         </View>
 
         <Text style={styles.title}>SamaQuête</Text>
@@ -116,5 +119,25 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#f59e0b',
     marginHorizontal: 4,
+  },
+  plusIcon: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  plusHorizontal: {
+    position: 'absolute',
+    width: 24,
+    height: 6,
+    backgroundColor: '#ffffff',
+    borderRadius: 3,
+  },
+  plusVertical: {
+    position: 'absolute',
+    width: 6,
+    height: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 3,
   },
 });

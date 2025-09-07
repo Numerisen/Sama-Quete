@@ -154,20 +154,26 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
 
           {/* Statistiques dans le header */}
           <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => setCurrentScreen('donation-history')}
+            >
               <View style={styles.statIcon}>
                 <Ionicons name="trending-up" size={20} color="#ffffff" />
               </View>
               <Text style={styles.statValue}>{formatNumber(125000)}</Text>
               <Text style={styles.statLabel}>FCFA donnés</Text>
-            </View>
-            <View style={styles.statCard}>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.statCard}
+              onPress={() => setCurrentScreen('prayer-calendar')}
+            >
               <View style={styles.statIcon}>
                 <Ionicons name="calendar" size={20} color="#ffffff" />
               </View>
               <Text style={styles.statValue}>12</Text>
               <Text style={styles.statLabel}>Jours de prière</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.statCard}>
               <View style={styles.statIcon}>
                 <Ionicons name="star" size={20} color="#ffffff" />

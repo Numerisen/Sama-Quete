@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatNumber } from '../../../../lib/numberFormat';
@@ -22,21 +22,24 @@ export default function PaymentScreen({ setCurrentScreen, selectedParish, select
       title: 'Carte bancaire',
       subtitle: 'Visa, Mastercard',
       icon: 'card-outline',
-      selected: selectedPaymentMethod === 'carte'
+      selected: selectedPaymentMethod === 'carte',
+      isImage: false
     },
     {
       id: 'wave',
       title: 'Wave',
       subtitle: 'Paiement mobile',
-      icon: 'phone-portrait-outline',
-      selected: selectedPaymentMethod === 'wave'
+      image: require('../../../../assets/images/logos/wave.png'),
+      selected: selectedPaymentMethod === 'wave',
+      isImage: true
     },
     {
       id: 'orange',
       title: 'Orange Money',
       subtitle: 'Paiement mobile',
-      icon: 'phone-portrait-outline',
-      selected: selectedPaymentMethod === 'orange'
+      image: require('../../../../assets/images/logos/orange.png'),
+      selected: selectedPaymentMethod === 'orange',
+      isImage: true
     }
   ];
 
@@ -55,9 +58,9 @@ export default function PaymentScreen({ setCurrentScreen, selectedParish, select
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
+      {/* Header vert avec gradient */}
       <LinearGradient
-        colors={colors.header as any}
+        colors={['#22c55e', '#16a34a']}
         style={styles.header}
       >
         <TouchableOpacity 
@@ -76,7 +79,7 @@ export default function PaymentScreen({ setCurrentScreen, selectedParish, select
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
+      <LinearGradient colors={['#f0fdf4', '#ffffff', '#eff6ff']} style={styles.content}>
         {/* Récapitulatif */}
         <View style={[styles.summaryCard, { backgroundColor: colors.card }]}>
           <Text style={[styles.cardTitle, { color: colors.text }]}>Récapitulatif</Text>
@@ -113,11 +116,19 @@ export default function PaymentScreen({ setCurrentScreen, selectedParish, select
             >
               <View style={styles.paymentMethodLeft}>
                 <View style={styles.paymentIcon}>
-                  <Ionicons 
-                    name={method.icon as any} 
-                    size={24} 
-                    color={method.selected ? colors.primary : colors.textSecondary} 
-                  />
+                  {method.isImage ? (
+                    <Image 
+                      source={method.image} 
+                      style={styles.paymentLogo}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Ionicons 
+                      name={method.icon as any} 
+                      size={24} 
+                      color={method.selected ? colors.primary : colors.textSecondary} 
+                    />
+                  )}
                 </View>
                 <View style={styles.paymentInfo}>
                   <Text style={[
@@ -139,11 +150,11 @@ export default function PaymentScreen({ setCurrentScreen, selectedParish, select
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
+      </LinearGradient>
 
-      {/* Footer de confirmation */}
+      {/* Footer de confirmation vert */}
       <LinearGradient
-        colors={colors.header as any}
+        colors={['#22c55e', '#16a34a']}
         style={styles.footer}
       >
         <Text style={styles.confirmTitle}>Confirmer le don</Text>
@@ -164,7 +175,7 @@ export default function PaymentScreen({ setCurrentScreen, selectedParish, select
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#f0fdf4', // from-green-50
   },
   header: {
     flexDirection: 'row',
@@ -198,7 +209,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   summaryCard: {
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // bg-white/90 backdrop-blur-sm
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
@@ -207,9 +218,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e5e7eb', // border-gray-200
   },
   paymentCard: {
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', // bg-white/90 backdrop-blur-sm
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
@@ -218,11 +231,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e5e7eb', // border-gray-200
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1f2937', // text-gray-800
     marginBottom: 16,
   },
   summaryRow: {
@@ -233,16 +248,16 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4b5563', // text-gray-600
   },
   summaryValue: {
     fontSize: 14,
-    color: '#1F2937',
+    color: '#1f2937', // text-gray-800
     fontWeight: '500',
   },
   amountValue: {
     fontSize: 16,
-    color: '#22C55E',
+    color: '#16a34a', // text-green-600
     fontWeight: '600',
   },
   paymentMethod: {
@@ -254,11 +269,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: 'white',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#e5e7eb', // border-gray-200
   },
   selectedPaymentMethod: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#22C55E',
+    backgroundColor: '#f0fdf4', // bg-green-50
+    borderColor: '#22c55e', // border-green-500
   },
   paymentMethodLeft: {
     flexDirection: 'row',
@@ -280,21 +295,21 @@ const styles = StyleSheet.create({
   paymentTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1F2937',
+    color: '#1f2937', // text-gray-800
     marginBottom: 2,
   },
   selectedPaymentTitle: {
-    color: '#22C55E',
+    color: '#16a34a', // text-green-600
   },
   paymentSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#4b5563', // text-gray-600
   },
   checkIcon: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#f0fdf4', // bg-green-50
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -322,7 +337,7 @@ const styles = StyleSheet.create({
   payButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#22C55E',
+    color: '#16a34a', // text-green-600
     marginRight: 8,
   },
   securityText: {
@@ -330,5 +345,9 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     opacity: 0.9,
+  },
+  paymentLogo: {
+    width: 24,
+    height: 24,
   },
 });

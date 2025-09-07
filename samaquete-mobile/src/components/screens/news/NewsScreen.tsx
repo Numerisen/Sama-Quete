@@ -84,7 +84,7 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header vert avec gradient */}
-        <LinearGradient colors={colors.header as any} style={styles.header}>
+        <LinearGradient colors={['#10b981', '#059669']} style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => setCurrentScreen('dashboard')}
@@ -167,7 +167,7 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
         </View>
 
         {/* Footer pour les notifications */}
-        <LinearGradient colors={colors.header as any} style={styles.footer}>
+        <LinearGradient colors={['#10b981', '#059669']} style={styles.footer}>
           <View style={styles.footerContent}>
             <Ionicons name="heart" size={32} color="#ffffff" style={styles.footerIcon} />
             <Text style={styles.footerTitle}>Restez connecté</Text>
@@ -223,24 +223,26 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   newsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
     minWidth: 200,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   newsCardTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginTop: 15,
+    marginTop: 12,
     marginBottom: 4,
     textAlign: 'center',
   },
   newsCardSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#ffffff',
-    opacity: 0.9,
+    opacity: 0.8,
   },
   parishSelector: {
     padding: 20,
@@ -250,17 +252,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f0fdf4',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#10b981',
   },
   parishText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#10b981',
-    marginHorizontal: 10,
+    marginHorizontal: 8,
   },
   newsContainer: {
     padding: 20,
@@ -268,23 +270,25 @@ const styles = StyleSheet.create({
   },
   newsItem: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 16,
     flexDirection: 'row',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   newsImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
+    width: 60,
+    height: 60,
+    borderRadius: 8,
     backgroundColor: '#f3f4f6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 12,
   },
   newsContent: {
     flex: 1,
@@ -296,31 +300,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    borderRadius: 15,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   typeIcon: {
     fontSize: 12,
     marginRight: 4,
   },
   typeText: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#ffffff',
     fontWeight: '600',
   },
   newsTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 8,
-    lineHeight: 22,
+    marginBottom: 6,
+    lineHeight: 20,
   },
   newsDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748b',
-    lineHeight: 20,
-    marginBottom: 15,
+    lineHeight: 18,
+    marginBottom: 12,
   },
   newsMetadata: {
     gap: 8,
@@ -330,41 +334,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metadataText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6b7280',
-    marginLeft: 6,
+    marginLeft: 5,
   },
   footer: {
-    padding: 30,
+    padding: 24,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 16,
   },
   footerContent: {
     alignItems: 'center',
   },
   footerIcon: {
-    marginBottom: 15,
+    marginBottom: 12,
   },
   footerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
   footerSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#ffffff',
     opacity: 0.9,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 25,
+    lineHeight: 18,
+    marginBottom: 20,
   },
   notificationsButton: {
     backgroundColor: '#ffffff',
-    borderRadius: 25,
-    paddingHorizontal: 30,
-    paddingVertical: 15,
+    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#10b981',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -373,7 +379,7 @@ const styles = StyleSheet.create({
   },
   notificationsButtonText: {
     color: '#10b981',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
 });
