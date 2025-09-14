@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Modal, FlatList } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useParishes } from '../../../hooks/useParishes';
 import { formatNumber } from '../../../lib/numberFormat';
+import { Parish } from '../../../lib/parish-service';
 import { useTheme } from '../../../lib/ThemeContext';
-// import { useAppData } from '../../../hooks/useFirebaseData'; // Temporairement désactivé
 
 interface DashboardScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -18,49 +19,44 @@ interface DashboardScreenProps {
 
 export default function DashboardScreen({ setCurrentScreen, userProfile }: DashboardScreenProps) {
   const { colors, isDarkMode } = useTheme();
-  const [currentChurch, setCurrentChurch] = useState('Paroisse Saint-Pierre');
   const [showChurchModal, setShowChurchModal] = useState(false);
-  const [selectedParishId, setSelectedParishId] = useState<string | undefined>();
   
-  // Utiliser les données Firebase (temporairement désactivé)
-  // const { parishes, news, notifications, loading, error, selectedParish } = useAppData(selectedParishId);
+  // Utiliser les données Firebase
+  const { 
+    parishes, 
+    dioceses, 
+    loading, 
+    error, 
+    selectedParish, 
+    setSelectedParish 
+  } = useParishes();
   
-  // Données statiques par défaut
-  const parishes: any[] = [];
-  const news: any[] = [];
-  const notifications: any[] = [];
-  const loading = false;
-  const error = null;
-  const selectedParish = null;
+  const [currentChurch, setCurrentChurch] = useState('Chargement...');
 
-  // Utiliser les paroisses de Firebase ou des données par défaut
-  const availableParishes = parishes.length > 0 ? parishes.map(parish => ({
+  // Utiliser les paroisses de Firebase
+  const availableParishes = parishes.map(parish => ({
     id: parish.id,
     name: parish.name,
-    location: parish.location
-  })) : [
-    { id: '1', name: 'Paroisse Saint-Pierre', location: 'Dakar, Sénégal' },
-    { id: '2', name: 'Paroisse Notre-Dame', location: 'Thiès, Sénégal' },
-    { id: '3', name: 'Paroisse Saint-Joseph', location: 'Kaolack, Sénégal' },
-    { id: '4', name: 'Paroisse Sainte-Marie', location: 'Saint-Louis, Sénégal' },
-    { id: '5', name: 'Paroisse Saint-Paul', location: 'Ziguinchor, Sénégal' },
-    { id: '6', name: 'Paroisse Saint-Antoine', location: 'Diourbel, Sénégal' },
-    { id: '7', name: 'Paroisse Saint-François', location: 'Tambacounda, Sénégal' },
-    { id: '8', name: 'Paroisse Sainte-Thérèse', location: 'Kolda, Sénégal' },
-  ];
+    location: parish.city || parish.location,
+    diocese: parish.dioceseName
+  }));
 
-  const handleChurchSelection = (churchName: string, churchId?: string) => {
-    setCurrentChurch(churchName);
-    setSelectedParishId(churchId);
+  const handleChurchSelection = (parish: Parish) => {
+    setCurrentChurch(parish.name);
+    setSelectedParish(parish);
     setShowChurchModal(false);
   };
 
   // Mettre à jour l'église actuelle quand les données Firebase sont chargées
   useEffect(() => {
-    if (selectedParish && typeof selectedParish === 'object' && selectedParish !== null && 'name' in selectedParish) {
-      setCurrentChurch((selectedParish as any).name);
+    if (selectedParish) {
+      setCurrentChurch(selectedParish.name);
+    } else if (parishes.length > 0 && !loading) {
+      // Si aucune paroisse n'est sélectionnée, prendre la première
+      setCurrentChurch(parishes[0].name);
+      setSelectedParish(parishes[0]);
     }
-  }, [selectedParish]);
+  }, [selectedParish, parishes, loading]);
 
   const mainFeatures = [
     {
@@ -101,6 +97,37 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
     icon: 'business' as const,
     lastVisit: index === 0 ? 'Aujourd\'hui' : index === 1 ? 'Hier' : 'Il y a 2 jours',
   }));
+
+  // Afficher un indicateur de chargement si les données sont en cours de chargement
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#f59e0b" />
+          <Text style={[styles.loadingText, { color: colors.text }]}>
+            Chargement des paroisses...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Afficher une erreur si le chargement a échoué
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color="#ef4444" />
+          <Text style={[styles.errorText, { color: colors.text }]}>
+            Erreur de chargement
+          </Text>
+          <Text style={[styles.errorSubtext, { color: colors.textSecondary }]}>
+            {error}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -250,15 +277,15 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
             </View>
             
             <FlatList
-              data={availableParishes}
+              data={parishes}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[
                     styles.parishItem,
-                    currentChurch === item.name && styles.selectedParishItem
+                    selectedParish?.id === item.id && styles.selectedParishItem
                   ]}
-                  onPress={() => handleChurchSelection(item.name, item.id)}
+                  onPress={() => handleChurchSelection(item)}
                 >
                   <View style={styles.parishItemContent}>
                     <View style={styles.parishItemIcon}>
@@ -266,9 +293,10 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
                     </View>
                     <View style={styles.parishItemInfo}>
                       <Text style={styles.parishItemName}>{item.name}</Text>
-                      <Text style={styles.parishItemLocation}>{item.location}</Text>
+                      <Text style={styles.parishItemLocation}>{item.city}</Text>
+                      <Text style={styles.parishItemDiocese}>{item.dioceseName}</Text>
                     </View>
-                    {currentChurch === item.name && (
+                    {selectedParish?.id === item.id && (
                       <Ionicons name="checkmark-circle" size={24} color="#f59e0b" />
                     )}
                   </View>
@@ -594,5 +622,39 @@ const styles = StyleSheet.create({
   parishItemLocation: {
     fontSize: 14,
     color: '#64748b',
+  },
+  parishItemDiocese: {
+    fontSize: 12,
+    color: '#f59e0b',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
   },
 });

@@ -1,591 +1,333 @@
-# 🕊️ SamaQuête - Plateforme de Gestion des Quêtes Paroissiales
+# 🏛️ SamaQuête - Plateforme de Gestion Paroissiale
 
-<div align="center">
-  <img src="samaquete-mobile/assets/icon.png" alt="SamaQuête Logo" width="120" height="120">
-  
-  **Une solution complète pour la gestion des quêtes et dons paroissiaux au Sénégal**
-  
-  [![React Native](https://img.shields.io/badge/React%20Native-0.79.6-blue.svg)](https://reactnative.dev/)
-  [![Next.js](https://img.shields.io/badge/Next.js-14.2.30-black.svg)](https://nextjs.org/)
-  [![Firebase](https://img.shields.io/badge/Firebase-12.2.1-orange.svg)](https://firebase.google.com/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue.svg)](https://www.typescriptlang.org/)
-  [![Expo](https://img.shields.io/badge/Expo-53.0.22-purple.svg)](https://expo.dev/)
-</div>
+Une solution complète pour la gestion des paroisses, diocèses et dons avec une application mobile et un panel d'administration.
 
-## 📋 Table des Matières
+## 📱 Applications
 
-- [🎯 Aperçu du Projet](#-aperçu-du-projet)
-- [🏗️ Architecture](#️-architecture)
-- [✨ Fonctionnalités](#-fonctionnalités)
-- [🚀 Installation](#-installation)
-- [⚙️ Configuration](#️-configuration)
-- [📱 Développement Mobile](#-développement-mobile)
-- [🌐 Développement Web](#-développement-web)
-- [🔥 Configuration Firebase](#-configuration-firebase)
-- [🎨 Thèmes](#-thèmes)
-- [📁 Structure du Projet](#-structure-du-projet)
-- [🤝 Contribution](#-contribution)
-- [📄 Licence](#-licence)
+### 🖥️ Panel d'Administration (`samaquete-admin`)
+- **Framework**: Next.js 14 + TypeScript
+- **UI**: Tailwind CSS + Radix UI
+- **Backend**: Firebase (Auth + Firestore)
+- **Port**: http://localhost:3000
 
-## 🎯 Aperçu du Projet
+### 📱 Application Mobile (`samaquete-mobile`)
+- **Framework**: React Native + Expo
+- **UI**: React Native + Expo Linear Gradient
+- **Backend**: Firebase (Auth + Firestore)
+- **Port**: Expo Dev Server
 
-SamaQuête est une plateforme complète de gestion des quêtes paroissiales développée spécifiquement pour l'Église catholique au Sénégal. Le projet comprend :
+## 🚀 Installation Rapide
 
-- **📱 Application Mobile** : Interface utilisateur pour les fidèles
-- **🌐 Panel d'Administration** : Interface de gestion pour les administrateurs
-- **🔥 Backend Firebase** : Base de données et authentification
+### Prérequis
+- Node.js 18+
+- npm ou yarn
+- Expo CLI (`npm install -g @expo/cli`)
+- Compte Firebase
 
-### 🎯 Objectifs
-
-- Digitaliser la collecte des quêtes paroissiales
-- Faciliter la gestion des dons et offrandes
-- Améliorer la communication entre paroisses et fidèles
-- Fournir des statistiques en temps réel
-- Assurer la transparence financière
-
-## 🏗️ Architecture
-
-```
-SamaQuête/
-├── 📱 samaquete-mobile/          # Application React Native/Expo
-├── 🌐 samaquete-admin/           # Panel d'administration Next.js
-├── 🔥 Firebase/                  # Backend (Firestore + Auth)
-└── 📄 Documentation/             # Guides et documentation
-```
-
-### 🛠️ Technologies Utilisées
-
-**Mobile (React Native/Expo)**
-- React Native 0.79.6
-- Expo SDK 53
-- TypeScript 5.8.3
-- React Native Gesture Handler
-- React Native Reanimated
-- Expo Linear Gradient
-
-**Web (Next.js)**
-- Next.js 14.2.30
-- React 18
-- TypeScript 5
-- Tailwind CSS 3.4.17
-- Radix UI Components
-- Framer Motion
-
-**Backend**
-- Firebase 12.2.1
-- Firestore Database
-- Firebase Authentication
-- Firebase Storage
-
-## ✨ Fonctionnalités
-
-### 📱 Application Mobile
-
-#### 🏠 Dashboard
-- Vue d'ensemble des statistiques personnelles
-- Accès rapide aux fonctionnalités principales
-- Sélection de paroisse
-- Mode sombre/clair
-
-#### 💰 Gestion des Dons
-- Types de dons multiples (dominical, spécial, etc.)
-- Montants prédéfinis et personnalisés
-- Processus de paiement sécurisé
-- Historique des transactions
-
-#### 📖 Textes Liturgiques
-- Lectures du jour
-- Programme de la semaine
-- Calendrier liturgique
-- Couleurs liturgiques
-
-#### 🤖 Assistant IA Spirituel
-- Questions fréquentes
-- Réponses basées sur la doctrine catholique
-- Interface de chat intuitive
-
-#### 🔔 Notifications
-- Notifications push personnalisables
-- Actualités paroissiales
-- Rappels de quêtes
-- Textes liturgiques quotidiens
-
-#### ⚙️ Paramètres
-- Profil utilisateur
-- Préférences de notifications
-- Gestion du thème
-- Authentification sécurisée
-
-### 🌐 Panel d'Administration
-
-#### 👥 Gestion des Utilisateurs
-- Création et modification des comptes
-- Gestion des rôles et permissions
-- Suivi des activités
-
-#### 🏛️ Gestion des Paroisses
-- Création et configuration des paroisses
-- Gestion des diocèses
-- Paramétrage des tarifs
-
-#### 💰 Gestion Financière
-- Suivi des dons en temps réel
-- Rapports financiers détaillés
-- Export des données
-- Statistiques avancées
-
-#### 📰 Gestion de Contenu
-- Actualités paroissiales
-- Textes liturgiques
-- Notifications push
-- Gestion des médias
-
-## 🚀 Installation
-
-### 📋 Prérequis
-
-- **Node.js** : Version 18 ou supérieure
-- **npm** ou **yarn** : Gestionnaire de paquets
-- **Git** : Contrôle de version
-- **Expo CLI** : Pour le développement mobile
-- **Android Studio** : Pour le développement Android (optionnel)
-- **Xcode** : Pour le développement iOS (macOS uniquement)
-
-### 🔧 Installation des Outils
-
-#### 1. Node.js et npm
+### 1. Cloner le projet
 ```bash
-# Vérifier la version de Node.js
-node --version  # Doit être >= 18.0.0
-
-# Vérifier npm
-npm --version
+git clone [URL_DU_REPO]
+cd Sama-Quete
 ```
 
-#### 2. Expo CLI
+### 2. Panel d'Administration
 ```bash
-# Installation globale d'Expo CLI
-npm install -g @expo/cli
-
-# Vérifier l'installation
-expo --version
-```
-
-#### 3. Cloner le Projet
-```bash
-# Cloner le repository
-git clone https://github.com/votre-username/samaquete.git
-
-# Se déplacer dans le dossier
-cd samaquete
-```
-
-## ⚙️ Configuration
-
-### 📱 Configuration Mobile
-
-#### 1. Installation des Dépendances
-```bash
-# Se déplacer dans le dossier mobile
-cd samaquete-mobile
-
-# Installer les dépendances
-npm install
-
-# Ou avec yarn
-yarn install
-```
-
-#### 2. Configuration Expo
-```bash
-# Initialiser Expo (si nécessaire)
-expo init
-
-# Démarrer le serveur de développement
-npm start
-# ou
-expo start
-```
-
-#### 3. Configuration Firebase (Mobile)
-```bash
-# Copier le fichier de configuration Firebase
-cp firebase-config.example.js lib/firebase.ts
-
-# Éditer le fichier avec vos clés Firebase
-nano lib/firebase.ts
-```
-
-### 🌐 Configuration Web
-
-#### 1. Installation des Dépendances
-```bash
-# Se déplacer dans le dossier admin
 cd samaquete-admin
-
-# Installer les dépendances
 npm install
-
-# Ou avec yarn
-yarn install
-```
-
-#### 2. Configuration Next.js
-```bash
-# Démarrer le serveur de développement
 npm run dev
-
-# Ou avec yarn
-yarn dev
 ```
+➡️ Ouvrir http://localhost:3000
 
-#### 3. Configuration Firebase (Web)
+### 3. Application Mobile
 ```bash
-# Copier le fichier de configuration Firebase
-cp firebase-config.example.js lib/firebase.ts
-
-# Éditer le fichier avec vos clés Firebase
-nano lib/firebase.ts
+cd samaquete-mobile
+npm install
+npx expo start
 ```
-
-## 📱 Développement Mobile
-
-### 🚀 Commandes de Développement
-
-```bash
-# Démarrer le serveur de développement
-npm start
-
-# Démarrer sur Android
-npm run android
-
-# Démarrer sur iOS
-npm run ios
-
-# Démarrer sur Web
-npm run web
-```
-
-### 📱 Test sur Appareil
-
-#### Android
-```bash
-# Installer Expo Go sur votre téléphone Android
-# Scanner le QR code affiché dans le terminal
-
-# Ou utiliser un émulateur Android
-expo run:android
-```
-
-#### iOS
-```bash
-# Installer Expo Go sur votre iPhone
-# Scanner le QR code affiché dans le terminal
-
-# Ou utiliser le simulateur iOS (macOS uniquement)
-expo run:ios
-```
-
-### 🔧 Configuration Avancée
-
-#### Variables d'Environnement
-```bash
-# Créer un fichier .env
-touch .env
-
-# Ajouter vos variables
-echo "EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key" >> .env
-echo "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain" >> .env
-echo "EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id" >> .env
-```
-
-#### Configuration TypeScript
-```bash
-# Vérifier la configuration TypeScript
-npx tsc --noEmit
-
-# Lancer le linter
-npx eslint src/
-```
-
-## 🌐 Développement Web
-
-### 🚀 Commandes de Développement
-
-```bash
-# Démarrer le serveur de développement
-npm run dev
-
-# Build de production
-npm run build
-
-# Démarrer en production
-npm run start
-
-# Linter
-npm run lint
-```
-
-### 🌐 Accès à l'Application
-
-- **Développement** : http://localhost:3000
-- **Production** : Votre domaine de déploiement
-
-### 🔧 Configuration Avancée
-
-#### Variables d'Environnement
-```bash
-# Créer un fichier .env.local
-touch .env.local
-
-# Ajouter vos variables
-echo "NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key" >> .env.local
-echo "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain" >> .env.local
-echo "NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id" >> .env.local
-```
+➡️ Scanner le QR code avec Expo Go
 
 ## 🔥 Configuration Firebase
 
-### 1. Créer un Projet Firebase
+### Projet Firebase
+- **Project ID**: `numerisen-14a03`
+- **Auth Domain**: `numerisen-14a03.firebaseapp.com`
 
-1. Aller sur [Firebase Console](https://console.firebase.google.com/)
-2. Cliquer sur "Créer un projet"
-3. Suivre les étapes de configuration
+### Clés API (déjà configurées)
+Les clés Firebase sont déjà configurées dans les fichiers :
+- `samaquete-admin/lib/firebase.ts`
+- `samaquete-mobile/lib/firebase.ts`
 
-### 2. Configuration Firestore
+### Comptes de Test
+- **Super Admin**: `admin@admin.com` / `admin123`
+- **Admin Diocèse**: `diocese@diocese.com` / `diocese123`
 
-```javascript
-// Règles de sécurité Firestore
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Règles pour les paroisses
-    match /parishes/{parishId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Règles pour les dons
-    match /donations/{donationId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Règles pour les utilisateurs
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
+> 📋 **Note**: Voir `FIREBASE_AUTH_SETUP.md` pour la configuration détaillée des comptes Firebase Auth.
+
+## 📊 Structure Firebase
+
+### Collections Principales
+
+#### 👥 `users`
+```typescript
+{
+  email: string
+  displayName: string
+  role: 'super_admin' | 'diocese_admin'
+  permissions: {
+    canManageUsers: boolean
+    canManageDioceses: boolean
+    canManageParishes: boolean
+    canManageContent: boolean
+    canViewReports: boolean
+    canManageDonations: boolean
   }
+  isActive: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
 }
 ```
 
-### 3. Configuration Authentication
-
-1. Aller dans "Authentication" > "Sign-in method"
-2. Activer "Email/Password"
-3. Configurer les paramètres de sécurité
-
-### 4. Configuration des Clés
-
-#### Mobile (Expo)
-```javascript
-// lib/firebase.ts
-import { initializeApp } from 'firebase/app';
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const firebaseConfig = {
-  apiKey: "your_api_key",
-  authDomain: "your_project.firebaseapp.com",
-  projectId: "your_project_id",
-  storageBucket: "your_project.appspot.com",
-  messagingSenderId: "your_sender_id",
-  appId: "your_app_id"
-};
-
-const app = initializeApp(firebaseConfig);
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
-export const db = getFirestore(app);
-```
-
-#### Web (Next.js)
-```javascript
-// lib/firebase.ts
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
-
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-```
-
-## 🎨 Thèmes
-
-### 🌙 Mode Sombre/Clair
-
-L'application supporte les thèmes sombre et clair avec basculement automatique :
-
-#### Configuration du Thème
+#### 🏛️ `dioceses`
 ```typescript
-// lib/ThemeContext.tsx
-const lightColors = {
-  background: '#fefce8',
-  surface: '#ffffff',
-  card: '#ffffff',
-  text: '#1e293b',
-  textSecondary: '#64748b',
-  primary: '#f59e0b',
-  accent: '#f59e0b',
-  header: ['#f59e0b', '#d97706'],
-  // ... autres couleurs
-};
-
-const darkColors = {
-  background: '#0f172a',
-  surface: '#1e293b',
-  card: '#334155',
-  text: '#f1f5f9',
-  textSecondary: '#94a3b8',
-  primary: '#22C55E',
-  accent: '#f59e0b',
-  header: ['#1e293b', '#0f172a'],
-  // ... autres couleurs
-};
-```
-
-#### Utilisation du Thème
-```typescript
-import { useTheme } from '../lib/ThemeContext';
-
-function MyComponent() {
-  const { colors, isDarkMode, toggleTheme } = useTheme();
-  
-  return (
-    <View style={{ backgroundColor: colors.background }}>
-      <Text style={{ color: colors.text }}>Mon texte</Text>
-    </View>
-  );
+{
+  name: string
+  location: string
+  city: string
+  type: 'archdiocese' | 'diocese'
+  bishop: string
+  contactInfo: {
+    email: string
+    phone: string
+    address: string
+  }
+  isActive: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
 }
 ```
 
-## 📁 Structure du Projet
-
-### 📱 Mobile (samaquete-mobile/)
-```
-samaquete-mobile/
-├── 📱 App.tsx                    # Point d'entrée principal
-├── 📱 app.json                   # Configuration Expo
-├── 📱 index.ts                   # Point d'entrée
-├── 📁 assets/                    # Images et ressources
-├── 📁 hooks/                     # Hooks personnalisés
-│   └── useFirebaseData.ts
-├── 📁 lib/                       # Utilitaires et configuration
-│   ├── firebase.ts              # Configuration Firebase
-│   ├── ThemeContext.tsx         # Gestion des thèmes
-│   ├── numberFormat.ts          # Formatage des nombres
-│   └── dataServices.ts          # Services de données
-├── 📁 src/
-│   └── 📁 components/
-│       └── 📁 screens/          # Écrans de l'application
-│           ├── DashboardScreen.tsx
-│           ├── AuthScreen.tsx
-│           ├── SettingsScreen.tsx
-│           ├── 📁 donations/    # Écrans de dons
-│           ├── 📁 notifications/ # Écrans de notifications
-│           ├── 📁 assistant/    # Assistant IA
-│           └── 📁 liturgy/      # Textes liturgiques
-└── 📁 ios/                      # Configuration iOS
+#### ⛪ `parishes`
+```typescript
+{
+  name: string
+  city: string
+  dioceseId: string
+  dioceseName: string
+  priest: string
+  email: string
+  phone: string
+  address: string
+  isActive: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
 ```
 
-### 🌐 Web (samaquete-admin/)
-```
-samaquete-admin/
-├── 📁 app/                      # Pages Next.js
-│   ├── 📁 admin/               # Panel administrateur
-│   ├── 📁 admindiocese/        # Panel diocèse
-│   └── 📁 login/               # Authentification
-├── 📁 components/              # Composants réutilisables
-│   ├── 📁 admin/               # Composants admin
-│   ├── 📁 auth/                # Composants auth
-│   └── 📁 ui/                  # Composants UI
-├── 📁 lib/                     # Utilitaires
-│   ├── firebase.ts             # Configuration Firebase
-│   ├── auth-context.tsx        # Contexte d'authentification
-│   └── utils.ts                # Utilitaires
-├── 📁 hooks/                   # Hooks personnalisés
-├── 📁 public/                  # Fichiers statiques
-└── 📁 styles/                  # Styles CSS
+#### 💰 `donationEvents`
+```typescript
+{
+  title: string
+  type: 'quete' | 'denier' | 'cierge' | 'messe'
+  description: string
+  targetAmount: number
+  currentAmount: number
+  startDate: Timestamp
+  endDate: Timestamp
+  parishId: string
+  parishName: string
+  isActive: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
 ```
 
-## 🤝 Contribution
+#### 💸 `donations`
+```typescript
+{
+  eventId: string
+  eventTitle: string
+  amount: number
+  donorName: string
+  donorPhone: string
+  paymentMethod: 'mobile_money' | 'bank_transfer' | 'cash'
+  parishId: string
+  parishName: string
+  status: 'pending' | 'completed' | 'failed'
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
 
-### 🔧 Guide de Contribution
+#### 📰 `news`
+```typescript
+{
+  title: string
+  content: string
+  author: string
+  parishId?: string
+  dioceseId?: string
+  isPublished: boolean
+  publishedAt?: Timestamp
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
 
-1. **Fork** le projet
-2. Créer une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
-3. Commiter vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Pousser vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrir une **Pull Request**
+#### 📅 `liturgy`
+```typescript
+{
+  title: string
+  content: string
+  date: Timestamp
+  type: 'mass' | 'prayer' | 'celebration'
+  parishId?: string
+  dioceseId?: string
+  isActive: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
 
-### 📝 Standards de Code
+#### 🔔 `notifications`
+```typescript
+{
+  title: string
+  message: string
+  type: 'info' | 'warning' | 'success' | 'error'
+  targetUsers: string[] // UIDs
+  targetParishes: string[] // Parish IDs
+  isRead: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+```
 
-- Utiliser **TypeScript** pour tous les nouveaux fichiers
-- Suivre les conventions de nommage **camelCase**
-- Ajouter des commentaires pour les fonctions complexes
-- Tester vos modifications avant de soumettre
+## 🛠️ Scripts Utiles
 
-### 🐛 Signaler un Bug
+### Initialisation des Données
+```bash
+# Créer les profils utilisateurs
+cd samaquete-admin
+node lib/create-profiles.js
 
-1. Aller dans l'onglet **Issues**
-2. Cliquer sur **New Issue**
-3. Sélectionner **Bug Report**
-4. Remplir le template fourni
+# Initialiser les diocèses
+node lib/init-dioceses.js
 
-### ✨ Demander une Fonctionnalité
+# Initialiser les données de test
+node lib/init-donation-data.js
+```
 
-1. Aller dans l'onglet **Issues**
-2. Cliquer sur **New Issue**
-3. Sélectionner **Feature Request**
-4. Décrire la fonctionnalité souhaitée
+### Tests de Connexion
+```bash
+# Tester Firebase Admin
+cd samaquete-admin
+node lib/test-firebase-data.js
 
-## 📄 Licence
+# Tester Firebase Mobile
+cd samaquete-mobile
+node lib/test-mobile-parishes.js
+```
 
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+## 📱 Fonctionnalités
 
-## 👥 Équipe
+### Panel d'Administration
+- ✅ Authentification et autorisation
+- ✅ Gestion des utilisateurs et rôles
+- ✅ Gestion des diocèses
+- ✅ Gestion des paroisses
+- ✅ Système de dons complet
+- ✅ Tableau de bord avec statistiques
+- ✅ Gestion du contenu (actualités, liturgie)
+- ✅ Notifications
 
-- **Développeur Principal** : [Votre Nom](https://github.com/votre-username)
-- **Designer UI/UX** : [Nom du Designer](https://github.com/designer-username)
-- **Contributeurs** : Voir [CONTRIBUTORS.md](CONTRIBUTORS.md)
+### Application Mobile
+- ✅ Interface utilisateur moderne
+- ✅ Sélection de paroisse
+- ✅ Système de dons
+- ✅ Actualités paroissiales
+- ✅ Calendrier liturgique
+- ✅ Assistant spirituel (interface prête)
+- ✅ Thème sombre/clair
+- ✅ Connexion Firebase
+
+## 🔧 Développement
+
+### Structure du Projet
+```
+Sama-Quete/
+├── samaquete-admin/          # Panel d'administration
+│   ├── app/                  # Pages Next.js
+│   ├── components/           # Composants React
+│   ├── lib/                  # Services et utilitaires
+│   └── public/               # Assets statiques
+├── samaquete-mobile/         # Application mobile
+│   ├── src/                  # Code source
+│   ├── lib/                  # Services Firebase
+│   ├── hooks/                # Hooks React
+│   └── assets/               # Images et icônes
+└── README.md                 # Cette documentation
+```
+
+### Commandes de Développement
+```bash
+# Admin - Mode développement
+cd samaquete-admin
+npm run dev
+
+# Admin - Build de production
+npm run build
+npm start
+
+# Mobile - Développement
+cd samaquete-mobile
+npx expo start
+
+# Mobile - Build Android
+npx expo build:android
+
+# Mobile - Build iOS
+npx expo build:ios
+```
+
+## 🚨 Résolution de Problèmes
+
+### Erreurs Firebase Index
+Si vous voyez des erreurs d'index Firestore :
+1. Allez sur [Firebase Console](https://console.firebase.google.com)
+2. Cliquez sur les liens d'erreur pour créer les index automatiquement
+3. Ou utilisez les requêtes sans `orderBy` (déjà implémenté)
+
+### Problèmes Expo
+```bash
+# Nettoyer le cache
+npx expo start --clear
+
+# Réinstaller les dépendances
+rm -rf node_modules
+npm install
+```
+
+### Problèmes de Connexion Firebase
+1. Vérifiez que les clés API sont correctes
+2. Vérifiez les règles Firestore
+3. Testez avec les scripts de test fournis
 
 ## 📞 Support
 
-- **Email** : support@samaquete.sn
-- **Documentation** : [docs.samaquete.sn](https://docs.samaquete.sn)
-- **Issues** : [GitHub Issues](https://github.com/votre-username/samaquete/issues)
+Pour toute question ou problème :
+1. Vérifiez cette documentation
+2. Consultez les logs dans la console
+3. Utilisez les scripts de test pour diagnostiquer
 
-## 🙏 Remerciements
+## 🎯 Prochaines Étapes
 
-- L'Église catholique du Sénégal pour son soutien
-- La communauté React Native
-- La communauté Next.js
-- Tous les contributeurs du projet
+- [ ] Intégration système de paiement
+- [ ] Notifications push
+- [ ] Assistant IA spirituel
+- [ ] Rapports avancés
+- [ ] Export de données
+- [ ] API REST pour intégrations externes
 
 ---
 
-<div align="center">
-  <p>Fait avec ❤️ pour l'Église catholique du Sénégal</p>
-  <p>© 2025 SamaQuête. Tous droits réservés.</p>
-</div>
+**Développé avec ❤️ pour la communauté paroissiale**

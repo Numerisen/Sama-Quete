@@ -1,5 +1,95 @@
-import { redirect } from 'next/navigation'
+"use client"
+
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/lib/auth-context'
+import { Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function HomePage() {
-  redirect('/admin/dashboard')
+  const { user, userRole, loading, logout } = useAuth()
+  const router = useRouter()
+
+  // Redirection automatique basée sur le rôle
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        // Si pas d'utilisateur connecté, rediriger vers login
+        router.push('/login')
+        return
+      }
+      
+      if (user && userRole) {
+        // Si utilisateur connecté avec rôle, rediriger selon le rôle
+        if (userRole.role === 'super_admin') {
+          router.push('/admin/dashboard')
+        } else if (userRole.role === 'diocese_admin' || userRole.role === 'parish_admin') {
+          router.push('/admindiocese/dashboard')
+        }
+      }
+    }
+  }, [user, userRole, loading, router])
+
+  const handleLogout = async () => {
+    await logout()
+    router.push('/login')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>Chargement...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Si pas d'utilisateur connecté, ne rien afficher (redirection en cours)
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>Redirection vers la connexion...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Si l'utilisateur n'a pas de rôle défini, afficher un message d'erreur
+  if (!userRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              Rôle non défini
+            </CardTitle>
+            <p className="text-gray-600">Votre compte n'a pas de rôle défini</p>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4 text-center">
+              Contactez l'administrateur pour définir votre rôle.
+            </p>
+            <Button variant="outline" onClick={handleLogout} className="w-full">
+              Se déconnecter
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Affichage de redirection pendant que la redirection se fait
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+        <p>Redirection vers votre tableau de bord...</p>
+      </div>
+    </div>
+  )
 }

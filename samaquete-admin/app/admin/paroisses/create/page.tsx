@@ -1,11 +1,13 @@
 "use client"
-import { useState, ChangeEvent } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Users, Loader2 } from "lucide-react"
+import { Diocese, ParishService } from "@/lib/parish-service"
+import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { ChangeEvent, useEffect, useState } from "react"
+import { toast } from "sonner"
 
 const diocesesList = [
   "Archidiocèse de Dakar",
@@ -20,15 +22,43 @@ const diocesesList = [
 export default function CreateParishPage() {
   const [form, setForm] = useState({
     name: "",
-    diocese: diocesesList[0],
+    dioceseId: "",
     city: "",
-    cure: "",
+    priest: "",
     vicaire: "",
     catechists: "",
+    email: "",
+    phone: "",
+    address: "",
   })
+  const [dioceses, setDioceses] = useState<Diocese[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingDioceses, setLoadingDioceses] = useState(true)
   const [error, setError] = useState("")
   const router = useRouter()
+
+  // Charger les diocèses depuis Firebase
+  useEffect(() => {
+    loadDioceses()
+  }, [])
+
+  const loadDioceses = async () => {
+    try {
+      setLoadingDioceses(true)
+      const diocesesData = await ParishService.getDioceses()
+      setDioceses(diocesesData)
+      
+      // Sélectionner le premier diocèse par défaut
+      if (diocesesData.length > 0) {
+        setForm(prev => ({ ...prev, dioceseId: diocesesData[0].id }))
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des diocèses:", error)
+      toast.error("Erreur lors du chargement des diocèses")
+    } finally {
+      setLoadingDioceses(false)
+    }
+  }
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -38,18 +68,53 @@ export default function CreateParishPage() {
     e.preventDefault()
     setLoading(true)
     setError("")
-    setTimeout(() => {
-      const stored = localStorage.getItem("admin_parishes")
-      let parishes = stored ? JSON.parse(stored) : []
-      const newParish = {
-        id: Date.now(),
-        ...form,
+
+    try {
+      // Validation
+      if (!form.name || !form.dioceseId || !form.city || !form.priest) {
+        setError("Veuillez remplir tous les champs obligatoires")
+        return
       }
-      parishes.unshift(newParish)
-      localStorage.setItem("admin_parishes", JSON.stringify(parishes))
+
+      // Trouver le diocèse sélectionné
+      const selectedDiocese = dioceses.find(d => d.id === form.dioceseId)
+      if (!selectedDiocese) {
+        setError("Diocèse sélectionné invalide")
+        return
+      }
+
+      // Créer la paroisse
+      const parishData = {
+        name: form.name,
+        dioceseId: form.dioceseId,
+        dioceseName: selectedDiocese.name,
+        location: form.city,
+        city: form.city,
+        priest: form.priest,
+        vicaire: form.vicaire || undefined,
+        catechists: form.catechists || undefined,
+        contactInfo: {
+          email: form.email || undefined,
+          phone: form.phone || undefined,
+          address: form.address || undefined
+        },
+        isActive: true
+      }
+
+      const parishId = await ParishService.createParish(parishData)
+      
+      if (parishId) {
+        toast.success("Paroisse créée avec succès !")
+        router.push("/admin/paroisses")
+      } else {
+        setError("Erreur lors de la création de la paroisse")
+      }
+    } catch (error) {
+      console.error("Erreur:", error)
+      setError("Une erreur est survenue lors de la création")
+    } finally {
       setLoading(false)
-      router.push("/admin/paroisses")
-    }, 800)
+    }
   }
 
   return (
@@ -66,18 +131,33 @@ export default function CreateParishPage() {
               <Input name="name" value={form.name} onChange={handleChange} required placeholder="Nom de la paroisse" className="bg-white/90 border-gray-200" />
             </div>
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Diocèse</label>
-              <select name="diocese" value={form.diocese} onChange={handleChange} className="bg-white/90 border-gray-200 rounded px-3 py-2 w-full">
-                {diocesesList.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <label className="block text-blue-900 font-medium">Diocèse *</label>
+              {loadingDioceses ? (
+                <div className="bg-white/90 border-gray-200 rounded px-3 py-2 w-full text-gray-500">
+                  Chargement des diocèses...
+                </div>
+              ) : (
+                <select 
+                  name="dioceseId" 
+                  value={form.dioceseId} 
+                  onChange={handleChange} 
+                  className="bg-white/90 border-gray-200 rounded px-3 py-2 w-full"
+                  required
+                >
+                  <option value="">Sélectionner un diocèse</option>
+                  {dioceses.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="space-y-2">
               <label className="block text-blue-900 font-medium">Ville</label>
               <Input name="city" value={form.city} onChange={handleChange} required placeholder="Ville ou localité" className="bg-white/90 border-gray-200" />
             </div>
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Curé</label>
-              <Input name="cure" value={form.cure} onChange={handleChange} required placeholder="Nom du curé" className="bg-white/90 border-gray-200" />
+              <label className="block text-blue-900 font-medium">Curé *</label>
+              <Input name="priest" value={form.priest} onChange={handleChange} required placeholder="Nom du curé" className="bg-white/90 border-gray-200" />
             </div>
             <div className="space-y-2">
               <label className="block text-blue-900 font-medium">Vicaire</label>
@@ -86,6 +166,21 @@ export default function CreateParishPage() {
             <div className="space-y-2">
               <label className="block text-blue-900 font-medium">Catéchistes</label>
               <Input name="catechists" value={form.catechists} onChange={handleChange} placeholder="Liste des catéchistes (optionnel)" className="bg-white/90 border-gray-200" />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-blue-900 font-medium">Email</label>
+              <Input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Email de contact (optionnel)" className="bg-white/90 border-gray-200" />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-blue-900 font-medium">Téléphone</label>
+              <Input name="phone" value={form.phone} onChange={handleChange} placeholder="Téléphone de contact (optionnel)" className="bg-white/90 border-gray-200" />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-blue-900 font-medium">Adresse</label>
+              <Input name="address" value={form.address} onChange={handleChange} placeholder="Adresse complète (optionnel)" className="bg-white/90 border-gray-200" />
             </div>
             
             {error && <div className="text-red-500 text-sm text-center">{error}</div>}

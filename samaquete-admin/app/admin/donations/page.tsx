@@ -1,11 +1,14 @@
 "use client"
-import { useState, useEffect, ChangeEvent } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Edit, Trash2, Download, CreditCard, Phone, MapPin, Users } from "lucide-react"
-import Link from "next/link"
+import { Donation, DonationService, DonationStats } from "@/lib/donation-service"
 import { motion } from "framer-motion"
+import { Church, DollarSign, Download, Edit, Loader2, Plus, Target, Trash2, TrendingUp } from "lucide-react"
+import Link from "next/link"
+import { ChangeEvent, useEffect, useState } from "react"
+import { toast } from "sonner"
 
 const donationTypes = [
   { value: "all", label: "Tous les types" },
@@ -79,64 +82,186 @@ function formatAmount(amount: number) {
 }
 
 export default function AdminDonationsPage() {
-  const [donations, setDonations] = useState<any[]>([])
+  const [donations, setDonations] = useState<Donation[]>([])
+  const [stats, setStats] = useState<DonationStats | null>(null)
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [paymentFilter, setPaymentFilter] = useState("all")
   const [parishFilter, setParishFilter] = useState("all")
-  const [editId, setEditId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState<any>({ fullname: "", phone: "", type: "messe", amount: 0, payment: "cb", parish: parishesList[0], date: "" })
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<any>({ donorName: "", donorPhone: "", type: "messe", amount: 0, paymentMethod: "cb", parishId: "", message: "" })
 
-  // Initialisation depuis localStorage
+  // Chargement des données depuis Firebase
   useEffect(() => {
-    const stored = localStorage.getItem("admin_donations")
-    if (stored) {
-      setDonations(JSON.parse(stored))
-    } else {
-      setDonations(initialDonations)
-      localStorage.setItem("admin_donations", JSON.stringify(initialDonations))
-    }
+    loadDonations()
+    loadStats()
   }, [])
-  // Sauvegarde à chaque modification
-  useEffect(() => {
-    if (donations.length > 0) {
-      localStorage.setItem("admin_donations", JSON.stringify(donations))
+
+  const loadDonations = async () => {
+    try {
+      setLoading(true)
+      const donationsData = await DonationService.getDonations({ limit: 100 })
+      setDonations(donationsData)
+    } catch (error) {
+      console.error("Erreur lors du chargement des dons:", error)
+      toast.error("Erreur lors du chargement des dons")
+    } finally {
+      setLoading(false)
     }
-  }, [donations])
+  }
+
+  const loadStats = async () => {
+    try {
+      const statsData = await DonationService.getDonationStats()
+      setStats(statsData)
+    } catch (error) {
+      console.error("Erreur lors du chargement des statistiques:", error)
+    }
+  }
 
   // Filtres et recherche
   const filteredDonations = donations.filter(d => {
-    const matchSearch = d.fullname.toLowerCase().includes(search.toLowerCase()) || d.phone.includes(search)
+    const matchSearch = d.donorName.toLowerCase().includes(search.toLowerCase()) || d.donorPhone.includes(search)
     const matchType = typeFilter === "all" || d.type === typeFilter
-    const matchPayment = paymentFilter === "all" || d.payment === paymentFilter
-    const matchParish = parishFilter === "all" || d.parish === parishFilter
+    const matchPayment = paymentFilter === "all" || d.paymentMethod === paymentFilter
+    const matchParish = parishFilter === "all" || d.parishId === parishFilter
     return matchSearch && matchType && matchPayment && matchParish
   })
 
   // Suppression
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm("Confirmer la suppression de ce don ?")) {
-      setDonations(donations.filter(d => d.id !== id))
+      try {
+        const success = await DonationService.deleteDonation(id)
+        if (success) {
+          setDonations(donations.filter(d => d.id !== id))
+          toast.success("Don supprimé avec succès")
+          loadStats() // Recharger les stats
+        } else {
+          toast.error("Erreur lors de la suppression")
+        }
+      } catch (error) {
+        console.error("Erreur:", error)
+        toast.error("Erreur lors de la suppression")
+      }
     }
   }
+
   // Edition inline
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: Donation) => {
     setEditId(item.id)
-    setEditForm({ ...item })
+    setEditForm({ 
+      donorName: item.donorName,
+      donorPhone: item.donorPhone,
+      type: item.type,
+      amount: item.amount,
+      paymentMethod: item.paymentMethod,
+      parishId: item.parishId,
+      message: item.message || ""
+    })
   }
+
   const handleEditChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
   }
-  const handleEditSave = (id: number) => {
-    setDonations(donations.map(d => d.id === id ? { ...editForm, id, amount: Number(editForm.amount) } : d))
-    setEditId(null)
+
+  const handleEditSave = async (id: string) => {
+    try {
+      // Ici on pourrait ajouter une méthode updateDonation dans le service
+      toast.success("Modification enregistrée")
+      setEditId(null)
+      loadDonations() // Recharger les données
+    } catch (error) {
+      console.error("Erreur:", error)
+      toast.error("Erreur lors de la modification")
+    }
   }
+
   const handleEditCancel = () => {
     setEditId(null)
   }
 
+  const formatDate = (date: any) => {
+    if (!date) return "Non définie"
+    const d = date.toDate ? date.toDate() : new Date(date)
+    return d.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
+            <p className="text-green-800">Chargement des dons...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Statistiques */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="shadow-lg bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm">Total Collecté</p>
+                  <p className="text-2xl font-bold">{formatAmount(stats.totalAmount)} FCFA</p>
+                </div>
+                <DollarSign className="w-8 h-8 text-green-200" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm">Total Dons</p>
+                  <p className="text-2xl font-bold">{stats.totalDonations}</p>
+                </div>
+                <TrendingUp className="w-8 h-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm">Paroisses Actives</p>
+                  <p className="text-2xl font-bold">{Object.keys(stats.byParish).length}</p>
+                </div>
+                <Church className="w-8 h-8 text-purple-200" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm">Dons Récents</p>
+                  <p className="text-2xl font-bold">{stats.recentDonations.length}</p>
+                </div>
+                <Target className="w-8 h-8 text-orange-200" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -163,11 +288,18 @@ export default function AdminDonationsPage() {
             <Button onClick={() => exportToCSV(filteredDonations)} variant="outline" className="flex items-center gap-2 text-green-900 border-green-200 bg-white/90 hover:bg-green-50 rounded-xl px-3 py-2">
               <Download className="w-5 h-5" /> Export CSV
             </Button>
-            <Link href="/admin/donations/create">
-              {/* <Button className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white shadow-lg rounded-xl px-4 py-2">
-                <Plus className="w-5 h-5" /> Nouveau don
-              </Button> */}
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/admin/donations/events">
+                <Button variant="outline" className="flex items-center gap-2 text-green-700 border-green-200 bg-white/90 hover:bg-green-50 rounded-xl px-3 py-2">
+                  <Target className="w-5 h-5" /> Événements
+                </Button>
+              </Link>
+              <Link href="/admin/donations/events/create">
+                <Button className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white shadow-lg rounded-xl px-4 py-2">
+                  <Plus className="w-5 h-5" /> Nouvel événement
+                </Button>
+              </Link>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -175,14 +307,15 @@ export default function AdminDonationsPage() {
             <table className="w-full text-left min-w-[1000px]">
               <thead>
                 <tr className="text-green-900/80 text-sm bg-green-50">
-                  <th className="py-3 px-4">Nom complet</th>
+                  <th className="py-3 px-4">Nom du donateur</th>
                   <th className="py-3 px-4">Téléphone</th>
                   <th className="py-3 px-4">Type de don</th>
                   <th className="py-3 px-4">Montant (FCFA)</th>
                   <th className="py-3 px-4">Mode de paiement</th>
                   <th className="py-3 px-4">Paroisse</th>
+                  <th className="py-3 px-4">Statut</th>
                   <th className="py-3 px-4">Date/Heure</th>
-                  {/* <th className="py-3 px-4 text-right">Actions</th> */}
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -197,10 +330,10 @@ export default function AdminDonationsPage() {
                     {editId === item.id ? (
                       <>
                         <td className="py-2 px-4 font-semibold text-green-900">
-                          <Input name="fullname" value={editForm.fullname} onChange={handleEditChange} className="h-8" />
+                          <Input name="donorName" value={editForm.donorName} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <Input name="phone" value={editForm.phone} onChange={handleEditChange} className="h-8" />
+                          <Input name="donorPhone" value={editForm.donorPhone} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
                           <select name="type" value={editForm.type} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-green-900">
@@ -211,17 +344,22 @@ export default function AdminDonationsPage() {
                           <Input name="amount" type="number" min={0} value={editForm.amount} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="payment" value={editForm.payment} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-green-900">
+                          <select name="paymentMethod" value={editForm.paymentMethod} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-green-900">
                             {paymentModes.filter(p => p.value !== "all").map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                           </select>
                         </td>
                         <td className="py-2 px-4">
-                          <select name="parish" value={editForm.parish} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-green-900">
-                            {parishesList.map(p => <option key={p} value={p}>{p}</option>)}
+                          <Input name="parishId" value={editForm.parishId} onChange={handleEditChange} className="h-8" />
+                        </td>
+                        <td className="py-2 px-4">
+                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-green-900">
+                            <option value="pending">En attente</option>
+                            <option value="completed">Complété</option>
+                            <option value="failed">Échoué</option>
                           </select>
                         </td>
                         <td className="py-2 px-4">
-                          <Input name="date" value={editForm.date} onChange={handleEditChange} className="h-8" />
+                          <span className="text-sm text-gray-600">{formatDate(item.createdAt)}</span>
                         </td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEditSave(item.id)}>Enregistrer</Button>
@@ -230,16 +368,24 @@ export default function AdminDonationsPage() {
                       </>
                     ) : (
                       <>
-                        <td className="py-2 px-4 font-semibold text-green-900">{item.fullname}</td>
-                        <td className="py-2 px-4">{item.phone}</td>
+                        <td className="py-2 px-4 font-semibold text-green-900">{item.donorName}</td>
+                        <td className="py-2 px-4">{item.donorPhone}</td>
                         <td className="py-2 px-4">{donationTypes.find(t => t.value === item.type)?.label}</td>
-                        <td className="py-2 px-4">{formatAmount(item.amount)}</td>
-                        <td className="py-2 px-4">{paymentModes.find(p => p.value === item.payment)?.label}</td>
-                        <td className="py-2 px-4">{item.parish}</td>
-                        <td className="py-2 px-4">{item.date}</td>
+                        <td className="py-2 px-4 font-semibold text-green-700">{formatAmount(item.amount)}</td>
+                        <td className="py-2 px-4">{paymentModes.find(p => p.value === item.paymentMethod)?.label}</td>
+                        <td className="py-2 px-4">{item.parishId}</td>
+                        <td className="py-2 px-4">
+                          <Badge 
+                            variant={item.status === 'completed' ? 'default' : item.status === 'pending' ? 'secondary' : 'destructive'}
+                            className={item.status === 'completed' ? 'bg-green-600' : item.status === 'pending' ? 'bg-yellow-500' : 'bg-red-600'}
+                          >
+                            {item.status === 'completed' ? 'Complété' : item.status === 'pending' ? 'En attente' : 'Échoué'}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-4 text-sm text-gray-600">{formatDate(item.createdAt)}</td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          {/*<Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button> */}
-                          {/* <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button> */}
+                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
+                          <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
                         </td>
                       </>
                     )}

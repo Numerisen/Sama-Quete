@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "764890122669",
+    "project_id": "numerisen-14a03",
+    "storage_bucket": "numerisen-14a03.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:764890122669:android:a906113ac4b4b37e3b3924",
+        "android_client_info": {
+          "package_name": "numerisen.quete"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDl7y8f194PSj6faRQynThx_360_4lMpHw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,17 +1,17 @@
 "use client"
 
 import { useAuth } from '@/lib/auth-context'
+import { Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: 'admin' | 'diocese' | 'any'
+  requiredRole?: 'admin' | 'super_admin' | 'diocese' | 'any'
 }
 
 export default function ProtectedRoute({ children, requiredRole = 'any' }: ProtectedRouteProps) {
-  const { user, loading, isAdmin, isDioceseAdmin } = useAuth()
+  const { user, userRole, loading, isAdmin, isDioceseAdmin } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -21,8 +21,13 @@ export default function ProtectedRoute({ children, requiredRole = 'any' }: Prote
         return
       }
 
+      // Attendre que le rôle soit chargé depuis Firestore
+      if (!userRole) {
+        return // Ne pas rediriger tant que le rôle n'est pas chargé
+      }
+
       // Vérifier les rôles si spécifié
-      if (requiredRole === 'admin' && !isAdmin) {
+      if ((requiredRole === 'admin' || requiredRole === 'super_admin') && !isAdmin) {
         router.push('/admindiocese/dashboard')
         return
       }
@@ -32,14 +37,14 @@ export default function ProtectedRoute({ children, requiredRole = 'any' }: Prote
         return
       }
     }
-  }, [user, loading, isAdmin, isDioceseAdmin, router, requiredRole])
+  }, [user, userRole, loading, isAdmin, isDioceseAdmin, router, requiredRole])
 
-  if (loading) {
+  if (loading || (user && !userRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Chargement...</p>
+          <p>Chargement des permissions...</p>
         </div>
       </div>
     )

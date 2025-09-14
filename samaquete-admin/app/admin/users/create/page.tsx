@@ -1,22 +1,26 @@
 "use client"
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { UserCircle, Mail, Key, ShieldCheck, Loader2 } from "lucide-react"
+import { auth } from "@/lib/firebase"
+import { createUserWithRole } from "@/lib/user-service"
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { Key, Loader2, Mail, ShieldCheck, UserCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 const roles = [
   { value: "super_admin", label: "Super Admin" },
-  { value: "admin_diocesan", label: "Admin Diocésain" },
-  { value: "admin_parishial", label: "Admin Paroissial" },
+  { value: "diocese_admin", label: "Admin Diocésain" },
+  { value: "parish_admin", label: "Admin Paroissial" },
 ]
 
 export default function CreateAdminUserPage() {
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "admin_parishial" })
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "parish_admin" })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
   const router = useRouter()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -27,22 +31,53 @@ export default function CreateAdminUserPage() {
     e.preventDefault()
     setLoading(true)
     setError("")
-    setTimeout(() => {
-      const stored = localStorage.getItem("admin_users")
-      let users = stored ? JSON.parse(stored) : []
-      const newUser = {
-        id: Date.now(),
-        name: form.name,
-        email: form.email,
-        role: form.role,
-        status: "actif",
-        avatar: "/placeholder-user.jpg"
+    setSuccess("")
+
+    try {
+      // 1. Créer l'utilisateur dans Firebase Auth
+      console.log("🔐 Création de l'utilisateur Firebase Auth...")
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        form.email,
+        form.password
+      )
+      
+      console.log("✅ Utilisateur Firebase Auth créé:", userCredential.user.uid)
+
+      // 2. Créer le profil Firestore avec rôle
+      console.log("📝 Création du profil Firestore...")
+      await createUserWithRole(
+        userCredential.user.uid,
+        form.email,
+        form.name,
+        form.role as 'super_admin' | 'diocese_admin' | 'parish_admin' | 'user'
+      )
+      
+      console.log("✅ Profil Firestore créé avec succès")
+      
+      setSuccess(`✅ Utilisateur créé avec succès ! Email: ${form.email}`)
+      
+      // Rediriger vers la liste des utilisateurs après 2 secondes
+      setTimeout(() => {
+        router.push("/admin/users")
+      }, 2000)
+
+    } catch (error: any) {
+      console.error("❌ Erreur lors de la création:", error)
+      
+      // Gestion des erreurs spécifiques
+      if (error.code === 'auth/email-already-in-use') {
+        setError("❌ Un utilisateur avec cet email existe déjà.")
+      } else if (error.code === 'auth/weak-password') {
+        setError("❌ Le mot de passe doit contenir au moins 6 caractères.")
+      } else if (error.code === 'auth/invalid-email') {
+        setError("❌ Format d'email invalide.")
+      } else {
+        setError(`❌ Erreur lors de la création: ${error.message}`)
       }
-      users.push(newUser)
-      localStorage.setItem("admin_users", JSON.stringify(users))
+    } finally {
       setLoading(false)
-      router.push("/admin/users")
-    }, 800)
+    }
   }
 
   return (
@@ -84,9 +119,29 @@ export default function CreateAdminUserPage() {
                 </select>
               </div>
             </div>
-            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+            
+            {/* Messages d'erreur et de succès */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+            
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+                {success}
+              </div>
+            )}
+            
             <Button type="submit" className="w-full h-12 text-lg bg-blue-900 hover:bg-blue-800 text-white rounded-xl" disabled={loading}>
-              {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Création...</> : "Créer l'utilisateur"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> 
+                  Création en cours...
+                </>
+              ) : (
+                "Créer l'utilisateur"
+              )}
             </Button>
             <div className="text-center mt-2">
               <Link href="/admin/users" className="text-blue-700 hover:underline">Retour à la liste</Link>

@@ -1,88 +1,199 @@
 "use client"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Save, ArrowLeft } from "lucide-react"
-import { createDiocese } from "../action"
+import { ParishService } from "@/lib/parish-service"
+import { Loader2 } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { ChangeEvent, useState } from "react"
+import { toast } from "sonner"
+
+const dioceseTypes = [
+  "Diocèse",
+  "Archevêché métropolitain",
+  "Archidiocèse"
+]
 
 export default function CreateDiocesePage() {
+  const [form, setForm] = useState({
+    name: "",
+    city: "",
+    type: dioceseTypes[0],
+    bishop: "",
+    email: "",
+    phone: "",
+    address: "",
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const router = useRouter()
-  const [isPending, setIsPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (formData: FormData) => {
-    setIsPending(true)
-    setError(null)
-    const result = await createDiocese(formData)
-    if (result?.error) {
-      setError(result.error)
-    } else {
-      router.push("/admin/dioceses")
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+
+    try {
+      // Validation
+      if (!form.name || !form.city || !form.bishop) {
+        setError("Veuillez remplir tous les champs obligatoires")
+        return
+      }
+
+      // Créer le diocèse
+      const dioceseData = {
+        name: form.name,
+        location: form.city,
+        city: form.city,
+        type: form.type,
+        bishop: form.bishop,
+        contactInfo: {
+          email: form.email || undefined,
+          phone: form.phone || undefined,
+          address: form.address || undefined
+        },
+        isActive: true
+      }
+
+      const dioceseId = await ParishService.createDiocese(dioceseData)
+      
+      if (dioceseId) {
+        toast.success("Diocèse créé avec succès !")
+        router.push("/admin/dioceses")
+      } else {
+        setError("Erreur lors de la création du diocèse")
+      }
+    } catch (error) {
+      console.error("Erreur:", error)
+      setError("Une erreur est survenue lors de la création")
+    } finally {
+      setLoading(false)
     }
-    setIsPending(false)
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="space-y-6"
-    >
-      <div className="flex items-center space-x-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h2 className="text-3xl font-bold text-gray-800">Ajouter un nouveau Diocèse</h2>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Informations du Diocèse</CardTitle>
+    <div className="max-w-xl mx-auto">
+      <Card className="shadow-xl bg-white/80 border-0 rounded-2xl mt-8">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold text-blue-900 mb-1">Créer un nouveau diocèse</CardTitle>
+          <p className="text-blue-800/80 text-sm">Remplissez le formulaire pour ajouter un diocèse.</p>
         </CardHeader>
         <CardContent>
-          <form action={handleSubmit} className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="name">Nom du Diocèse</Label>
-              <Input id="name" name="name" placeholder="Archidiocèse de Dakar" required className="h-11" />
+              <label className="block text-blue-900 font-medium">Nom du diocèse *</label>
+              <Input 
+                name="name" 
+                value={form.name} 
+                onChange={handleChange} 
+                required 
+                placeholder="Ex: Diocèse de Thiès" 
+                className="bg-white/90 border-gray-200" 
+              />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="location">Localisation</Label>
-              <Input id="location" name="location" placeholder="Dakar, Sénégal" className="h-11" />
+              <label className="block text-blue-900 font-medium">Ville principale *</label>
+              <Input 
+                name="city" 
+                value={form.city} 
+                onChange={handleChange} 
+                required 
+                placeholder="Ex: Thiès" 
+                className="bg-white/90 border-gray-200" 
+              />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" name="description" placeholder="Brève description du diocèse..." rows={4} />
+              <label className="block text-blue-900 font-medium">Type de juridiction *</label>
+              <select 
+                name="type" 
+                value={form.type} 
+                onChange={handleChange} 
+                className="bg-white/90 border-gray-200 rounded px-3 py-2 w-full"
+                required
+              >
+                {dioceseTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="imageUrl">URL de l'image (optionnel)</Label>
-              <Input id="imageUrl" name="image_url" placeholder="https://example.com/diocese.jpg" className="h-11" />
+              <label className="block text-blue-900 font-medium">Évêque *</label>
+              <Input 
+                name="bishop" 
+                value={form.bishop} 
+                onChange={handleChange} 
+                required 
+                placeholder="Ex: Mgr André Gueye" 
+                className="bg-white/90 border-gray-200" 
+              />
             </div>
-
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-            <Button type="submit" className="w-full h-12 text-lg" disabled={isPending}>
-              {isPending ? (
+            
+            <div className="space-y-2">
+              <label className="block text-blue-900 font-medium">Email de contact</label>
+              <Input 
+                name="email" 
+                type="email" 
+                value={form.email} 
+                onChange={handleChange} 
+                placeholder="contact@diocesethies.sn" 
+                className="bg-white/90 border-gray-200" 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-blue-900 font-medium">Téléphone de contact</label>
+              <Input 
+                name="phone" 
+                value={form.phone} 
+                onChange={handleChange} 
+                placeholder="+221 33 951 12 34" 
+                className="bg-white/90 border-gray-200" 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-blue-900 font-medium">Adresse</label>
+              <Input 
+                name="address" 
+                value={form.address} 
+                onChange={handleChange} 
+                placeholder="Adresse complète du diocèse" 
+                className="bg-white/90 border-gray-200" 
+              />
+            </div>
+            
+            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+            
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-lg bg-blue-900 hover:bg-blue-800 text-white rounded-xl" 
+              disabled={loading}
+            >
+              {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Création...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Création...
                 </>
               ) : (
-                <>
-                  <Save className="mr-2 h-5 w-5" />
-                  Créer le Diocèse
-                </>
+                "Créer le diocèse"
               )}
             </Button>
+            
+            <div className="text-center mt-2">
+              <Link href="/admin/dioceses" className="text-blue-700 hover:underline">
+                Retour à la liste
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   )
 }

@@ -1,14 +1,14 @@
 "use client"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Shield, Church } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useAuth } from '@/lib/auth-context'
+import { Church, Loader2, Shield } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export default function LoginForm() {
   const [email, setEmail] = useState('')
@@ -28,12 +28,9 @@ export default function LoginForm() {
     try {
       await signIn(email, password)
       
-      // Rediriger selon le type de connexion
-      if (loginType === 'admin') {
-        router.push('/admin/dashboard')
-      } else {
-        router.push('/admindiocese/dashboard')
-      }
+      // La redirection sera gérée par la page racine et ProtectedRoute
+      // qui attendront que le rôle soit chargé depuis Firestore
+      router.push('/')
     } catch (err: any) {
       setError(err.message || 'Erreur de connexion')
     } finally {

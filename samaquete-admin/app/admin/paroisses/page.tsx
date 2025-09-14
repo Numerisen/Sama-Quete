@@ -1,14 +1,15 @@
 "use client"
-import { useState, useEffect, ChangeEvent } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Edit, Trash2, Download, MapPin, UserCircle, Users, Upload, AlertTriangle } from "lucide-react"
-import Link from "next/link"
-import { motion } from "framer-motion"
-import * as XLSX from 'xlsx'
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
+import { Diocese, Parish, ParishService } from "@/lib/parish-service"
+import { motion } from "framer-motion"
+import { AlertTriangle, Download, Edit, Loader2, Plus, Trash2, Upload } from "lucide-react"
+import Link from "next/link"
+import { ChangeEvent, useEffect, useState } from "react"
+import * as XLSX from 'xlsx'
 
 const diocesesList = [
   "Archidiocèse de Dakar",
@@ -156,37 +157,48 @@ function importFromExcel(file: File, setParishes: Function, setImportModal: Func
 
 export default function AdminParishesPage() {
   const { toast } = useToast()
-  const [parishes, setParishes] = useState<any[]>([])
+  const [parishes, setParishes] = useState<Parish[]>([])
+  const [dioceses, setDioceses] = useState<Diocese[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [dioceseFilter, setDioceseFilter] = useState("all")
-  const [editId, setEditId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState<any>({ name: "", diocese: diocesesList[0], city: "", cure: "", vicaire: "", catechists: "" })
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<any>({ name: "", dioceseId: "", city: "", priest: "", vicaire: "", catechists: "" })
   const [importModal, setImportModal] = useState(false)
   const [missingColumns, setMissingColumns] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // Initialisation depuis localStorage
+  // Chargement des données depuis Firebase
   useEffect(() => {
-    const stored = localStorage.getItem("admin_parishes")
-    if (stored) {
-      setParishes(JSON.parse(stored))
-    } else {
-      setParishes(initialParishes)
-      localStorage.setItem("admin_parishes", JSON.stringify(initialParishes))
-    }
+    loadData()
   }, [])
-  // Sauvegarde à chaque modification
-  useEffect(() => {
-    if (parishes.length > 0) {
-      localStorage.setItem("admin_parishes", JSON.stringify(parishes))
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const [parishesData, diocesesData] = await Promise.all([
+        ParishService.getParishes(),
+        ParishService.getDioceses()
+      ])
+      setParishes(parishesData)
+      setDioceses(diocesesData)
+    } catch (error) {
+      console.error("Erreur lors du chargement des données:", error)
+      toast.error("Erreur lors du chargement des données")
+    } finally {
+      setLoading(false)
     }
-  }, [parishes])
+  }
 
   // Filtres et recherche
   const filteredParishes = parishes.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.city.toLowerCase().includes(search.toLowerCase()) || p.cure.toLowerCase().includes(search.toLowerCase())
-    const matchDiocese = dioceseFilter === "all" || p.diocese === dioceseFilter
+    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
+                       p.city.toLowerCase().includes(search.toLowerCase()) || 
+                       p.priest.toLowerCase().includes(search.toLowerCase()) ||
+                       (p.vicaire && p.vicaire.toLowerCase().includes(search.toLowerCase())) ||
+                       (p.catechists && p.catechists.toLowerCase().includes(search.toLowerCase()))
+    const matchDiocese = dioceseFilter === "all" || p.dioceseId === dioceseFilter
     return matchSearch && matchDiocese
   })
 
@@ -202,25 +214,64 @@ export default function AdminParishesPage() {
   }, [search, dioceseFilter, parishes])
 
   // Suppression
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm("Confirmer la suppression de cette paroisse ?")) {
-      setParishes(parishes.filter(p => p.id !== id))
-      toast.success("Paroisse supprimée", "La paroisse a été supprimée avec succès")
+      try {
+        const success = await ParishService.deleteParish(id)
+        if (success) {
+          setParishes(parishes.filter(p => p.id !== id))
+          toast.success("Paroisse supprimée", "La paroisse a été supprimée avec succès")
+        } else {
+          toast.error("Erreur", "Erreur lors de la suppression de la paroisse")
+        }
+      } catch (error) {
+        console.error("Erreur:", error)
+        toast.error("Erreur", "Erreur lors de la suppression")
+      }
     }
   }
+
   // Edition inline
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: Parish) => {
     setEditId(item.id)
-    setEditForm({ ...item })
+    setEditForm({ 
+      name: item.name,
+      dioceseId: item.dioceseId,
+      city: item.city,
+      priest: item.priest,
+      vicaire: item.vicaire || "",
+      catechists: item.catechists || ""
+    })
   }
+
   const handleEditChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
   }
-  const handleEditSave = (id: number) => {
-    setParishes(parishes.map(p => p.id === id ? { ...editForm, id } : p))
-    setEditId(null)
-    toast.success("Paroisse modifiée", "La paroisse a été modifiée avec succès")
+
+  const handleEditSave = async (id: string) => {
+    try {
+      const success = await ParishService.updateParish(id, {
+        name: editForm.name,
+        dioceseId: editForm.dioceseId,
+        city: editForm.city,
+        priest: editForm.priest,
+        vicaire: editForm.vicaire || undefined,
+        catechists: editForm.catechists || undefined
+      })
+      
+      if (success) {
+        setEditId(null)
+        toast.success("Paroisse modifiée", "La paroisse a été modifiée avec succès")
+        loadData() // Recharger les données
+      } else {
+        toast.error("Erreur", "Erreur lors de la modification")
+      }
+    } catch (error) {
+      console.error("Erreur:", error)
+      toast.error("Erreur", "Erreur lors de la modification")
+    }
   }
+
   const handleEditCancel = () => {
     setEditId(null)
   }
@@ -240,6 +291,19 @@ export default function AdminParishesPage() {
     e.target.value = ""
   }
 
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-blue-800">Chargement des paroisses...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-6xl mx-auto">
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
@@ -257,7 +321,7 @@ export default function AdminParishesPage() {
             />
             <select value={dioceseFilter} onChange={e => setDioceseFilter(e.target.value)} className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
               <option value="all">Tous les diocèses</option>
-              {diocesesList.map(d => <option key={d} value={d}>{d}</option>)}
+              {dioceses.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
             
             {/* Bouton d'import Excel */}
@@ -322,15 +386,15 @@ export default function AdminParishesPage() {
                           <Input name="name" value={editForm.name} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="diocese" value={editForm.diocese} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
-                            {diocesesList.map(d => <option key={d} value={d}>{d}</option>)}
+                          <select name="dioceseId" value={editForm.dioceseId} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+                            {dioceses.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                           </select>
                         </td>
                         <td className="py-2 px-4">
                           <Input name="city" value={editForm.city} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <Input name="cure" value={editForm.cure} onChange={handleEditChange} className="h-8" />
+                          <Input name="priest" value={editForm.priest} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
                           <Input name="vicaire" value={editForm.vicaire} onChange={handleEditChange} className="h-8" />
@@ -346,11 +410,11 @@ export default function AdminParishesPage() {
                     ) : (
                       <>
                         <td className="py-2 px-4 font-semibold text-blue-900">{item.name}</td>
-                        <td className="py-2 px-4">{item.diocese}</td>
+                        <td className="py-2 px-4">{item.dioceseName}</td>
                         <td className="py-2 px-4">{item.city}</td>
-                        <td className="py-2 px-4">{item.cure}</td>
-                        <td className="py-2 px-4">{item.vicaire}</td>
-                        <td className="py-2 px-4">{item.catechists}</td>
+                        <td className="py-2 px-4">{item.priest}</td>
+                        <td className="py-2 px-4">{item.vicaire || "-"}</td>
+                        <td className="py-2 px-4">{item.catechists || "-"}</td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>

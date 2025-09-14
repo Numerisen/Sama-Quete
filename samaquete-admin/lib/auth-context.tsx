@@ -1,34 +1,57 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { 
-  User, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  createUserWithEmailAndPassword
+import {
+    User,
+    createUserWithEmailAndPassword,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signOut
 } from 'firebase/auth'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import { auth } from './firebase'
+import { UserRole, getUserRole, hasPermission, updateLastLogin } from './user-service'
 
 interface AuthContextType {
   user: User | null
+  userRole: UserRole | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   isAdmin: boolean
   isDioceseAdmin: boolean
+  hasPermission: (permission: keyof UserRole['permissions']) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user)
+      
+      if (user) {
+        // Récupérer le rôle de l'utilisateur depuis Firestore
+        try {
+          const role = await getUserRole(user.uid)
+          setUserRole(role)
+          
+          // Mettre à jour le dernier login
+          if (role) {
+            await updateLastLogin(user.uid)
+          }
+        } catch (error) {
+          console.error('Erreur lors de la récupération du rôle:', error)
+          setUserRole(null)
+        }
+      } else {
+        setUserRole(null)
+      }
+      
       setLoading(false)
     })
 
@@ -47,18 +70,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth)
   }
 
-  // Déterminer le type d'utilisateur basé sur l'email
-  const isAdmin = user?.email === 'admin@admin.com' || user?.email?.includes('admin')
-  const isDioceseAdmin = user?.email?.includes('diocese') || user?.email?.includes('diocese-admin')
+  // Déterminer le type d'utilisateur basé sur le rôle Firestore
+  const isAdmin = userRole?.role === 'super_admin'
+  const isDioceseAdmin = userRole?.role === 'diocese_admin' || userRole?.role === 'parish_admin'
+
+  // Fonction pour vérifier les permissions
+  const checkPermission = (permission: keyof UserRole['permissions']) => {
+    return hasPermission(userRole, permission)
+  }
 
   const value = {
     user,
+    userRole,
     loading,
     signIn,
     signUp,
     logout,
     isAdmin,
-    isDioceseAdmin
+    isDioceseAdmin,
+    hasPermission: checkPermission
   }
 
   return (

@@ -3,13 +3,13 @@
  * Gère la communication avec l'API backend RAG
  */
 
-const API_BASE_URL = 'http://192.168.68.108:5001'; // À changer pour la production
+const API_BASE_URL = 'http://localhost:8000'; // API RAG locale
 
 export interface AssistantResponse {
-  question: string;
   answer: string;
+  sources: string[];
+  confidence: number;
   timestamp: string;
-  source: string;
 }
 
 export interface AssistantSuggestion {
@@ -38,14 +38,17 @@ class AssistantService {
   /**
    * Pose une question à l'assistant IA biblique
    */
-  async askQuestion(question: string): Promise<AssistantResponse> {
+  async askQuestion(question: string, context: string = 'general'): Promise<AssistantResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/assistant/query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ 
+          question,
+          context 
+        }),
       });
 
       if (!response.ok) {

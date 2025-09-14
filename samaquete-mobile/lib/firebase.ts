@@ -1,16 +1,16 @@
-import { initializeApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initializeApp } from 'firebase/app';
+import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 // Configuration Firebase - même projet que l'admin
 const firebaseConfig = {
-  apiKey: "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Remplacez par votre vraie clé API
+  apiKey: "AIzaSyAR8kwZE9ats8NmUVbIfTzxOZDzmiyToQQ",
   authDomain: "numerisen-14a03.firebaseapp.com",
   projectId: "numerisen-14a03",
-  storageBucket: "numerisen-14a03.appspot.com",
-  messagingSenderId: "123456789012", // Remplacez par votre vraie clé
-  appId: "1:123456789012:web:xxxxxxxxxxxxxxxxxxxxx" // Remplacez par votre vraie clé
+  storageBucket: "numerisen-14a03.firebasestorage.app",
+  messagingSenderId: "764890122669",
+  appId: "1:764890122669:android:a906113ac4b4b37e3b3924"
 };
 
 // Initialiser Firebase

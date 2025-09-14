@@ -2,7 +2,6 @@
   "name": "samaquete",
   "version": "1.0.0",
   "description": "Plateforme de gestion des quêtes paroissiales pour l'Église catholique du Sénégal",
-  "main": "index.js",
   "scripts": {
     "install:mobile": "cd samaquete-mobile && npm install",
     "install:admin": "cd samaquete-admin && npm install",
@@ -54,6 +53,11 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "typescript": "~5.9.2",
+    "@types/react": "~19.1.10"
+  },
+  "dependencies": {
+    "expo": "^54.0.6"
   }
 }

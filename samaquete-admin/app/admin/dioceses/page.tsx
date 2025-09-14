@@ -1,11 +1,13 @@
 "use client"
-import { useState, useEffect, ChangeEvent } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Edit, Trash2, Download, MapPin, UserCircle } from "lucide-react"
-import Link from "next/link"
+import { Diocese, ParishService } from "@/lib/parish-service"
 import { motion } from "framer-motion"
+import { Download, Edit, Loader2, Plus, Trash2 } from "lucide-react"
+import Link from "next/link"
+import { ChangeEvent, useEffect, useState } from "react"
+import { toast } from "sonner"
 
 const initialDioceses = [
   {
@@ -88,27 +90,29 @@ function exportToCSV(dioceses: any[]) {
 }
 
 export default function AdminDiocesesPage() {
-  const [dioceses, setDioceses] = useState<any[]>([])
+  const [dioceses, setDioceses] = useState<Diocese[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [editId, setEditId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState<any>({ name: "", city: "", type: "Diocèse", bishop: "", email: "", phone: "" })
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<any>({ name: "", city: "", type: "Diocèse", bishop: "", email: "", phone: "", address: "" })
 
-  // Initialisation depuis localStorage
+  // Chargement des données depuis Firebase
   useEffect(() => {
-    const stored = localStorage.getItem("admin_dioceses")
-    if (stored) {
-      setDioceses(JSON.parse(stored))
-    } else {
-      setDioceses(initialDioceses)
-      localStorage.setItem("admin_dioceses", JSON.stringify(initialDioceses))
-    }
+    loadDioceses()
   }, [])
-  // Sauvegarde à chaque modification
-  useEffect(() => {
-    if (dioceses.length > 0) {
-      localStorage.setItem("admin_dioceses", JSON.stringify(dioceses))
+
+  const loadDioceses = async () => {
+    try {
+      setLoading(true)
+      const diocesesData = await ParishService.getDioceses()
+      setDioceses(diocesesData)
+    } catch (error) {
+      console.error("Erreur lors du chargement des diocèses:", error)
+      toast.error("Erreur lors du chargement des diocèses")
+    } finally {
+      setLoading(false)
     }
-  }, [dioceses])
+  }
 
   // Filtres et recherche
   const filteredDioceses = dioceses.filter(d =>
@@ -118,25 +122,83 @@ export default function AdminDiocesesPage() {
   )
 
   // Suppression
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm("Confirmer la suppression de ce diocèse ?")) {
-      setDioceses(dioceses.filter(d => d.id !== id))
+      try {
+        const success = await ParishService.deleteDiocese(id)
+        if (success) {
+          setDioceses(dioceses.filter(d => d.id !== id))
+          toast.success("Diocèse supprimé", "Le diocèse a été supprimé avec succès")
+        } else {
+          toast.error("Erreur", "Erreur lors de la suppression du diocèse")
+        }
+      } catch (error) {
+        console.error("Erreur:", error)
+        toast.error("Erreur", "Erreur lors de la suppression")
+      }
     }
   }
+
   // Edition inline
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: Diocese) => {
     setEditId(item.id)
-    setEditForm({ ...item })
+    setEditForm({ 
+      name: item.name,
+      city: item.city,
+      type: item.type,
+      bishop: item.bishop,
+      email: item.contactInfo?.email || "",
+      phone: item.contactInfo?.phone || "",
+      address: item.contactInfo?.address || ""
+    })
   }
+
   const handleEditChange = (e: ChangeEvent<HTMLInputElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
   }
-  const handleEditSave = (id: number) => {
-    setDioceses(dioceses.map(d => d.id === id ? { ...editForm, id } : d))
-    setEditId(null)
+
+  const handleEditSave = async (id: string) => {
+    try {
+      const success = await ParishService.updateDiocese(id, {
+        name: editForm.name,
+        city: editForm.city,
+        type: editForm.type,
+        bishop: editForm.bishop,
+        contactInfo: {
+          email: editForm.email,
+          phone: editForm.phone,
+          address: editForm.address
+        }
+      })
+      
+      if (success) {
+        setEditId(null)
+        toast.success("Diocèse modifié", "Le diocèse a été modifié avec succès")
+        loadDioceses() // Recharger les données
+      } else {
+        toast.error("Erreur", "Erreur lors de la modification")
+      }
+    } catch (error) {
+      console.error("Erreur:", error)
+      toast.error("Erreur", "Erreur lors de la modification")
+    }
   }
+
   const handleEditCancel = () => {
     setEditId(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+            <p className="text-blue-800">Chargement des diocèses...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -218,8 +280,8 @@ export default function AdminDiocesesPage() {
                         <td className="py-2 px-4">{item.city}</td>
                         <td className="py-2 px-4">{item.type}</td>
                         <td className="py-2 px-4">{item.bishop}</td>
-                        <td className="py-2 px-4">{item.email}</td>
-                        <td className="py-2 px-4">{item.phone}</td>
+                        <td className="py-2 px-4">{item.contactInfo?.email || "-"}</td>
+                        <td className="py-2 px-4">{item.contactInfo?.phone || "-"}</td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>

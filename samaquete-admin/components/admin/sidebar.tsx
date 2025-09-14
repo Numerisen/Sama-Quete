@@ -1,14 +1,15 @@
 "use client"
 
+import { Bot, DollarSign, Home, Newspaper, Target, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Map, Users, Newspaper, DollarSign, Bot, Settings, ShieldCheck } from "lucide-react"
 
 const links = [
   { href: "/admin/dashboard", label: "Tableau de bord", icon: <Home className="w-6 h-6" /> },
   { href: "/admin/users", label: "Utilisateurs", icon: <Users className="w-6 h-6" /> },
   { href: "/admin/news", label: "Actualités", icon: <Newspaper className="w-6 h-6" /> },
   { href: "/admin/donations", label: "Dons", icon: <DollarSign className="w-6 h-6" /> },
+  { href: "/admin/donations/events", label: "Événements", icon: <Target className="w-6 h-6" /> },
   { href: "/admin/dioceses", label: "Dioceses", icon: <Users className="w-6 h-6" /> },
   { href: "/admin/paroisses", label: "Paroisses", icon: <Bot className="w-6 h-6" /> },
   //{ href: "/admin/settings", label: "Paramètres", icon: <Settings className="w-6 h-6" /> },
