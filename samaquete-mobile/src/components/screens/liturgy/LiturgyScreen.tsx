@@ -32,36 +32,7 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
     // L'app utilisera les données de fallback
   }, []);
 
-  // Données de fallback si l'API n'est pas disponible
-  const fallbackReadings = {
-    date: "Dimanche 21 Janvier 2024",
-    liturgicalTime: "3ème Dimanche du Temps Ordinaire",
-    color: "Vert",
-    readings: [
-      {
-        reference: "Jonas 3, 1-5.10",
-        title: "Première lecture",
-        excerpt: "En ces jours-là, la parole du Seigneur fut adressée à Jonas : « Lève-toi, va à Ninive, la grande ville, proclame le message que je te donne. »",
-      },
-      {
-        reference: "Psaume 24",
-        title: "Psaume ",
-        excerpt: "Seigneur, enseigne-moi tes voies.",
-      },
-      {
-        reference: "1 Co 7, 29-31",
-        title: "Deuxième lecture",
-        excerpt: "Frères, je dois vous le dire : le temps est limité. Désormais, que ceux qui ont une épouse vivent comme s'ils n'en avaient pas...",
-      },
-      {
-        reference: "Marc 1, 14-20",
-        title: "Évangile",
-        excerpt: "Après l'arrestation de Jean le Baptiste, Jésus partit pour la Galilée proclamer l'Évangile de Dieu ; il disait : « Les temps sont accomplis : le règne de Dieu est tout proche. Convertissez-vous et croyez à l'Évangile. »",
-      },
-    ],
-  };
-
-  // Utiliser les données de l'API ou les données de fallback
+  // Utiliser uniquement les données de l'API
   const todayReadings = todayLiturgy ? {
     date: new Date(todayLiturgy.date).toLocaleDateString('fr-FR', {
       weekday: 'long',
@@ -73,27 +44,28 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
     color: todayLiturgy.color || 'Vert',
     readings: [
       ...(todayLiturgy.firstReading ? [{
-        reference: todayLiturgy.firstReadingRef || "1 Tm 4, 12-16",
+        reference: todayLiturgy.firstReadingRef,
         title: "Première lecture",
         excerpt: todayLiturgy.firstReading,
       }] : []),
       ...(todayLiturgy.psalm ? [{
-        reference: todayLiturgy.psalmRef || "Ps 110 (111), 7-8, 9, 10",
-        title: "Psaume ",
+        reference: todayLiturgy.psalmRef,
+        title: "Psaume",
+        
         excerpt: todayLiturgy.psalm,
       }] : []),
       ...(todayLiturgy.secondReading ? [{
-        reference: todayLiturgy.secondReadingRef || "1 Co 7, 29-31",
+        reference: todayLiturgy.secondReadingRef,
         title: "Deuxième lecture",
         excerpt: todayLiturgy.secondReading,
       }] : []),
       ...(todayLiturgy.gospel ? [{
-        reference: todayLiturgy.gospelRef || "Lc 7, 36-50",
+        reference: todayLiturgy.gospelRef,
         title: "Évangile",
         excerpt: todayLiturgy.gospel,
       }] : []),
     ],
-  } : fallbackReadings;
+  } : null;
 
   const weeklySchedule = [
     { day: "Lundi", time: "06:30", type: "Messe quotidienne", isToday: false },
@@ -136,13 +108,15 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
           </View>
 
           {/* Carte de date avec backdrop-blur */}
-          <View style={styles.dateCard}>
-            <View style={styles.dateContent}>
-              <Ionicons name="calendar" size={20} color="#ffffff" />
-              <Text style={styles.dateText}>{todayReadings.date}</Text>
-              <Text style={styles.liturgicalTime}>{todayReadings.liturgicalTime}</Text>
+          {todayReadings && (
+            <View style={styles.dateCard}>
+              <View style={styles.dateContent}>
+                <Ionicons name="calendar" size={20} color="#ffffff" />
+                <Text style={styles.dateText}>{todayReadings.date}</Text>
+                <Text style={styles.liturgicalTime}>{todayReadings.liturgicalTime}</Text>
+              </View>
             </View>
-          </View>
+          )}
         </LinearGradient>
 
         <View style={styles.content}>
@@ -191,32 +165,39 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
           )}
 
           {/* Section lectures d'aujourd'hui - Affichage fluide */}
-          <View style={styles.liturgyContainer}>
-            <Text style={styles.mainTitle}>LECTURES DE LA MESSE</Text>
-            
-            {todayReadings.readings.map((reading, index) => (
-              <View key={index} style={styles.readingSection}>
-                <Text style={styles.readingTitle}>{reading.title.toUpperCase()}</Text>
-                <Text style={styles.readingReference}>« {reading.reference} »</Text>
-                <Text style={styles.readingSource}>
-                  {reading.title === "Première lecture" && "Lecture du livre du prophète Amos"}
-                  {reading.title === "Psaume" && "Psaume"}
-                  {reading.title === "Deuxième lecture" && "Lecture de la lettre de saint Paul"}
-                  {reading.title === "Évangile" && "Évangile de Jésus Christ selon saint Marc"}
-                </Text>
-                <Text style={styles.readingText}>{reading.excerpt}</Text>
-                {reading.title === "Première lecture" && (
-                  <Text style={styles.readingEnding}>- Parole du Seigneur.</Text>
-                )}
-                {reading.title === "Psaume" && (
-                  <View style={styles.psalmResponse}>
-                    <Text style={styles.psalmResponseText}>R/ Chante, ô mon âme, la louange du Seigneur !</Text>
-                    <Text style={styles.psalmAlternative}>ou : Alléluia ! (Ps 145, 1b)</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
+          {todayReadings ? (
+            <View style={styles.liturgyContainer}>
+              <Text style={styles.mainTitle}>LECTURES DE LA MESSE</Text>
+              
+              {todayReadings.readings.map((reading, index) => (
+                <View key={index} style={styles.readingSection}>
+                  <Text style={styles.readingTitle}>{reading.title.toUpperCase()}</Text>
+                  <Text style={styles.readingReference}>{reading.reference}</Text>
+                  <Text style={styles.readingSource}>
+                    {reading.title === "Première lecture" && "Lecture du livre du prophète Amos"}
+                    {reading.title === "Psaume" && "Psaume"}
+                    {reading.title === "Deuxième lecture" && "Lecture de la lettre de saint Paul"}
+                    {reading.title === "Évangile" && "Évangile de Jésus Christ selon saint Marc"}
+                  </Text>
+                  <Text style={styles.readingText}>{reading.excerpt}</Text>
+                  {reading.title === "Première lecture" && (
+                    <Text style={styles.readingEnding}>- Parole du Seigneur.</Text>
+                  )}
+                  {reading.title === "Psaume" && (
+                    <View style={styles.psalmResponse}>
+                      <Text style={styles.psalmResponseText}>R/ Chante, ô mon âme, la louange du Seigneur !</Text>
+                      <Text style={styles.psalmAlternative}>ou : Alléluia ! (Ps 145, 1b)</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>Aucune donnée liturgique disponible</Text>
+              <Text style={styles.noDataSubtext}>Vérifiez votre connexion à l'API</Text>
+            </View>
+          )}
 
           {/* Section programme de la semaine
           <Text style={styles.sectionTitle}>Programme de la semaine</Text>
@@ -496,5 +477,26 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#dc2626',
+  },
+  noDataContainer: {
+    backgroundColor: '#f8fafc',
+    padding: 24,
+    margin: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  noDataText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  noDataSubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
   },
 });

@@ -208,28 +208,9 @@ async function main() {
   } catch (error) {
     console.error(colorize('Erreur:', 'red'), error.message);
     
-    // Afficher des données de fallback basées sur les vraies lectures
-    console.log(colorize('\nUtilisation des données de fallback...', 'yellow'));
-    
-    const fallbackData = {
-      date: new Date().toLocaleDateString('fr-FR', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      title: "3ème Dimanche du Temps Ordinaire",
-      firstReading: "Ainsi parle le Seigneur de l'univers :\n\nMalheur à ceux qui vivent bien tranquilles dans Sion,\nCouchés sur des lits d'ivoire,\nils mangent les agneaux du troupeau,\nils improvisent au son de la harpe,\nils boivent le vin à même les amphores,\nmais ils ne se tourmentent guère du désastre d'Israël !\nC'est pourquoi maintenant ils vont être déportés,\net la bande des vautrés n'existera plus.",
-      firstReadingRef: "Am 6, 1a.4-7",
-      psalm: "Le Seigneur garde à jamais sa fidélité,\nil fait justice aux opprimés ;\naux affamés, il donne le pain ;\nle Seigneur délie les enchaînés.\nLe Seigneur ouvre les yeux des aveugles,\nle Seigneur redresse les accablés,\nle Seigneur aime les justes,\nle Seigneur protège l'étranger.\nIl soutient la veuve et l'orphelin,\nil égare les pas du méchant.\nD'âge en âge, le Seigneur régnera :\nton Dieu, ô Sion, pour toujours !",
-      psalmRef: "Ps 145 (146), 6c.7, 8.9a, 9bc-10",
-      secondReading: "Toi, homme de Dieu,\nrecherche la justice, la piété, la foi, la charité, la persévérance et la douceur.\n\nMène le bon combat, celui de la foi, empare-toi de la vie éternelle !\nC'est à elle que tu as été appelé, c'est pour elle que tu as prononcé ta belle profession de foi devant de nombreux témoins.\n\nEt maintenant, en présence de Dieu qui donne vie à tous les êtres, et en présence du Christ Jésus qui a témoigné devant Ponce Pilate par une belle affirmation, voici ce que je t'ordonne :\n\ngarde le commandement du Seigneur, en demeurant sans tache, irréprochable jusqu'à la Manifestation de notre Seigneur Jésus Christ.\n\nCelui qui le fera paraître aux temps fixés, c'est Dieu, Souverain unique et bienheureux, Roi des rois et Seigneur des seigneurs, lui seul possède l'immortalité, habite une lumière inaccessible ; aucun homme ne l'a jamais vu, et nul ne peut le voir.\nÀ lui, honneur et puissance éternelle. Amen.",
-      secondReadingRef: "1 Tm 6, 11-16",
-      gospel: "Alléluia. Alléluia.\nJésus Christ s'est fait pauvre, lui qui était riche, pour que vous deveniez riches par sa pauvreté. Alléluia. (cf. 2 Co 8, 9)\n\nÉvangile de Jésus Christ selon saint Luc\n\nEn ce temps-là, Jésus disait aux pharisiens : « Il y avait un homme riche, vêtu de pourpre et de lin fin, qui faisait chaque jour des festins somptueux. Devant son portail gisait un pauvre nommé Lazare, qui était couvert d'ulcères. Il aurait bien voulu se rassasier de ce qui tombait de la table du riche ; mais les chiens, eux, venaient lécher ses ulcères.\n\nOr le pauvre mourut, et les anges l'emportèrent auprès d'Abraham. Le riche mourut aussi, et on l'enterra. Dans le séjour des morts, il était en proie à la torture ; il leva les yeux et vit de loin Abraham avec Lazare tout près de lui.\n\nAlors il cria : 'Père Abraham, prends pitié de moi et envoie Lazare. Qu'il trempe le bout de son doigt dans l'eau pour me rafraîchir la langue, car je souffre terriblement dans cette fournaise.'\n\nAbraham lui dit : 'Mon enfant, souviens-toi : tu as reçu le bonheur pendant ta vie, et Lazare, le malheur. Maintenant, lui, il trouve ici la consolation, et toi, la souffrance. Et en plus, il y a un grand abîme entre vous et nous, pour que ceux qui voudraient passer vers vous ne le puissent pas, et que, de là-bas non plus, on ne traverse pas vers nous.'",
-      gospelRef: "Lc 16, 19-31"
-    };
-    
-    displayLiturgy(fallbackData);
+    // Aucune donnée de fallback - afficher un message d'erreur
+    console.log(colorize('\n❌ Erreur: Impossible de récupérer les données de l\'API', 'red'));
+    console.log(colorize('Vérifiez que l\'API est accessible et que l\'URL est correcte', 'yellow'));
   }
 }
 
