@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Edit, Trash2, User, Mail, Phone } from "lucide-react"
+import { User, Mail, Phone } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { useSearchParams } from "next/navigation"
@@ -21,8 +21,7 @@ export default function AdminDioceseUsersPage() {
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [editId, setEditId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState<any>({})
+  // États de modification supprimés - Mode consultation uniquement
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
@@ -64,39 +63,7 @@ export default function AdminDioceseUsersPage() {
     setCurrentPage(1)
   }, [search, roleFilter, statusFilter, users])
 
-  // Suppression
-  const handleDelete = (id: number) => {
-    if (window.confirm("Confirmer la suppression de cet utilisateur ?")) {
-      setUsers(users.filter(u => u.id !== id))
-      toast({
-          title: "Utilisateur supprimé",
-          description: "L'utilisateur a été supprimé avec succès"
-        })
-    }
-  }
-
-  // Edition inline
-  const handleEdit = (user: any) => {
-    setEditId(user.id)
-    setEditForm({ ...user })
-  }
-
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value })
-  }
-
-  const handleEditSave = (id: number) => {
-    setUsers(users.map(u => u.id === id ? { ...editForm, id } : u))
-    setEditId(null)
-    toast({
-          title: "Utilisateur modifié",
-          description: "L'utilisateur a été modifié avec succès"
-        })
-  }
-
-  const handleEditCancel = () => {
-    setEditId(null)
-  }
+  // Fonctions de modification et suppression supprimées - Mode consultation uniquement
 
   const roles = ["Curé", "Vicaire", "Catéchiste", "Administrateur", "Utilisateur"]
   const statuses = ["Actif", "Inactif"]
@@ -136,11 +103,7 @@ export default function AdminDioceseUsersPage() {
               <option value="all">Tous les statuts</option>
               {statuses.map(status => <option key={status} value={status}>{status}</option>)}
             </select>
-            <Link href={`/admindiocese/users/create?diocese=${encodeURIComponent(diocese)}`}>
-              <Button className="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 text-white shadow-lg rounded-xl px-4 py-2">
-                <Plus className="w-5 h-5" /> Nouvel utilisateur
-              </Button>
-            </Link>
+            {/* Bouton de création supprimé - Mode consultation uniquement */}
           </div>
         </CardHeader>
         <CardContent>
@@ -154,7 +117,7 @@ export default function AdminDioceseUsersPage() {
                   <th className="py-3 px-4 text-black">Rôle</th>
                   <th className="py-3 px-4 text-black">Paroisse</th>
                   <th className="py-3 px-4 text-black">Statut</th>
-                  <th className="py-3 px-4 text-right text-black">Actions</th>
+                  {/* Colonne Actions supprimée - Mode consultation uniquement */}
                 </tr>
               </thead>
               <tbody>
@@ -166,64 +129,29 @@ export default function AdminDioceseUsersPage() {
                     transition={{ delay: 0.1 + i * 0.05 }}
                     className="border-b last:border-0 hover:bg-blue-50/40"
                   >
-                    {editId === user.id ? (
-                      <>
-                        <td className="py-2 px-4 font-semibold text-black">
-                          <Input name="name" value={editForm.name} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <Input name="email" value={editForm.email} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <Input name="phone" value={editForm.phone} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <select name="role" value={editForm.role} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
-                            {roles.map(role => <option key={role} value={role}>{role}</option>)}
-                          </select>
-                        </td>
-                        <td className="py-2 px-4">
-                          <Input name="parish" value={editForm.parish} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
-                            {statuses.map(status => <option key={status} value={status}>{status}</option>)}
-                          </select>
-                        </td>
-                        <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEditSave(user.id)}>Enregistrer</Button>
-                          <Button size="sm" variant="ghost" className="rounded-lg" onClick={handleEditCancel}>Annuler</Button>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="py-2 px-4 font-semibold text-black">{user.name}</td>
-                        <td className="py-2 px-4 text-black">{user.email}</td>
-                        <td className="py-2 px-4 text-black">{user.phone}</td>
-                        <td className="py-2 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.role === 'Curé' ? 'bg-blue-100 text-black' :
-                            user.role === 'Vicaire' ? 'bg-blue-100 text-black' :
-                            user.role === 'Catéchiste' ? 'bg-blue-100 text-black' :
-                            'bg-blue-100 text-black'
-                          }`}>
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4 text-black">{user.parish}</td>
-                        <td className="py-2 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.status === 'Actif' ? 'bg-blue-100 text-black' : 'bg-blue-100 text-black'
-                          }`}>
-                            {user.status}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(user)}><Edit className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(user.id)}><Trash2 className="w-4 h-4" /></Button>
-                        </td>
-                      </>
-                    )}
+                    {/* Mode consultation uniquement - Pas d'édition ni suppression */}
+                    <td className="py-2 px-4 font-semibold text-black">{user.name}</td>
+                    <td className="py-2 px-4 text-black">{user.email}</td>
+                    <td className="py-2 px-4 text-black">{user.phone}</td>
+                    <td className="py-2 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        user.role === 'Curé' ? 'bg-blue-100 text-black' :
+                        user.role === 'Vicaire' ? 'bg-blue-100 text-black' :
+                        user.role === 'Catéchiste' ? 'bg-blue-100 text-black' :
+                        'bg-blue-100 text-black'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 text-black">{user.parish}</td>
+                    <td className="py-2 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        user.status === 'Actif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.status}
+                      </span>
+                    </td>
+                    {/* Actions supprimées - Mode consultation uniquement */}
                   </motion.tr>
                 ))}
               </tbody>
@@ -240,14 +168,7 @@ export default function AdminDioceseUsersPage() {
                     : "Aucun utilisateur ne correspond à vos critères de recherche."
                   }
                 </p>
-                {users.length === 0 && (
-                  <Link href="/admindiocese/users/create">
-                    <Button className="flex items-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      Créer le premier utilisateur
-                    </Button>
-                  </Link>
-                )}
+                {/* Bouton de création supprimé - Mode consultation uniquement */}
               </div>
             )}
           </div>

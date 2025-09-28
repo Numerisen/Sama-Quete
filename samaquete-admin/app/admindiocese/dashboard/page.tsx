@@ -3,27 +3,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Users, 
-  MapPin, 
-  DollarSign, 
-  PieChart, 
-  BarChart2, 
-  TrendingUp, 
-  CreditCard,
-  Calendar,
-  Eye,
-  Activity,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Download,
-  RefreshCw,
-  Filter,
-  Search,
-  Church,
-  BookOpen
-} from "lucide-react"
+// Download supprimé - Mode consultation uniquement from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Bar, Line, Pie, Doughnut } from "react-chartjs-2"

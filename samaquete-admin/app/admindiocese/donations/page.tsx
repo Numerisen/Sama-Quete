@@ -1,10 +1,8 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Edit, Trash2, DollarSign, User, Calendar, TrendingUp } from "lucide-react"
-import Link from "next/link"
+import { DollarSign, User, Calendar, TrendingUp } from "lucide-react"
 import { motion } from "framer-motion"
 import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
@@ -21,8 +19,6 @@ export default function AdminDioceseDonationsPage() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
-  const [editId, setEditId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState<any>({})
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
@@ -45,9 +41,9 @@ export default function AdminDioceseDonationsPage() {
 
   // Filtres et recherche
   const filteredDonations = donations.filter(d => {
-    const matchSearch = d.donorName.toLowerCase().includes(search.toLowerCase()) || 
-                       d.parish.toLowerCase().includes(search.toLowerCase()) ||
-                       d.description.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = d.donorName?.toLowerCase().includes(search.toLowerCase()) || 
+                       d.parish?.toLowerCase().includes(search.toLowerCase()) ||
+                       d.description?.toLowerCase().includes(search.toLowerCase())
     const matchStatus = statusFilter === "all" || d.status === statusFilter
     const matchType = typeFilter === "all" || d.type === typeFilter
     return matchSearch && matchStatus && matchType
@@ -65,43 +61,11 @@ export default function AdminDioceseDonationsPage() {
   }, [search, statusFilter, typeFilter, donations])
 
   // Calcul des statistiques
-  const totalAmount = filteredDonations.reduce((sum, d) => sum + d.amount, 0)
-  const receivedAmount = filteredDonations.filter(d => d.status === "Reçu").reduce((sum, d) => sum + d.amount, 0)
-  const pendingAmount = filteredDonations.filter(d => d.status === "En attente").reduce((sum, d) => sum + d.amount, 0)
+  const totalAmount = filteredDonations.reduce((sum, d) => sum + (d.amount || 0), 0)
+  const receivedAmount = filteredDonations.filter(d => d.status === "Reçu").reduce((sum, d) => sum + (d.amount || 0), 0)
+  const pendingAmount = filteredDonations.filter(d => d.status === "En attente").reduce((sum, d) => sum + (d.amount || 0), 0)
 
-  // Suppression
-  const handleDelete = (id: number) => {
-    if (window.confirm("Confirmer la suppression de cette donation ?")) {
-      setDonations(donations.filter(d => d.id !== id))
-      toast({
-          title: "Donation supprimée",
-          description: "La donation a été supprimée avec succès"
-        })
-    }
-  }
-
-  // Edition inline
-  const handleEdit = (item: any) => {
-    setEditId(item.id)
-    setEditForm({ ...item })
-  }
-
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value })
-  }
-
-  const handleEditSave = (id: number) => {
-    setDonations(donations.map(d => d.id === id ? { ...editForm, id } : d))
-    setEditId(null)
-    toast({
-          title: "Donation modifiée",
-          description: "La donation a été modifiée avec succès"
-        })
-  }
-
-  const handleEditCancel = () => {
-    setEditId(null)
-  }
+  // Fonctions de modification et suppression supprimées - Mode consultation uniquement
 
   const statuses = ["Reçu", "En attente", "Annulé"]
   const types = ["Offrande", "Dîme", "Don", "Collecte", "Autre"]
@@ -114,11 +78,11 @@ export default function AdminDioceseDonationsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-black">Total des donations</p>
+                <p className="text-sm font-medium text-gray-600">Total collecté</p>
                 <p className="text-2xl font-bold text-black">{totalAmount.toLocaleString()} FCFA</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <DollarSign className="w-6 h-6 text-black" />
+              <div className="p-3 bg-green-100 rounded-full">
+                <DollarSign className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -128,11 +92,11 @@ export default function AdminDioceseDonationsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-black">Reçues</p>
+                <p className="text-sm font-medium text-gray-600">Reçu</p>
                 <p className="text-2xl font-bold text-black">{receivedAmount.toLocaleString()} FCFA</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-full">
-                <TrendingUp className="w-6 h-6 text-black" />
+                <TrendingUp className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -142,25 +106,26 @@ export default function AdminDioceseDonationsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-black">En attente</p>
+                <p className="text-sm font-medium text-gray-600">En attente</p>
                 <p className="text-2xl font-bold text-black">{pendingAmount.toLocaleString()} FCFA</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Calendar className="w-6 h-6 text-black" />
+              <div className="p-3 bg-orange-100 rounded-full">
+                <Calendar className="w-6 h-6 text-orange-600" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
+      {/* Liste des dons */}
+      <Card className="shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle className="text-3xl font-bold text-black mb-1">
-              Gestion des donations - {diocese}
+              Dons - {diocese}
             </CardTitle>
             <p className="text-black/80 text-sm">
-              Gérez les donations et offrandes de votre diocèse.
+              Consultez les dons reçus dans votre diocèse.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
@@ -186,96 +151,48 @@ export default function AdminDioceseDonationsPage() {
               <option value="all">Tous les types</option>
               {types.map(type => <option key={type} value={type}>{type}</option>)}
             </select>
-            <Link href={`/admindiocese/donations/create?diocese=${encodeURIComponent(diocese)}`}>
-              <Button className="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 text-white shadow-lg rounded-xl px-4 py-2">
-                <Plus className="w-5 h-5" /> Nouvelle donation
-              </Button>
-            </Link>
+            {/* Boutons d'action supprimés - Mode consultation uniquement */}
           </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-xl">
-            <table className="w-full text-left min-w-[900px]">
+            <table className="w-full text-left min-w-[800px]">
               <thead>
                 <tr className="text-black/80 text-sm bg-blue-50">
                   <th className="py-3 px-4 text-black">Donateur</th>
-                  <th className="py-3 px-4 text-black">Montant</th>
                   <th className="py-3 px-4 text-black">Type</th>
+                  <th className="py-3 px-4 text-black">Montant</th>
                   <th className="py-3 px-4 text-black">Paroisse</th>
-                  <th className="py-3 px-4 text-black">Date</th>
                   <th className="py-3 px-4 text-black">Statut</th>
-                  <th className="py-3 px-4 text-right text-black">Actions</th>
+                  <th className="py-3 px-4 text-black">Date</th>
+                  {/* Colonne Actions supprimée - Mode consultation uniquement */}
                 </tr>
               </thead>
               <tbody>
-                {paginatedDonations.map((item, i) => (
+                {paginatedDonations.map((donation, i) => (
                   <motion.tr
-                    key={item.id}
+                    key={donation.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 + i * 0.05 }}
                     className="border-b last:border-0 hover:bg-blue-50/40"
                   >
-                    {editId === item.id ? (
-                      <>
-                        <td className="py-2 px-4 font-semibold text-black">
-                          <Input name="donorName" value={editForm.donorName} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <Input name="amount" type="number" value={editForm.amount} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <select name="type" value={editForm.type} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
-                            {types.map(type => <option key={type} value={type}>{type}</option>)}
-                          </select>
-                        </td>
-                        <td className="py-2 px-4">
-                          <Input name="parish" value={editForm.parish} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <Input name="date" type="date" value={editForm.date} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
-                            {statuses.map(status => <option key={status} value={status}>{status}</option>)}
-                          </select>
-                        </td>
-                        <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEditSave(item.id)}>Enregistrer</Button>
-                          <Button size="sm" variant="ghost" className="rounded-lg" onClick={handleEditCancel}>Annuler</Button>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="py-2 px-4 font-semibold text-black">{item.donorName}</td>
-                        <td className="py-2 px-4 font-semibold text-black">{item.amount.toLocaleString()} FCFA</td>
-                        <td className="py-2 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            item.type === 'Offrande' ? 'bg-blue-100 text-black' :
-                            item.type === 'Dîme' ? 'bg-blue-100 text-black' :
-                            item.type === 'Don' ? 'bg-blue-100 text-black' :
-                            'bg-blue-100 text-black'
-                          }`}>
-                            {item.type}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4 text-black">{item.parish}</td>
-                        <td className="py-2 px-4 text-black">{new Date(item.date).toLocaleDateString('fr-FR')}</td>
-                        <td className="py-2 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            item.status === 'Reçu' ? 'bg-blue-100 text-black' :
-                            item.status === 'En attente' ? 'bg-blue-100 text-black' :
-                            'bg-blue-100 text-black'
-                          }`}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
-                        </td>
-                      </>
-                    )}
+                    {/* Mode consultation uniquement - Pas d'édition ni suppression */}
+                    <td className="py-2 px-4 font-semibold text-black">{donation.donorName || 'N/A'}</td>
+                    <td className="py-2 px-4 text-black">{donation.type || 'N/A'}</td>
+                    <td className="py-2 px-4 text-black font-semibold">{(donation.amount || 0).toLocaleString()} FCFA</td>
+                    <td className="py-2 px-4 text-black">{donation.parish || 'N/A'}</td>
+                    <td className="py-2 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        donation.status === 'Reçu' ? 'bg-green-100 text-green-800' :
+                        donation.status === 'En attente' ? 'bg-orange-100 text-orange-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {donation.status || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 text-black">{donation.date || 'N/A'}</td>
+                    {/* Actions supprimées - Mode consultation uniquement */}
                   </motion.tr>
                 ))}
               </tbody>
@@ -292,14 +209,7 @@ export default function AdminDioceseDonationsPage() {
                     : "Aucune donation ne correspond à vos critères de recherche."
                   }
                 </p>
-                {donations.length === 0 && (
-                  <Link href="/admindiocese/donations/create">
-                    <Button className="flex items-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      Enregistrer la première donation
-                    </Button>
-                  </Link>
-                )}
+                {/* Bouton de création supprimé - Mode consultation uniquement */}
               </div>
             )}
           </div>
