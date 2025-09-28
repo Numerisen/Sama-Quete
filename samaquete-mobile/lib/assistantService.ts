@@ -73,7 +73,12 @@ class AssistantService {
    */
   async getSuggestions(): Promise<AssistantSuggestion> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/assistant/suggestions`);
+      const response = await fetch(`${this.baseUrl}/api/assistant/suggestions`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         throw new Error('Erreur lors de la récupération des suggestions');
@@ -83,7 +88,64 @@ class AssistantService {
       return data;
     } catch (error) {
       console.error('Erreur lors de la récupération des suggestions:', error);
-      throw new Error('Impossible de récupérer les suggestions');
+      // Retourner des suggestions par défaut en cas d'erreur
+      return {
+        suggestions: [
+          "Qu'est-ce que la Pentecôte ?",
+          "Comment prier le rosaire ?",
+          "Sens du carême",
+          "Saints du Sénégal",
+          "Préparation au baptême",
+          "Signification de l'Eucharistie"
+        ],
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  /**
+   * Obtient les statistiques de l'assistant
+   */
+  async getStats(): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/assistant/stats`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des statistiques');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Erreur lors de la récupération des statistiques:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtient les textes du jour (endpoint existant)
+   */
+  async getTextOfTheDay(timezone: string = 'Europe/Paris'): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/text-of-the-day?tz=${timezone}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération du texte du jour');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Erreur lors de la récupération du texte du jour:', error);
+      throw error;
     }
   }
 

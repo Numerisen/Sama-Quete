@@ -106,11 +106,11 @@ export default function CreateDonationEventPage() {
     <div className="max-w-4xl mx-auto">
       <Card className="shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader>
-          <CardTitle className="text-3xl font-bold text-green-900 mb-2 flex items-center gap-3">
+          <CardTitle className="text-3xl font-bold text-black mb-2 flex items-center gap-3">
             <Target className="w-8 h-8" />
             Créer un événement de don
           </CardTitle>
-          <p className="text-green-800/80">
+          <p className="text-black/80">
             Créez un événement pour collecter des dons (messe, quête, événement spécial...)
           </p>
         </CardHeader>
@@ -120,7 +120,7 @@ export default function CreateDonationEventPage() {
             {/* Titre et Description */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="title" className="text-green-900 font-semibold">
+                <Label htmlFor="title" className="text-black font-semibold">
                   Titre de l'événement *
                 </Label>
                 <Input
@@ -128,16 +128,16 @@ export default function CreateDonationEventPage() {
                   value={formData.title}
                   onChange={(e) => handleChange("title", e.target.value)}
                   placeholder="Ex: Messe d'intention pour..."
-                  className="border-green-200 focus:border-green-500"
+                  className="border-blue-200 focus:border-green-500"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="type" className="text-green-900 font-semibold">
+                <Label htmlFor="type" className="text-black font-semibold">
                   Type d'événement *
                 </Label>
                 <Select value={formData.type} onValueChange={(value) => handleChange("type", value)}>
-                  <SelectTrigger className="border-green-200 focus:border-green-500">
+                  <SelectTrigger className="border-blue-200 focus:border-green-500">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -156,7 +156,7 @@ export default function CreateDonationEventPage() {
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-green-900 font-semibold">
+              <Label htmlFor="description" className="text-black font-semibold">
                 Description *
               </Label>
               <Textarea
@@ -165,18 +165,18 @@ export default function CreateDonationEventPage() {
                 onChange={(e) => handleChange("description", e.target.value)}
                 placeholder="Décrivez l'événement, son objectif, les bénéficiaires..."
                 rows={4}
-                className="border-green-200 focus:border-green-500"
+                className="border-blue-200 focus:border-green-500"
               />
             </div>
 
             {/* Paroisse et Montant cible */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="parish" className="text-green-900 font-semibold">
+                <Label htmlFor="parish" className="text-black font-semibold">
                   Paroisse *
                 </Label>
                 <Select value={formData.parishId} onValueChange={(value) => handleChange("parishId", value)}>
-                  <SelectTrigger className="border-green-200 focus:border-green-500">
+                  <SelectTrigger className="border-blue-200 focus:border-green-500">
                     <SelectValue placeholder="Sélectionner une paroisse" />
                   </SelectTrigger>
                   <SelectContent>
@@ -193,7 +193,7 @@ export default function CreateDonationEventPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="targetAmount" className="text-green-900 font-semibold">
+                <Label htmlFor="targetAmount" className="text-black font-semibold">
                   Montant cible (FCFA)
                 </Label>
                 <Input
@@ -202,7 +202,7 @@ export default function CreateDonationEventPage() {
                   value={formData.targetAmount}
                   onChange={(e) => handleChange("targetAmount", e.target.value)}
                   placeholder="Ex: 500000 (optionnel)"
-                  className="border-green-200 focus:border-green-500"
+                  className="border-blue-200 focus:border-green-500"
                 />
               </div>
             </div>
@@ -210,7 +210,7 @@ export default function CreateDonationEventPage() {
             {/* Dates */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="startDate" className="text-green-900 font-semibold">
+                <Label htmlFor="startDate" className="text-black font-semibold">
                   Date de début *
                 </Label>
                 <Input
@@ -218,12 +218,12 @@ export default function CreateDonationEventPage() {
                   type="datetime-local"
                   value={formData.startDate}
                   onChange={(e) => handleChange("startDate", e.target.value)}
-                  className="border-green-200 focus:border-green-500"
+                  className="border-blue-200 focus:border-green-500"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="endDate" className="text-green-900 font-semibold">
+                <Label htmlFor="endDate" className="text-black font-semibold">
                   Date de fin *
                 </Label>
                 <Input
@@ -231,7 +231,7 @@ export default function CreateDonationEventPage() {
                   type="datetime-local"
                   value={formData.endDate}
                   onChange={(e) => handleChange("endDate", e.target.value)}
-                  className="border-green-200 focus:border-green-500"
+                  className="border-blue-200 focus:border-green-500"
                 />
               </div>
             </div>
@@ -243,7 +243,7 @@ export default function CreateDonationEventPage() {
                 checked={formData.isActive}
                 onCheckedChange={(checked) => handleChange("isActive", checked)}
               />
-              <Label htmlFor="isActive" className="text-green-900 font-semibold">
+              <Label htmlFor="isActive" className="text-black font-semibold">
                 Événement actif (visible pour les fidèles)
               </Label>
             </div>
@@ -253,7 +253,7 @@ export default function CreateDonationEventPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-green-700 hover:bg-green-800 text-white shadow-lg rounded-xl px-6 py-3"
+                className="flex-1 bg-blue-700 hover:bg-blue-800 text-white shadow-lg rounded-xl px-6 py-3"
               >
                 {loading ? (
                   <>
@@ -272,7 +272,7 @@ export default function CreateDonationEventPage() {
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
-                className="px-6 py-3 border-green-200 text-green-700 hover:bg-green-50 rounded-xl"
+                className="px-6 py-3 border-blue-200 text-black hover:bg-blue-50 rounded-xl"
               >
                 Annuler
               </Button>

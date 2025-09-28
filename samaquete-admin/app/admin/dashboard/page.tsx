@@ -1,10 +1,30 @@
 "use client"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, MapPin, DollarSign, PieChart, BarChart2, TrendingUp, CreditCard } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { 
+  Users, 
+  MapPin, 
+  DollarSign, 
+  PieChart, 
+  BarChart2, 
+  TrendingUp, 
+  CreditCard,
+  Calendar,
+  Eye,
+  Activity,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Download,
+  RefreshCw,
+  Filter,
+  Search
+} from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Bar, Line, Pie } from "react-chartjs-2"
+import { Bar, Line, Pie, Doughnut } from "react-chartjs-2"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,6 +37,8 @@ import {
   LineElement,
   ArcElement,
 } from "chart.js"
+import { useToast } from "@/hooks/use-toast"
+import { NewsService, UserService, ParishService, DonationService } from "@/lib/firestore-services"
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement, ArcElement)
 
@@ -24,282 +46,692 @@ function formatAmount(amount: number) {
   return amount.toLocaleString("fr-FR").replace(/\s/g, " ");
 }
 
-// Génération de données fictives réalistes
-function generateFakeData() {
-  const parishes = [
-    "Paroisse Saint-Joseph de Medina",
-    "Paroisse Sainte-Anne de Thiès",
-    "Paroisse Sacré-Cœur de Kaolack",
-    "Paroisse Saint-Paul de Ziguinchor",
-    "Paroisse Sainte-Marie de Kolda",
-    "Paroisse Saint-Pierre de Tambacounda",
-    "Paroisse Saint-Louis du Sénégal",
-  ]
-  const types = ["messe", "cierge", "denier", "quete"]
-  const payments = ["cb", "wave", "orange", "especes"]
-  const users = Array.from({ length: 120 }, (_, i) => ({
-    id: i + 1,
-    fullname: `Donateur ${i + 1}`,
-    phone: `+221 77 ${Math.floor(1000000 + Math.random() * 8999999)}`,
-  }))
-  const donations = []
-  const now = new Date()
-  for (let i = 0; i < 300; i++) {
-    const user = users[Math.floor(Math.random() * users.length)]
-    const parish = parishes[Math.floor(Math.random() * parishes.length)]
-    const type = types[Math.floor(Math.random() * types.length)]
-    const payment = payments[Math.floor(Math.random() * payments.length)]
-    const amount = [2000, 5000, 10000, 20000, 50000][Math.floor(Math.random() * 5)]
-    const daysAgo = Math.floor(Math.random() * 30)
-    const date = new Date(now)
-    date.setDate(now.getDate() - daysAgo)
-    const dateStr = date.toISOString().slice(0, 10) + " " + (8 + Math.floor(Math.random() * 10)) + ":" + (Math.floor(Math.random() * 60)).toString().padStart(2, "0")
-    donations.push({
-      id: i + 1,
-      fullname: user.fullname,
-      phone: user.phone,
-      type,
-      amount,
-      payment,
-      parish,
-      date: dateStr,
-    })
-  }
-  return { donations, parishes, users }
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
 }
 
-const typeLabels: Record<string, string> = {
-  messe: "Messe d'intention",
-  cierge: "Cierge pascal",
-  denier: "Denier du culte",
-  quete: "Quête dominicale",
-}
-const paymentLabels: Record<string, string> = {
-  cb: "Carte bancaire",
-  wave: "Wave",
-  orange: "Orange Money",
-  especes: "Espèces",
+interface DashboardStats {
+  totalUsers: number;
+  totalParishes: number;
+  totalDonations: number;
+  totalAmount: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  publishedNews: number;
+  draftNews: number;
+  todayDonations: number;
+  weekDonations: number;
+  monthDonations: number;
+  avgDonation: number;
+  topParish: string;
+  recentDonations: any[];
+  recentNews: any[];
+  recentUsers: any[];
 }
 
 export default function AdminDashboardPage() {
-  const [donations, setDonations] = useState<any[]>([])
-  const [parishes, setParishes] = useState<any[]>([])
-  const [users, setUsers] = useState<any[]>([])
+  const [stats, setStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    totalParishes: 0,
+    totalDonations: 0,
+    totalAmount: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    publishedNews: 0,
+    draftNews: 0,
+    todayDonations: 0,
+    weekDonations: 0,
+    monthDonations: 0,
+    avgDonation: 0,
+    topParish: "",
+    recentDonations: [],
+    recentNews: [],
+    recentUsers: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const { toast } = useToast();
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Charger toutes les données en parallèle depuis Firestore
+      const [users, parishes, donations, news] = await Promise.all([
+        UserService.getAll(),
+        ParishService.getAll(),
+        DonationService.getAll(),
+        NewsService.getAll()
+      ]);
+
+      // Vérifier si des données existent
+      if (users.length === 0 && parishes.length === 0 && donations.length === 0 && news.length === 0) {
+        // Aucune donnée dans Firestore, afficher des valeurs par défaut
+        setStats({
+          totalUsers: 0,
+          totalParishes: 0,
+          totalDonations: 0,
+          totalAmount: 0,
+          activeUsers: 0,
+          inactiveUsers: 0,
+          publishedNews: 0,
+          draftNews: 0,
+          todayDonations: 0,
+          weekDonations: 0,
+          monthDonations: 0,
+          avgDonation: 0,
+          topParish: "Aucune donnée",
+          recentDonations: [],
+          recentNews: [],
+          recentUsers: []
+        });
+        setLastUpdate(new Date());
+        return;
+      }
+
+      // Calculer les statistiques avec les données réelles
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const totalAmount = donations.reduce((sum, d) => sum + (d.amount || 0), 0);
+      const todayDonations = donations.filter(d => d.date?.startsWith(today)).length;
+      const weekDonations = donations.filter(d => d.date && d.date >= weekAgo).length;
+      const monthDonations = donations.filter(d => d.date && d.date >= monthAgo).length;
+      const avgDonation = donations.length > 0 ? Math.round(totalAmount / donations.length) : 0;
+
+      // Paroisse avec le plus de dons
+      const parishStats: Record<string, number> = {};
+      donations.forEach(d => {
+        if (d.parish) {
+          parishStats[d.parish] = (parishStats[d.parish] || 0) + (d.amount || 0);
+        }
+      });
+      const topParish = Object.keys(parishStats).length > 0 
+        ? Object.keys(parishStats).reduce((a, b) => parishStats[a] > parishStats[b] ? a : b)
+        : "Aucune donnée";
+
+      // Utilisateurs actifs/inactifs
+      const activeUsers = users.filter(u => u.status === "Actif").length;
+      const inactiveUsers = users.filter(u => u.status === "Inactif").length;
+
+      // Actualités publiées/brouillons
+      const publishedNews = news.filter(n => n.published).length;
+      const draftNews = news.filter(n => !n.published).length;
+
+      // Dernières activités (limitées à 5)
+      const recentDonations = donations
+        .filter(d => d.date) // Filtrer les dons avec une date valide
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+        .slice(0, 5);
+
+      const recentNews = news
+        .filter(n => n.createdAt) // Filtrer les actualités avec une date de création
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+        .slice(0, 5);
+
+      const recentUsers = users
+        .filter(u => u.createdAt) // Filtrer les utilisateurs avec une date de création
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+        .slice(0, 5);
+
+      setStats({
+        totalUsers: users.length,
+        totalParishes: parishes.length,
+        totalDonations: donations.length,
+        totalAmount,
+        activeUsers,
+        inactiveUsers,
+        publishedNews,
+        draftNews,
+        todayDonations,
+        weekDonations,
+        monthDonations,
+        avgDonation,
+        topParish,
+        recentDonations,
+        recentNews,
+        recentUsers
+      });
+
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les données du tableau de bord",
+        variant: "destructive"
+      });
+      
+      // En cas d'erreur, afficher des valeurs par défaut
+      setStats({
+        totalUsers: 0,
+        totalParishes: 0,
+        totalDonations: 0,
+        totalAmount: 0,
+        activeUsers: 0,
+        inactiveUsers: 0,
+        publishedNews: 0,
+        draftNews: 0,
+        todayDonations: 0,
+        weekDonations: 0,
+        monthDonations: 0,
+        avgDonation: 0,
+        topParish: "Erreur de chargement",
+        recentDonations: [],
+        recentNews: [],
+        recentUsers: []
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Génère des données fictives à chaque chargement
-    const { donations, parishes, users } = generateFakeData()
-    setDonations(donations)
-    setParishes(parishes)
-    setUsers(users)
-  }, [])
+    loadDashboardData();
+  }, []);
 
-  // Statistiques clés
-  const totalAmount = donations.reduce((sum, d) => sum + d.amount, 0)
-  const totalDonations = donations.length
-  const uniqueDonors = new Set(donations.map(d => d.fullname)).size
-  const today = new Date().toISOString().slice(0, 10)
-  const donationsToday = donations.filter(d => d.date.startsWith(today)).length
-  const avgDonation = totalDonations ? Math.round(totalAmount / totalDonations) : 0
+  // Données pour les graphiques (basées sur les données réelles)
+  const donationsByDay = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    const dateStr = date.toISOString().split('T')[0];
+    return stats.recentDonations.filter(d => d.date?.startsWith(dateStr)).length;
+  });
 
-  // Dons par jour (30 derniers jours)
-  const daysArr = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (29 - i))
-    return d.toISOString().slice(0, 10)
-  })
-  const donationsByDay = daysArr.map(date => donations.filter(d => d.date.startsWith(date)).reduce((sum, d) => sum + d.amount, 0))
+  const daysLabels = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return date.toLocaleDateString("fr-FR", { weekday: "short" });
+  });
 
-  // Histogramme par paroisse
-  const parishSums: Record<string, number> = {}
-  donations.forEach(d => { parishSums[d.parish] = (parishSums[d.parish] || 0) + d.amount })
-  const parishLabels = Object.keys(parishSums)
-  const parishAmounts = parishLabels.map(p => parishSums[p])
+  // Données par paroisse (top 5) - basées sur les données réelles
+  const parishStats: Record<string, number> = {};
+  stats.recentDonations.forEach(d => {
+    if (d.parish) {
+      parishStats[d.parish] = (parishStats[d.parish] || 0) + 1;
+    }
+  });
+  const topParishes = Object.entries(parishStats)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5);
 
-  // Camembert par type de don
-  const typeSums: Record<string, number> = { messe: 0, cierge: 0, denier: 0, quete: 0 }
-  donations.forEach(d => { if (typeSums[d.type] !== undefined) typeSums[d.type] += d.amount })
-  const typeData = Object.values(typeSums)
+  // Si aucune donnée, afficher un message
+  const hasData = stats.totalDonations > 0 || stats.totalUsers > 0 || stats.totalParishes > 0 || stats.totalAmount > 0;
 
-  // Camembert par mode de paiement
-  const paymentSums: Record<string, number> = { cb: 0, wave: 0, orange: 0, especes: 0 }
-  donations.forEach(d => { if (paymentSums[d.payment] !== undefined) paymentSums[d.payment] += d.amount })
-  const paymentData = Object.values(paymentSums)
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+          <span className="text-lg text-gray-600">Chargement du tableau de bord...</span>
+        </div>
+      </div>
+    );
+  }
 
-  // Nouveaux donateurs par semaine (4 dernières semaines)
-  const weeks = [0, 1, 2, 3].map(w => {
-    const start = new Date()
-    start.setDate(start.getDate() - w * 7)
-    const end = new Date()
-    end.setDate(start.getDate() - 6)
-    const weekDonors = new Set(
-      donations.filter(d => {
-        const dDate = new Date(d.date)
-        return dDate >= end && dDate <= start
-      }).map(d => d.fullname)
-    )
-    return weekDonors.size
-  }).reverse()
+  // Afficher un message si aucune donnée n'est disponible
+  if (!hasData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center py-16">
+            <div className="mb-8">
+              <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Activity className="w-12 h-12 text-blue-500" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">Tableau de bord vide</h1>
+              <p className="text-lg text-gray-600 mb-8">
+                Aucune donnée n'est disponible dans Firestore pour le moment.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="border-0 shadow-lg">
+                <CardContent className="p-6 text-center">
+                  <Users className="w-8 h-8 text-blue-500 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Utilisateurs</h3>
+                  <p className="text-sm text-gray-600">0 utilisateurs</p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-lg">
+                <CardContent className="p-6 text-center">
+                  <MapPin className="w-8 h-8 text-green-500 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Paroisses</h3>
+                  <p className="text-sm text-gray-600">0 paroisses</p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-lg">
+                <CardContent className="p-6 text-center">
+                  <DollarSign className="w-8 h-8 text-purple-500 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Dons</h3>
+                  <p className="text-sm text-gray-600">0 FCFA collectés</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Pour commencer à utiliser le tableau de bord, ajoutez des données via les sections :
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link href="/admin/users">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Utilisateurs
+                  </Button>
+                </Link>
+                <Link href="/admin/paroisses">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Paroisses
+                  </Button>
+                </Link>
+                <Link href="/admin/donations">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    Dons
+                  </Button>
+                </Link>
+                <Link href="/admin/news">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Actualités
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 via-white to-green-100 relative overflow-hidden">
-      <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="w-full max-w-6xl z-10">
-        {/* Statistiques clés */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8 mt-8">
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 flex flex-col items-center py-8">
-            <DollarSign className="w-8 h-8 text-green-600 mb-2" />
-            <div className="text-lg font-semibold text-gray-700 mb-1">Montant total collecté</div>
-            <div className="text-2xl font-bold text-green-700">{formatAmount(totalAmount)} FCFA</div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* En-tête avec actions */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
+            <p className="text-gray-600 mt-1">
+              Dernière mise à jour: {lastUpdate.toLocaleTimeString("fr-FR")}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              onClick={loadDashboardData} 
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Actualiser
+            </Button>
+            <Button className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Exporter
+            </Button>
+          </div>
+        </div>
+
+        {/* Statistiques principales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm font-medium">Total Collecté</p>
+                    <p className="text-3xl font-bold">{formatAmount(stats.totalAmount)} FCFA</p>
+                    <p className="text-blue-100 text-sm mt-1">{stats.totalDonations} dons</p>
+                  </div>
+                  <DollarSign className="w-12 h-12 text-blue-200" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-100 text-sm font-medium">Utilisateurs Actifs</p>
+                    <p className="text-3xl font-bold">{stats.activeUsers}</p>
+                    <p className="text-green-100 text-sm mt-1">{stats.inactiveUsers} inactifs</p>
+                  </div>
+                  <Users className="w-12 h-12 text-green-200" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-sm font-medium">Paroisses</p>
+                    <p className="text-3xl font-bold">{stats.totalParishes}</p>
+                    <p className="text-purple-100 text-sm mt-1">Enregistrées</p>
+                  </div>
+                  <MapPin className="w-12 h-12 text-purple-200" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-sm font-medium">Actualités</p>
+                    <p className="text-3xl font-bold">{stats.publishedNews}</p>
+                    <p className="text-orange-100 text-sm mt-1">{stats.draftNews} brouillons</p>
+                  </div>
+                  <Activity className="w-12 h-12 text-orange-200" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Métriques de performance */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Aujourd'hui</h3>
+                <Calendar className="w-5 h-5 text-blue-500" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Dons</span>
+                  <span className="font-semibold text-gray-900">{stats.todayDonations}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Cette semaine</span>
+                  <span className="font-semibold text-gray-900">{stats.weekDonations}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Ce mois</span>
+                  <span className="font-semibold text-gray-900">{stats.monthDonations}</span>
+                </div>
+              </div>
+            </CardContent>
           </Card>
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 flex flex-col items-center py-8">
-            <TrendingUp className="w-8 h-8 text-green-500 mb-2" />
-            <div className="text-lg font-semibold text-gray-700 mb-1">Dons aujourd'hui</div>
-            <div className="text-2xl font-bold text-green-600">{donationsToday}</div>
+
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Performance</h3>
+                <TrendingUp className="w-5 h-5 text-green-500" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Don moyen</span>
+                  <span className="font-semibold text-gray-900">{formatAmount(stats.avgDonation)} FCFA</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Top paroisse</span>
+                  <span className="font-semibold text-gray-900 truncate max-w-32">{stats.topParish}</span>
+                </div>
+              </div>
+            </CardContent>
           </Card>
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 flex flex-col items-center py-8">
-            <Users className="w-8 h-8 text-green-500 mb-2" />
-            <div className="text-lg font-semibold text-gray-700 mb-1">Donateurs uniques</div>
-            <div className="text-2xl font-bold text-green-600">{uniqueDonors}</div>
-          </Card>
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 flex flex-col items-center py-8">
-            <MapPin className="w-8 h-8 text-green-500 mb-2" />
-            <div className="text-lg font-semibold text-gray-700 mb-1">Nombre de paroisses</div>
-            <div className="text-2xl font-bold text-green-600">{parishes.length}</div>
-          </Card>
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 flex flex-col items-center py-8">
-            <CreditCard className="w-8 h-8 text-green-500 mb-2" />
-            <div className="text-lg font-semibold text-gray-700 mb-1">Don moyen</div>
-            <div className="text-2xl font-bold text-green-600">{formatAmount(avgDonation)} FCFA</div>
+
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Statut</h3>
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Système opérationnel</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Firestore connecté</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Données synchronisées</span>
+                </div>
+              </div>
+            </CardContent>
           </Card>
         </div>
+
         {/* Graphiques */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 p-6">
-            <CardTitle className="mb-4 flex items-center gap-2"><BarChart2 className="w-5 h-5 text-green-600" /> Évolution des dons (30 jours)</CardTitle>
-            <Line
-              data={{
-                labels: daysArr.map(d => d.slice(5)),
-                datasets: [
-                  {
-                    label: "Montant collecté (FCFA)",
-                    data: donationsByDay,
-                    borderColor: "#16a34a",
-                    backgroundColor: "rgba(22,163,74,0.1)",
-                    tension: 0.4,
-                    fill: true,
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart2 className="w-5 h-5 text-blue-500" />
+                Dons des 7 derniers jours
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Bar
+                data={{
+                  labels: daysLabels,
+                  datasets: [
+                    {
+                      label: "Nombre de dons",
+                      data: donationsByDay,
+                      backgroundColor: "rgba(59, 130, 246, 0.8)",
+                      borderColor: "rgb(59, 130, 246)",
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { display: false },
                   },
-                ],
-              }}
-              options={{
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } },
-              }}
-            />
+                  scales: {
+                    y: { beginAtZero: true },
+                  },
+                }}
+              />
+            </CardContent>
           </Card>
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 p-6">
-            <CardTitle className="mb-4 flex items-center gap-2"><BarChart2 className="w-5 h-5 text-green-600" /> Montants collectés par paroisse</CardTitle>
-            <Bar
-              data={{
-                labels: parishLabels,
-                datasets: [
-                  {
-                    label: "Montant (FCFA)",
-                    data: parishAmounts,
-                    backgroundColor: "#16a34a",
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-green-500" />
+                Top 5 Paroisses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Doughnut
+                data={{
+                  labels: topParishes.map(([parish]) => parish),
+                  datasets: [
+                    {
+                      data: topParishes.map(([, count]) => count),
+                      backgroundColor: [
+                        "rgba(59, 130, 246, 0.8)",
+                        "rgba(16, 185, 129, 0.8)",
+                        "rgba(245, 158, 11, 0.8)",
+                        "rgba(239, 68, 68, 0.8)",
+                        "rgba(139, 92, 246, 0.8)",
+                      ],
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { position: "bottom" },
                   },
-                ],
-              }}
-              options={{
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } },
-              }}
-            />
-          </Card>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 p-6">
-            <CardTitle className="mb-4 flex items-center gap-2"><PieChart className="w-5 h-5 text-green-600" /> Répartition par type de don</CardTitle>
-            <Pie
-              data={{
-                labels: Object.values(typeLabels),
-                datasets: [
-                  {
-                    data: typeData,
-                    backgroundColor: ["#16a34a", "#fbbf24", "#818cf8", "#f87171"],
-                  },
-                ],
-              }}
-              options={{ plugins: { legend: { position: "bottom" } } }}
-            />
-          </Card>
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 p-6">
-            <CardTitle className="mb-4 flex items-center gap-2"><PieChart className="w-5 h-5 text-green-600" /> Répartition par mode de paiement</CardTitle>
-            <Pie
-              data={{
-                labels: Object.values(paymentLabels),
-                datasets: [
-                  {
-                    data: paymentData,
-                    backgroundColor: ["#fbbf24", "#16a34a", "#f87171", "#818cf8"],
-                  },
-                ],
-              }}
-              options={{ plugins: { legend: { position: "bottom" } } }}
-            />
+                }}
+              />
+            </CardContent>
           </Card>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <Card className="rounded-2xl shadow-xl bg-white/90 backdrop-blur-sm border-0 p-6">
-            <CardTitle className="mb-4 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-green-600" /> Nouveaux donateurs par semaine</CardTitle>
-            <Bar
-              data={{
-                labels: ["S-3", "S-2", "S-1", "Semaine en cours"],
-                datasets: [
-                  {
-                    label: "Nouveaux donateurs",
-                    data: weeks,
-                    backgroundColor: "#16a34a",
-                  },
-                ],
-              }}
-              options={{
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true } },
-              }}
-            />
+
+        {/* Activité récente */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-green-500" />
+                Dons récents
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {stats.recentDonations.map((donation, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{donation.fullname || "Anonyme"}</p>
+                      <p className="text-sm text-gray-600">{donation.parish || "Non spécifié"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">{formatAmount(donation.amount || 0)} FCFA</p>
+                      <p className="text-xs text-gray-500">{formatDate(donation.date || "")}</p>
+                    </div>
+                  </div>
+                ))}
+                {stats.recentDonations.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">Aucun don récent</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-500" />
+                Actualités récentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {stats.recentNews.map((news, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900 truncate">{news.title}</p>
+                      <p className="text-sm text-gray-600">{news.category}</p>
+                    </div>
+                    <Badge variant={news.published ? "default" : "secondary"}>
+                      {news.published ? "Publié" : "Brouillon"}
+                    </Badge>
+                  </div>
+                ))}
+                {stats.recentNews.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">Aucune actualité récente</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-500" />
+                Utilisateurs récents
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {stats.recentUsers.map((user, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{user.name}</p>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                    </div>
+                    <Badge variant={user.status === "Actif" ? "default" : "secondary"}>
+                      {user.status}
+                    </Badge>
+                  </div>
+                ))}
+                {stats.recentUsers.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">Aucun utilisateur récent</p>
+                )}
+              </div>
+            </CardContent>
           </Card>
         </div>
+
         {/* Accès rapide */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Link href="/admin/donations">
-            <Card className="rounded-xl shadow bg-green-100 hover:bg-green-200 transition p-4 flex flex-col items-center">
-              <DollarSign className="w-6 h-6 text-green-700 mb-1" />
-              <div className="font-medium text-green-900">Dons</div>
-            </Card>
-          </Link>
-          <Link href="/admin/paroisses">
-            <Card className="rounded-xl shadow bg-green-100 hover:bg-green-200 transition p-4 flex flex-col items-center">
-              <MapPin className="w-6 h-6 text-green-700 mb-1" />
-              <div className="font-medium text-green-900">Paroisses</div>
-            </Card>
-          </Link>
-          <Link href="/admin/users">
-            <Card className="rounded-xl shadow bg-green-100 hover:bg-green-200 transition p-4 flex flex-col items-center">
-              <Users className="w-6 h-6 text-green-700 mb-1" />
-              <div className="font-medium text-green-900">Utilisateurs</div>
-            </Card>
-          </Link>
-          <Link href="/admin/news">
-            <Card className="rounded-xl shadow bg-green-100 hover:bg-green-200 transition p-4 flex flex-col items-center">
-              <PieChart className="w-6 h-6 text-green-700 mb-1" />
-              <div className="font-medium text-green-900">Actualités</div>
-            </Card>
-          </Link>
-        </div>
-      </motion.div>
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-gray-500" />
+              Accès rapide
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <Link href="/admin/users">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <Users className="w-6 h-6" />
+                  <span className="text-sm">Utilisateurs</span>
+                </Button>
+              </Link>
+              <Link href="/admin/paroisses">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <MapPin className="w-6 h-6" />
+                  <span className="text-sm">Paroisses</span>
+                </Button>
+              </Link>
+              <Link href="/admin/donations">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <DollarSign className="w-6 h-6" />
+                  <span className="text-sm">Dons</span>
+                </Button>
+              </Link>
+              <Link href="/admin/news">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <Activity className="w-6 h-6" />
+                  <span className="text-sm">Actualités</span>
+                </Button>
+              </Link>
+              <Link href="/admin/dioceses">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <MapPin className="w-6 h-6" />
+                  <span className="text-sm">Diocèses</span>
+                </Button>
+              </Link>
+              <Link href="/admin/settings">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <Clock className="w-6 h-6" />
+                  <span className="text-sm">Paramètres</span>
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

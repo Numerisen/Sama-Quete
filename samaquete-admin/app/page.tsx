@@ -65,13 +65,13 @@ export default function HomePage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-2xl font-bold text-black">
               Rôle non défini
             </CardTitle>
-            <p className="text-gray-600">Votre compte n'a pas de rôle défini</p>
+            <p className="text-black">Votre compte n'a pas de rôle défini</p>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 mb-4 text-center">
+            <p className="text-black mb-4 text-center">
               Contactez l'administrateur pour définir votre rôle.
             </p>
             <Button variant="outline" onClick={handleLogout} className="w-full">

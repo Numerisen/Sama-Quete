@@ -1,0 +1,13 @@
+# Configuration des API Keys pour l'Assistant Biblique IA
+# Copiez ce fichier vers .env et remplissez vos clés
+
+# Anthropic Claude (Recommandé)
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# OpenAI GPT-4 (Alternative)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Configuration du serveur
+FLASK_ENV=development
+FLASK_DEBUG=True
+PORT=8000

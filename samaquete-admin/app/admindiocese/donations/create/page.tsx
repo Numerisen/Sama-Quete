@@ -35,19 +35,27 @@ export default function AdminDioceseDonationsCreatePage() {
     
     // Validation
     if (!formData.donorName || !formData.amount || !formData.parish) {
-      toast.error("Erreur de validation", "Veuillez remplir tous les champs obligatoires")
+      toast({
+          title: "Erreur de validation",
+          description: "Veuillez remplir tous les champs obligatoires",
+          variant: "destructive"
+        })
       return
     }
 
     const amount = parseFloat(formData.amount)
     if (isNaN(amount) || amount <= 0) {
-      toast.error("Erreur de validation", "Le montant doit être un nombre positif")
+      toast({
+          title: "Erreur de validation",
+          description: "Le montant doit être un nombre positif",
+          variant: "destructive"
+        })
       return
     }
 
     // Récupérer les donations existantes
-    const stored = localStorage.getItem("admin_donations")
-    const existingDonations = stored ? JSON.parse(stored) : []
+    // Code localStorage supprimé - Migration vers Firestore
+          const existingDonations = stored ? JSON.parse(stored) : []
     
     // Créer la nouvelle donation
     const newDonation = {
@@ -59,9 +67,12 @@ export default function AdminDioceseDonationsCreatePage() {
     
     // Ajouter à la liste
     const updatedDonations = [...existingDonations, newDonation]
-    localStorage.setItem("admin_donations", JSON.stringify(updatedDonations))
-    
-    toast.success("Donation créée", "La donation a été créée avec succès")
+    // localStorage supprimé - Migration vers Firestore
+          
+    toast({
+          title: "Donation créée",
+          description: "La donation a été créée avec succès"
+        })
     router.push(`/admindiocese/donations?diocese=${encodeURIComponent(diocese)}`)
   }
 
@@ -80,10 +91,10 @@ export default function AdminDioceseDonationsCreatePage() {
               </Button>
             </Link>
             <div>
-              <CardTitle className="text-3xl font-bold text-blue-900 mb-1">
+              <CardTitle className="text-3xl font-bold text-black mb-1">
                 Nouvelle donation - {diocese}
               </CardTitle>
-              <p className="text-blue-800/80 text-sm">
+              <p className="text-black/80 text-sm">
                 Enregistrez une nouvelle donation pour votre diocèse.
               </p>
             </div>
@@ -93,7 +104,7 @@ export default function AdminDioceseDonationsCreatePage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Nom du donateur *
                 </label>
                 <Input
@@ -101,13 +112,13 @@ export default function AdminDioceseDonationsCreatePage() {
                   value={formData.donorName}
                   onChange={handleChange}
                   placeholder="Nom complet du donateur"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Montant (FCFA) *
                 </label>
                 <Input
@@ -116,7 +127,7 @@ export default function AdminDioceseDonationsCreatePage() {
                   value={formData.amount}
                   onChange={handleChange}
                   placeholder="Montant en FCFA"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
@@ -124,14 +135,14 @@ export default function AdminDioceseDonationsCreatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Type de donation
                 </label>
                 <select
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
-                  className="w-full h-10 rounded-md border border-gray-200 bg-white/90 text-blue-900 px-3"
+                  className="w-full h-10 rounded-md border border-blue-200 bg-white/90 text-black px-3"
                 >
                   {types.map(type => (
                     <option key={type} value={type}>{type}</option>
@@ -140,7 +151,7 @@ export default function AdminDioceseDonationsCreatePage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Paroisse *
                 </label>
                 <Input
@@ -148,20 +159,20 @@ export default function AdminDioceseDonationsCreatePage() {
                   value={formData.parish}
                   onChange={handleChange}
                   placeholder="Nom de la paroisse"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Statut
                 </label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full h-10 rounded-md border border-gray-200 bg-white/90 text-blue-900 px-3"
+                  className="w-full h-10 rounded-md border border-blue-200 bg-white/90 text-black px-3"
                 >
                   {statuses.map(status => (
                     <option key={status} value={status}>{status}</option>
@@ -171,7 +182,7 @@ export default function AdminDioceseDonationsCreatePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-blue-900 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 Date de donation
               </label>
               <Input
@@ -179,12 +190,12 @@ export default function AdminDioceseDonationsCreatePage() {
                 type="date"
                 value={formData.date}
                 onChange={handleChange}
-                className="bg-white/90 border-gray-200"
+                className="bg-white/90 border-blue-200"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-blue-900 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 Description
               </label>
               <Textarea
@@ -193,7 +204,7 @@ export default function AdminDioceseDonationsCreatePage() {
                 onChange={handleChange}
                 placeholder="Description de la donation (optionnel)..."
                 rows={4}
-                className="bg-white/90 border-gray-200 resize-none"
+                className="bg-white/90 border-blue-200 resize-none"
               />
             </div>
 

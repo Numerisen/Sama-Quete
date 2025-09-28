@@ -80,42 +80,42 @@ export default function CreateDiocesePage() {
     <div className="max-w-xl mx-auto">
       <Card className="shadow-xl bg-white/80 border-0 rounded-2xl mt-8">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-blue-900 mb-1">Créer un nouveau diocèse</CardTitle>
-          <p className="text-blue-800/80 text-sm">Remplissez le formulaire pour ajouter un diocèse.</p>
+          <CardTitle className="text-2xl font-bold text-black mb-1">Créer un nouveau diocèse</CardTitle>
+          <p className="text-black/80 text-sm">Remplissez le formulaire pour ajouter un diocèse.</p>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Nom du diocèse *</label>
+              <label className="block text-black font-medium">Nom du diocèse *</label>
               <Input 
                 name="name" 
                 value={form.name} 
                 onChange={handleChange} 
                 required 
                 placeholder="Ex: Diocèse de Thiès" 
-                className="bg-white/90 border-gray-200" 
+                className="bg-white/90 border-blue-200" 
               />
             </div>
             
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Ville principale *</label>
+              <label className="block text-black font-medium">Ville principale *</label>
               <Input 
                 name="city" 
                 value={form.city} 
                 onChange={handleChange} 
                 required 
                 placeholder="Ex: Thiès" 
-                className="bg-white/90 border-gray-200" 
+                className="bg-white/90 border-blue-200" 
               />
             </div>
             
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Type de juridiction *</label>
+              <label className="block text-black font-medium">Type de juridiction *</label>
               <select 
                 name="type" 
                 value={form.type} 
                 onChange={handleChange} 
-                className="bg-white/90 border-gray-200 rounded px-3 py-2 w-full"
+                className="bg-white/90 border-blue-200 rounded px-3 py-2 w-full"
                 required
               >
                 {dioceseTypes.map(type => (
@@ -125,52 +125,52 @@ export default function CreateDiocesePage() {
             </div>
             
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Évêque *</label>
+              <label className="block text-black font-medium">Évêque *</label>
               <Input 
                 name="bishop" 
                 value={form.bishop} 
                 onChange={handleChange} 
                 required 
                 placeholder="Ex: Mgr André Gueye" 
-                className="bg-white/90 border-gray-200" 
+                className="bg-white/90 border-blue-200" 
               />
             </div>
             
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Email de contact</label>
+              <label className="block text-black font-medium">Email de contact</label>
               <Input 
                 name="email" 
                 type="email" 
                 value={form.email} 
                 onChange={handleChange} 
                 placeholder="contact@diocesethies.sn" 
-                className="bg-white/90 border-gray-200" 
+                className="bg-white/90 border-blue-200" 
               />
             </div>
             
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Téléphone de contact</label>
+              <label className="block text-black font-medium">Téléphone de contact</label>
               <Input 
                 name="phone" 
                 value={form.phone} 
                 onChange={handleChange} 
                 placeholder="+221 33 951 12 34" 
-                className="bg-white/90 border-gray-200" 
+                className="bg-white/90 border-blue-200" 
               />
             </div>
             
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Adresse</label>
+              <label className="block text-black font-medium">Adresse</label>
               <Input 
                 name="address" 
                 value={form.address} 
                 onChange={handleChange} 
                 placeholder="Adresse complète du diocèse" 
-                className="bg-white/90 border-gray-200" 
+                className="bg-white/90 border-blue-200" 
               />
             </div>
             
-            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+            {error && <div className="text-black text-sm text-center">{error}</div>}
             
             <Button 
               type="submit" 
@@ -187,7 +187,7 @@ export default function CreateDiocesePage() {
             </Button>
             
             <div className="text-center mt-2">
-              <Link href="/admin/dioceses" className="text-blue-700 hover:underline">
+              <Link href="/admin/dioceses" className="text-black hover:underline">
                 Retour à la liste
               </Link>
             </div>

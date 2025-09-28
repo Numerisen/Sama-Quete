@@ -53,6 +53,61 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.dioceseId == resource.data.dioceseId;
     }
     
+    // Règles pour la collection admin_users
+    match /admin_users/{userId} {
+      // Lecture pour tous les admins authentifiés
+      allow read: if request.auth != null;
+      
+      // Écriture pour les super admins
+      allow write: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    }
+    
+    // Règles pour la collection admin_news
+    match /admin_news/{newsId} {
+      // Lecture pour tous les admins authentifiés
+      allow read: if request.auth != null;
+      
+      // Écriture pour les super admins et admins diocèse
+      allow write: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'diocese_admin'];
+    }
+    
+    // Règles pour la collection admin_parishes
+    match /admin_parishes/{parishId} {
+      // Lecture pour tous les admins authentifiés
+      allow read: if request.auth != null;
+      
+      // Écriture pour les super admins et admins diocèse
+      allow write: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'diocese_admin'];
+    }
+    
+    // Règles pour la collection admin_donations
+    match /admin_donations/{donationId} {
+      // Lecture pour tous les admins authentifiés
+      allow read: if request.auth != null;
+      
+      // Écriture pour les super admins et admins diocèse
+      allow write: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'diocese_admin'];
+    }
+    
+    // Règles pour la collection admin_liturgy
+    match /admin_liturgy/{liturgyId} {
+      // Lecture pour tous les admins authentifiés
+      allow read: if request.auth != null;
+      
+      // Écriture pour les super admins et admins diocèse
+      allow write: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'diocese_admin'];
+    }
+    
     // Règles pour les autres collections (à adapter selon vos besoins)
     match /{document=**} {
       // Par défaut, refuser l'accès

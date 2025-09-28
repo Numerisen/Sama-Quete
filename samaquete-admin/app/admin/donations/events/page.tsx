@@ -92,14 +92,14 @@ export default function DonationEventsPage() {
     }
 
     if (now < startDate) {
-      return <Badge variant="outline" className="text-blue-600 border-blue-200">À venir</Badge>
+      return <Badge variant="outline" className="text-black border-blue-200">À venir</Badge>
     }
 
     if (now > endDate) {
       return <Badge variant="destructive">Terminé</Badge>
     }
 
-    return <Badge variant="default" className="bg-green-600">En cours</Badge>
+    return <Badge variant="default" className="bg-blue-600">En cours</Badge>
   }
 
   if (loading) {
@@ -107,8 +107,8 @@ export default function DonationEventsPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
-            <p className="text-green-800">Chargement des événements...</p>
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-black" />
+            <p className="text-black">Chargement des événements...</p>
           </div>
         </div>
       </div>
@@ -120,16 +120,16 @@ export default function DonationEventsPage() {
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-3xl font-bold text-green-900 mb-1 flex items-center gap-3">
+            <CardTitle className="text-3xl font-bold text-black mb-1 flex items-center gap-3">
               <Target className="w-8 h-8" />
               Événements de dons
             </CardTitle>
-            <p className="text-green-800/80 text-sm">
+            <p className="text-black/80 text-sm">
               Gérez les événements de collecte de dons (messes, quêtes, événements spéciaux...)
             </p>
           </div>
           <Link href="/admin/donations/events/create">
-            <Button className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white shadow-lg rounded-xl px-4 py-2">
+            <Button className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white shadow-lg rounded-xl px-4 py-2">
               <Plus className="w-5 h-5" />
               Nouvel événement
             </Button>
@@ -139,11 +139,11 @@ export default function DonationEventsPage() {
         <CardContent>
           {events.length === 0 ? (
             <div className="text-center py-12">
-              <Target className="w-16 h-16 mx-auto mb-4 text-green-300" />
-              <h3 className="text-xl font-semibold text-green-900 mb-2">Aucun événement créé</h3>
-              <p className="text-green-700 mb-6">Créez votre premier événement de don pour commencer à collecter</p>
+              <Target className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+              <h3 className="text-xl font-semibold text-black mb-2">Aucun événement créé</h3>
+              <p className="text-black mb-6">Créez votre premier événement de don pour commencer à collecter</p>
               <Link href="/admin/donations/events/create">
-                <Button className="bg-green-700 hover:bg-green-800 text-white">
+                <Button className="bg-blue-700 hover:bg-blue-800 text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Créer un événement
                 </Button>
@@ -164,10 +164,10 @@ export default function DonationEventsPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-2xl">{getEventTypeIcon(event.type)}</span>
                           <div>
-                            <CardTitle className="text-lg font-semibold text-green-900 line-clamp-2">
+                            <CardTitle className="text-lg font-semibold text-black line-clamp-2">
                               {event.title}
                             </CardTitle>
-                            <p className="text-sm text-green-600">
+                            <p className="text-sm text-black">
                               {getEventTypeLabel(event.type)}
                             </p>
                           </div>
@@ -177,22 +177,22 @@ export default function DonationEventsPage() {
                     </CardHeader>
                     
                     <CardContent className="space-y-4">
-                      <p className="text-sm text-gray-600 line-clamp-3">
+                      <p className="text-sm text-black line-clamp-3">
                         {event.description}
                       </p>
                       
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-black">
                           <Church className="w-4 h-4" />
                           <span>Paroisse ID: {event.parishId}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-black">
                           <Calendar className="w-4 h-4" />
                           <span>Du {formatDate(event.startDate)}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-black">
                           <Calendar className="w-4 h-4" />
                           <span>Au {formatDate(event.endDate)}</span>
                         </div>
@@ -201,8 +201,8 @@ export default function DonationEventsPage() {
                       {/* Progression */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Collecté</span>
-                          <span className="font-semibold text-green-700">
+                          <span className="text-black">Collecté</span>
+                          <span className="font-semibold text-black">
                             {formatAmount(event.currentAmount)} FCFA
                           </span>
                         </div>
@@ -210,22 +210,22 @@ export default function DonationEventsPage() {
                         {event.targetAmount && (
                           <>
                             <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">Objectif</span>
-                              <span className="font-semibold text-gray-700">
+                              <span className="text-black">Objectif</span>
+                              <span className="font-semibold text-black">
                                 {formatAmount(event.targetAmount)} FCFA
                               </span>
                             </div>
                             
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-blue-200 rounded-full h-2">
                               <div 
-                                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                 style={{ 
                                   width: `${getProgressPercentage(event.currentAmount, event.targetAmount)}%` 
                                 }}
                               />
                             </div>
                             
-                            <div className="text-center text-sm text-gray-600">
+                            <div className="text-center text-sm text-black">
                               {getProgressPercentage(event.currentAmount, event.targetAmount).toFixed(1)}% atteint
                             </div>
                           </>
@@ -237,7 +237,7 @@ export default function DonationEventsPage() {
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="flex-1 text-green-700 border-green-200 hover:bg-green-50"
+                          className="flex-1 text-black border-blue-200 hover:bg-blue-50"
                           onClick={() => router.push(`/admin/donations/events/${event.id}`)}
                         >
                           <Eye className="w-4 h-4 mr-1" />
@@ -247,7 +247,7 @@ export default function DonationEventsPage() {
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="flex-1 text-blue-700 border-blue-200 hover:bg-blue-50"
+                          className="flex-1 text-black border-blue-200 hover:bg-blue-50"
                           onClick={() => router.push(`/admin/donations/events/${event.id}/edit`)}
                         >
                           <Edit className="w-4 h-4 mr-1" />

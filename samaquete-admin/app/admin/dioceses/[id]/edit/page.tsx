@@ -54,17 +54,17 @@ export default function EditDiocesePage({ params }: EditDiocesePageProps) {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-600" />
       </div>
     )
   }
 
   if (error) {
-    return <div className="text-red-500 text-center">{error}</div>
+    return <div className="text-black text-center">{error}</div>
   }
 
   if (!diocese) {
-    return <div className="text-gray-500 text-center">Diocèse non trouvé.</div>
+    return <div className="text-gray-600 text-center">Diocèse non trouvé.</div>
   }
 
   return (
@@ -78,7 +78,7 @@ export default function EditDiocesePage({ params }: EditDiocesePageProps) {
         <Button variant="outline" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-3xl font-bold text-gray-800">Modifier le Diocèse</h2>
+        <h2 className="text-3xl font-bold text-black">Modifier le Diocèse</h2>
       </div>
 
       <Card>
@@ -129,7 +129,7 @@ export default function EditDiocesePage({ params }: EditDiocesePageProps) {
               />
             </div>
 
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            {error && <p className="text-black text-sm text-center">{error}</p>}
 
             <Button type="submit" className="w-full h-12 text-lg" disabled={isPending}>
               {isPending ? (

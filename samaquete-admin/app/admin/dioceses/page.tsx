@@ -9,71 +9,7 @@ import Link from "next/link"
 import { ChangeEvent, useEffect, useState } from "react"
 import { toast } from "sonner"
 
-const initialDioceses = [
-  {
-    id: 1,
-    name: "Archidiocèse de Dakar",
-    city: "Dakar",
-    type: "Archevêché métropolitain",
-    bishop: "Mgr Benjamin Ndiaye",
-    email: "contact@archidiocesedakar.sn",
-    phone: "+221 33 821 14 14",
-  },
-  {
-    id: 2,
-    name: "Diocèse de Thiès",
-    city: "Thiès",
-    type: "Diocèse",
-    bishop: "Mgr André Gueye",
-    email: "contact@diocesethies.sn",
-    phone: "+221 33 951 12 34",
-  },
-  {
-    id: 3,
-    name: "Diocèse de Kaolack",
-    city: "Kaolack",
-    type: "Diocèse",
-    bishop: "Mgr Martin Boucar Tine",
-    email: "contact@diocesekaolack.sn",
-    phone: "+221 33 941 23 45",
-  },
-  {
-    id: 4,
-    name: "Diocèse de Ziguinchor",
-    city: "Ziguinchor",
-    type: "Diocèse",
-    bishop: "Mgr Paul Abel Mamba",
-    email: "contact@dioceseziguinchor.sn",
-    phone: "+221 33 991 34 56",
-  },
-  {
-    id: 5,
-    name: "Diocèse de Kolda",
-    city: "Kolda",
-    type: "Diocèse",
-    bishop: "Mgr Jean-Pierre Bassène",
-    email: "contact@diocesekolda.sn",
-    phone: "+221 33 991 45 67",
-  },
-  {
-    id: 6,
-    name: "Diocèse de Tambacounda",
-    city: "Tambacounda",
-    type: "Diocèse",
-    bishop: "Mgr Paul Abel Mamba",
-    email: "contact@diocesetambacounda.sn",
-    phone: "+221 33 991 56 78",
-  },
-  {
-    id: 7,
-    name: "Diocèse de Saint-Louis du Sénégal",
-    city: "Saint-Louis",
-    type: "Diocèse",
-    bishop: "Mgr Ernest Sambou",
-    email: "contact@diocesestlouis.sn",
-    phone: "+221 33 991 67 89",
-  },
-]
+// Données initiales supprimées - Utilisation uniquement des données Firestore
 
 function exportToCSV(dioceses: any[]) {
   const header = ["Nom", "Ville", "Type", "Évêque", "Email", "Téléphone"]
@@ -128,13 +64,24 @@ export default function AdminDiocesesPage() {
         const success = await ParishService.deleteDiocese(id)
         if (success) {
           setDioceses(dioceses.filter(d => d.id !== id))
-          toast.success("Diocèse supprimé", "Le diocèse a été supprimé avec succès")
+          toast({
+          title: "Diocèse supprimé",
+          description: "Le diocèse a été supprimé avec succès"
+        })
         } else {
-          toast.error("Erreur", "Erreur lors de la suppression du diocèse")
+          toast({
+          title: "Erreur",
+          description: "Erreur lors de la suppression du diocèse",
+          variant: "destructive"
+        })
         }
       } catch (error) {
         console.error("Erreur:", error)
-        toast.error("Erreur", "Erreur lors de la suppression")
+        toast({
+          title: "Erreur",
+          description: "Erreur lors de la suppression",
+          variant: "destructive"
+        })
       }
     }
   }
@@ -173,14 +120,25 @@ export default function AdminDiocesesPage() {
       
       if (success) {
         setEditId(null)
-        toast.success("Diocèse modifié", "Le diocèse a été modifié avec succès")
+        toast({
+          title: "Diocèse modifié",
+          description: "Le diocèse a été modifié avec succès"
+        })
         loadDioceses() // Recharger les données
       } else {
-        toast.error("Erreur", "Erreur lors de la modification")
+        toast({
+          title: "Erreur",
+          description: "Erreur lors de la modification",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error("Erreur:", error)
-      toast.error("Erreur", "Erreur lors de la modification")
+      toast({
+          title: "Erreur",
+          description: "Erreur lors de la modification",
+          variant: "destructive"
+        })
     }
   }
 
@@ -193,8 +151,8 @@ export default function AdminDiocesesPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-            <p className="text-blue-800">Chargement des diocèses...</p>
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-black" />
+            <p className="text-black">Chargement des diocèses...</p>
           </div>
         </div>
       </div>
@@ -206,17 +164,17 @@ export default function AdminDiocesesPage() {
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-3xl font-bold text-blue-900 mb-1">Gestion des diocèses</CardTitle>
-            <p className="text-blue-800/80 text-sm">Gérez les diocèses du Sénégal, leurs évêques et informations clés.</p>
+            <CardTitle className="text-3xl font-bold text-black mb-1">Gestion des diocèses</CardTitle>
+            <p className="text-black/80 text-sm">Gérez les diocèses du Sénégal, leurs évêques et informations clés.</p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Input
               placeholder="Rechercher..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="h-10 w-40 bg-white/90 border-gray-200"
+              className="h-10 w-40 bg-white/90 border-blue-200"
             />
-            <Button onClick={() => exportToCSV(filteredDioceses)} variant="outline" className="flex items-center gap-2 text-blue-900 border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2">
+            <Button onClick={() => exportToCSV(filteredDioceses)} variant="outline" className="flex items-center gap-2 text-black border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2">
               <Download className="w-5 h-5" /> Export CSV
             </Button>
             <Link href="/admin/dioceses/create">
@@ -230,14 +188,14 @@ export default function AdminDiocesesPage() {
           <div className="overflow-x-auto rounded-xl">
             <table className="w-full text-left min-w-[800px]">
               <thead>
-                <tr className="text-blue-900/80 text-sm bg-blue-50">
-                  <th className="py-3 px-4">Nom</th>
-                  <th className="py-3 px-4">Ville</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Évêque</th>
-                  <th className="py-3 px-4">Email</th>
-                  <th className="py-3 px-4">Téléphone</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="text-black/80 text-sm bg-blue-50">
+                  <th className="py-3 px-4 text-black">Nom</th>
+                  <th className="py-3 px-4 text-black">Ville</th>
+                  <th className="py-3 px-4 text-black">Type</th>
+                  <th className="py-3 px-4 text-black">Évêque</th>
+                  <th className="py-3 px-4 text-black">Email</th>
+                  <th className="py-3 px-4 text-black">Téléphone</th>
+                  <th className="py-3 px-4 text-right text-black">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -251,7 +209,7 @@ export default function AdminDiocesesPage() {
                   >
                     {editId === item.id ? (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">
+                        <td className="py-2 px-4 font-semibold text-black">
                           <Input name="name" value={editForm.name} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
@@ -276,12 +234,12 @@ export default function AdminDiocesesPage() {
                       </>
                     ) : (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">{item.name}</td>
-                        <td className="py-2 px-4">{item.city}</td>
-                        <td className="py-2 px-4">{item.type}</td>
-                        <td className="py-2 px-4">{item.bishop}</td>
-                        <td className="py-2 px-4">{item.contactInfo?.email || "-"}</td>
-                        <td className="py-2 px-4">{item.contactInfo?.phone || "-"}</td>
+                        <td className="py-2 px-4 font-semibold text-black">{item.name}</td>
+                        <td className="py-2 px-4 text-black">{item.city}</td>
+                        <td className="py-2 px-4 text-black">{item.type}</td>
+                        <td className="py-2 px-4 text-black">{item.bishop}</td>
+                        <td className="py-2 px-4 text-black">{item.contactInfo?.email || "-"}</td>
+                        <td className="py-2 px-4 text-black">{item.contactInfo?.phone || "-"}</td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
@@ -293,7 +251,26 @@ export default function AdminDiocesesPage() {
               </tbody>
             </table>
             {filteredDioceses.length === 0 && (
-              <div className="text-center text-blue-900/60 py-8">Aucun diocèse trouvé.</div>
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Church className="w-12 h-12 text-purple-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun diocèse trouvé</h3>
+                <p className="text-gray-600 mb-6">
+                  {dioceses.length === 0 
+                    ? "Aucun diocèse n'est enregistré dans Firestore pour le moment."
+                    : "Aucun diocèse ne correspond à vos critères de recherche."
+                  }
+                </p>
+                {dioceses.length === 0 && (
+                  <Link href="/admin/dioceses/create">
+                    <Button className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Créer le premier diocèse
+                    </Button>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </CardContent>

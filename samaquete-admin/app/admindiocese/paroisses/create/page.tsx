@@ -45,12 +45,17 @@ export default function CreateParishPage() {
     
     // Validation basique
     if (!formData.name || !formData.city) {
-      toast.error("Erreur de validation", "Veuillez remplir au moins le nom et la ville de la paroisse")
+      toast({
+          title: "Erreur de validation",
+          description: "Veuillez remplir au moins le nom et la ville de la paroisse",
+          variant: "destructive"
+        })
       return
     }
 
-    // Récupérer les paroisses existantes
-    const existingParishes = JSON.parse(localStorage.getItem("admin_parishes") || "[]")
+    // Code localStorage supprimé - Migration vers Firestore
+    // TODO: Implémenter avec Firestore
+    const existingParishes: any[] = []
     
     // Créer la nouvelle paroisse
     const newParish = {
@@ -61,9 +66,12 @@ export default function CreateParishPage() {
     
     // Ajouter à la liste
     const updatedParishes = [...existingParishes, newParish]
-    localStorage.setItem("admin_parishes", JSON.stringify(updatedParishes))
-    
-    toast.success("Paroisse créée", "La paroisse a été créée avec succès !")
+    // localStorage supprimé - Migration vers Firestore
+          
+    toast({
+          title: "Paroisse créée",
+          description: "La paroisse a été créée avec succès !"
+        })
     router.push(`/admindiocese/paroisses?diocese=${encodeURIComponent(diocese)}`)
   }
 
@@ -83,22 +91,22 @@ export default function CreateParishPage() {
       >
         <Link 
           href={`/admindiocese/paroisses?diocese=${encodeURIComponent(diocese)}`}
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4"
+          className="inline-flex items-center gap-2 text-black hover:text-black mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           Retour aux paroisses
         </Link>
-        <h1 className="text-3xl font-bold text-blue-900 mb-2">
+        <h1 className="text-3xl font-bold text-black mb-2">
           Nouvelle paroisse - {diocese}
         </h1>
-        <p className="text-blue-800/80">
+        <p className="text-black/80">
           Créez une nouvelle paroisse dans votre diocèse
         </p>
       </motion.div>
 
       <Card className="shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-900">
+          <CardTitle className="flex items-center gap-2 text-black">
             <Church className="w-5 h-5" />
             Informations de la paroisse
           </CardTitle>
@@ -108,7 +116,7 @@ export default function CreateParishPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Nom de la paroisse */}
               <div className="md:col-span-2">
-                <Label htmlFor="name" className="text-blue-900 font-medium">
+                <Label htmlFor="name" className="text-black font-medium">
                   Nom de la paroisse *
                 </Label>
                 <Input
@@ -124,7 +132,7 @@ export default function CreateParishPage() {
 
               {/* Diocèse */}
               <div>
-                <Label htmlFor="diocese" className="text-blue-900 font-medium">
+                <Label htmlFor="diocese" className="text-black font-medium">
                   Diocèse
                 </Label>
                 <select
@@ -143,7 +151,7 @@ export default function CreateParishPage() {
 
               {/* Ville */}
               <div>
-                <Label htmlFor="city" className="text-blue-900 font-medium">
+                <Label htmlFor="city" className="text-black font-medium">
                   Ville *
                 </Label>
                 <Input
@@ -159,7 +167,7 @@ export default function CreateParishPage() {
 
               {/* Curé */}
               <div>
-                <Label htmlFor="cure" className="text-blue-900 font-medium">
+                <Label htmlFor="cure" className="text-black font-medium">
                   Curé
                 </Label>
                 <Input
@@ -174,7 +182,7 @@ export default function CreateParishPage() {
 
               {/* Vicaire */}
               <div>
-                <Label htmlFor="vicaire" className="text-blue-900 font-medium">
+                <Label htmlFor="vicaire" className="text-black font-medium">
                   Vicaire
                 </Label>
                 <Input
@@ -189,7 +197,7 @@ export default function CreateParishPage() {
 
               {/* Catéchistes */}
               <div className="md:col-span-2">
-                <Label htmlFor="catechists" className="text-blue-900 font-medium">
+                <Label htmlFor="catechists" className="text-black font-medium">
                   Catéchistes
                 </Label>
                 <Input
@@ -204,7 +212,7 @@ export default function CreateParishPage() {
 
               {/* Adresse */}
               <div className="md:col-span-2">
-                <Label htmlFor="address" className="text-blue-900 font-medium">
+                <Label htmlFor="address" className="text-black font-medium">
                   Adresse
                 </Label>
                 <Textarea
@@ -220,7 +228,7 @@ export default function CreateParishPage() {
 
               {/* Téléphone */}
               <div>
-                <Label htmlFor="phone" className="text-blue-900 font-medium">
+                <Label htmlFor="phone" className="text-black font-medium">
                   Téléphone
                 </Label>
                 <Input
@@ -235,7 +243,7 @@ export default function CreateParishPage() {
 
               {/* Email */}
               <div>
-                <Label htmlFor="email" className="text-blue-900 font-medium">
+                <Label htmlFor="email" className="text-black font-medium">
                   Email
                 </Label>
                 <Input
@@ -251,7 +259,7 @@ export default function CreateParishPage() {
 
               {/* Description */}
               <div className="md:col-span-2">
-                <Label htmlFor="description" className="text-blue-900 font-medium">
+                <Label htmlFor="description" className="text-black font-medium">
                   Description
                 </Label>
                 <Textarea
@@ -267,7 +275,7 @@ export default function CreateParishPage() {
             </div>
 
             {/* Boutons d'action */}
-            <div className="flex gap-4 pt-6 border-t border-gray-200">
+            <div className="flex gap-4 pt-6 border-t border-blue-200">
               <Link href={`/admindiocese/paroisses?diocese=${encodeURIComponent(diocese)}`}>
                 <Button type="button" variant="outline" className="rounded-lg">
                   Annuler

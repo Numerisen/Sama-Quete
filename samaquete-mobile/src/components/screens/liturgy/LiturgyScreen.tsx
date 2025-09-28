@@ -1,14 +1,39 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useLiturgyApi } from '../../../../hooks/useLiturgyApi';
 
 interface LiturgyScreenProps {
   setCurrentScreen: (screen: string) => void;
 }
 
 export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) {
-  const todayReadings = {
+  const { 
+    todayLiturgy, 
+    loading, 
+    error, 
+    isOnline, 
+    refresh, 
+    forceSync,
+    setApiUrl
+  } = useLiturgyApi();
+
+  const [showApiConfig, setShowApiConfig] = useState(false);
+
+  // Configuration de l'API au démarrage
+  useEffect(() => {
+    // Configurer l'URL de l'API (local par défaut)
+    // Vous pouvez changer cette URL selon votre configuration
+    // setApiUrl('http://127.0.0.1:5000'); // Local
+    setApiUrl('https://81b5b72e4de7.ngrok-free.app'); // ngrok - Remplacez par votre nouvelle URL
+    
+    // Pour tester l'interface sans API, commentez la ligne ci-dessus
+    // L'app utilisera les données de fallback
+  }, []);
+
+  // Données de fallback si l'API n'est pas disponible
+  const fallbackReadings = {
     date: "Dimanche 21 Janvier 2024",
     liturgicalTime: "3ème Dimanche du Temps Ordinaire",
     color: "Vert",
@@ -20,7 +45,7 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
       },
       {
         reference: "Psaume 24",
-        title: "Psaume responsorial",
+        title: "Psaume ",
         excerpt: "Seigneur, enseigne-moi tes voies.",
       },
       {
@@ -35,6 +60,40 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
       },
     ],
   };
+
+  // Utiliser les données de l'API ou les données de fallback
+  const todayReadings = todayLiturgy ? {
+    date: new Date(todayLiturgy.date).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }),
+    liturgicalTime: todayLiturgy.title,
+    color: todayLiturgy.color || 'Vert',
+    readings: [
+      ...(todayLiturgy.firstReading ? [{
+        reference: todayLiturgy.firstReadingRef || "1 Tm 4, 12-16",
+        title: "Première lecture",
+        excerpt: todayLiturgy.firstReading,
+      }] : []),
+      ...(todayLiturgy.psalm ? [{
+        reference: todayLiturgy.psalmRef || "Ps 110 (111), 7-8, 9, 10",
+        title: "Psaume ",
+        excerpt: todayLiturgy.psalm,
+      }] : []),
+      ...(todayLiturgy.secondReading ? [{
+        reference: todayLiturgy.secondReadingRef || "1 Co 7, 29-31",
+        title: "Deuxième lecture",
+        excerpt: todayLiturgy.secondReading,
+      }] : []),
+      ...(todayLiturgy.gospel ? [{
+        reference: todayLiturgy.gospelRef || "Lc 7, 36-50",
+        title: "Évangile",
+        excerpt: todayLiturgy.gospel,
+      }] : []),
+    ],
+  } : fallbackReadings;
 
   const weeklySchedule = [
     { day: "Lundi", time: "06:30", type: "Messe quotidienne", isToday: false },
@@ -61,6 +120,19 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle}>Textes liturgiques</Text>
             <Text style={styles.headerSubtitle}>Lectures du jour</Text>
+            
+            {/* Indicateurs de statut */}
+            <View style={styles.statusContainer}>
+              <View style={[styles.statusIndicator, { backgroundColor: isOnline ? '#10b981' : '#ef4444' }]} />
+              <Text style={styles.statusText}>
+                {isOnline ? 'En ligne' : 'Hors ligne'}
+              </Text>
+              {/*todayLiturgy && (
+                <Text style={styles.sourceText}>
+                  Source: {todayLiturgy.source}
+                </Text>
+              )}*/}
+            </View>
           </View>
 
           {/* Carte de date avec backdrop-blur */}
@@ -74,6 +146,50 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
         </LinearGradient>
 
         <View style={styles.content}>
+          {/* Boutons de contrôle 
+          <View style={styles.controlButtons}>
+            <TouchableOpacity
+              style={styles.controlButton}
+              onPress={refresh}
+              disabled={loading}
+            >
+              <Ionicons name="refresh" size={16} color="#3b82f6" />
+              <Text style={styles.controlButtonText}>Actualiser</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.controlButton, styles.primaryButton]}
+              onPress={async () => {
+                const success = await forceSync();
+                if (success) {
+                  Alert.alert('Succès', 'Synchronisation réussie');
+                } else {
+                  Alert.alert('Erreur', 'Échec de la synchronisation');
+                }
+              }}
+              disabled={loading}
+            >
+              <Ionicons name="sync" size={16} color="#ffffff" />
+              <Text style={[styles.controlButtonText, styles.primaryButtonText]}>Sync</Text>
+            </TouchableOpacity>
+          </View>*/}
+
+          {/* Indicateur de chargement */}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#3b82f6" />
+              <Text style={styles.loadingText}>Chargement des textes...</Text>
+            </View>
+          )}
+
+          {/* Affichage des erreurs */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="warning" size={20} color="#ef4444" />
+              <Text style={styles.errorText}>{error.message}</Text>
+            </View>
+          )}
+
           {/* Section lectures d'aujourd'hui */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Lectures d'aujourd'hui</Text>
@@ -365,5 +481,85 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#1d4ed8', // text-blue-700
     fontWeight: '600',
+  },
+  // Nouveaux styles pour l'intégration API
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#dbeafe',
+    fontWeight: '500',
+  },
+  sourceText: {
+    fontSize: 10,
+    color: '#93c5fd',
+    fontStyle: 'italic',
+  },
+  controlButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  controlButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 6,
+  },
+  primaryButton: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#2563eb',
+  },
+  controlButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#3b82f6',
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    marginBottom: 16,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#fef2f2',
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ef4444',
+    gap: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#dc2626',
   },
 });

@@ -10,41 +10,7 @@ import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
 
-const initialDonations = [
-  {
-    id: 1,
-    donorName: "Marie Diop",
-    amount: 50000,
-    type: "Offrande",
-    parish: "Paroisse Saint-Joseph",
-    diocese: "Diocèse de Thiès",
-    date: "2024-08-15",
-    status: "Reçu",
-    description: "Don pour la construction de l'église"
-  },
-  {
-    id: 2,
-    donorName: "Jean Sarr",
-    amount: 25000,
-    type: "Dîme",
-    parish: "Paroisse Sainte-Anne",
-    diocese: "Diocèse de Thiès",
-    date: "2024-08-20",
-    status: "En attente",
-    description: "Dîme mensuelle"
-  },
-  {
-    id: 3,
-    donorName: "Association Caritas",
-    amount: 150000,
-    type: "Don",
-    parish: "Paroisse Sacré-Cœur",
-    diocese: "Diocèse de Thiès",
-    date: "2024-08-25",
-    status: "Reçu",
-    description: "Aide aux nécessiteux"
-  }
-]
+// Données initiales supprimées - Utilisation uniquement des données Firestore
 
 export default function AdminDioceseDonationsPage() {
   const searchParams = useSearchParams()
@@ -60,30 +26,22 @@ export default function AdminDioceseDonationsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // Initialisation depuis localStorage
+  // Charger les dons depuis Firestore
   useEffect(() => {
-    const stored = localStorage.getItem("admin_donations")
-    if (stored) {
-      const allDonations = JSON.parse(stored)
-      const dioceseDonations = allDonations.filter((d: any) => d.diocese === diocese)
-      setDonations(dioceseDonations)
-    } else {
-      const dioceseDonations = initialDonations.filter(d => d.diocese === diocese)
-      setDonations(dioceseDonations)
-      localStorage.setItem("admin_donations", JSON.stringify(initialDonations))
+    const loadDonations = async () => {
+      try {
+        // TODO: Implémenter le chargement depuis Firestore
+        // const firestoreDonations = await DonationService.getAll()
+        // const dioceseDonations = firestoreDonations.filter(d => d.diocese === diocese)
+        // setDonations(dioceseDonations)
+        setDonations([]) // Aucune donnée pour le moment
+      } catch (error) {
+        console.error('Erreur lors du chargement des dons:', error)
+        setDonations([])
+      }
     }
+    loadDonations()
   }, [diocese])
-
-  // Sauvegarde à chaque modification
-  useEffect(() => {
-    if (donations.length > 0) {
-      const stored = localStorage.getItem("admin_donations")
-      const allDonations = stored ? JSON.parse(stored) : []
-      const otherDonations = allDonations.filter((d: any) => d.diocese !== diocese)
-      const updatedDonations = [...otherDonations, ...donations]
-      localStorage.setItem("admin_donations", JSON.stringify(updatedDonations))
-    }
-  }, [donations, diocese])
 
   // Filtres et recherche
   const filteredDonations = donations.filter(d => {
@@ -115,7 +73,10 @@ export default function AdminDioceseDonationsPage() {
   const handleDelete = (id: number) => {
     if (window.confirm("Confirmer la suppression de cette donation ?")) {
       setDonations(donations.filter(d => d.id !== id))
-      toast.success("Donation supprimée", "La donation a été supprimée avec succès")
+      toast({
+          title: "Donation supprimée",
+          description: "La donation a été supprimée avec succès"
+        })
     }
   }
 
@@ -132,7 +93,10 @@ export default function AdminDioceseDonationsPage() {
   const handleEditSave = (id: number) => {
     setDonations(donations.map(d => d.id === id ? { ...editForm, id } : d))
     setEditId(null)
-    toast.success("Donation modifiée", "La donation a été modifiée avec succès")
+    toast({
+          title: "Donation modifiée",
+          description: "La donation a été modifiée avec succès"
+        })
   }
 
   const handleEditCancel = () => {
@@ -150,11 +114,11 @@ export default function AdminDioceseDonationsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total des donations</p>
-                <p className="text-2xl font-bold text-blue-900">{totalAmount.toLocaleString()} FCFA</p>
+                <p className="text-sm font-medium text-black">Total des donations</p>
+                <p className="text-2xl font-bold text-black">{totalAmount.toLocaleString()} FCFA</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-full">
-                <DollarSign className="w-6 h-6 text-blue-600" />
+                <DollarSign className="w-6 h-6 text-black" />
               </div>
             </div>
           </CardContent>
@@ -164,11 +128,11 @@ export default function AdminDioceseDonationsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Reçues</p>
-                <p className="text-2xl font-bold text-green-900">{receivedAmount.toLocaleString()} FCFA</p>
+                <p className="text-sm font-medium text-black">Reçues</p>
+                <p className="text-2xl font-bold text-black">{receivedAmount.toLocaleString()} FCFA</p>
               </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <TrendingUp className="w-6 h-6 text-green-600" />
+              <div className="p-3 bg-blue-100 rounded-full">
+                <TrendingUp className="w-6 h-6 text-black" />
               </div>
             </div>
           </CardContent>
@@ -178,11 +142,11 @@ export default function AdminDioceseDonationsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">En attente</p>
-                <p className="text-2xl font-bold text-yellow-900">{pendingAmount.toLocaleString()} FCFA</p>
+                <p className="text-sm font-medium text-black">En attente</p>
+                <p className="text-2xl font-bold text-black">{pendingAmount.toLocaleString()} FCFA</p>
               </div>
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <Calendar className="w-6 h-6 text-yellow-600" />
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Calendar className="w-6 h-6 text-black" />
               </div>
             </div>
           </CardContent>
@@ -192,10 +156,10 @@ export default function AdminDioceseDonationsPage() {
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-3xl font-bold text-blue-900 mb-1">
+            <CardTitle className="text-3xl font-bold text-black mb-1">
               Gestion des donations - {diocese}
             </CardTitle>
-            <p className="text-blue-800/80 text-sm">
+            <p className="text-black/80 text-sm">
               Gérez les donations et offrandes de votre diocèse.
             </p>
           </div>
@@ -204,12 +168,12 @@ export default function AdminDioceseDonationsPage() {
               placeholder="Rechercher..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="h-10 w-40 bg-white/90 border-gray-200"
+              className="h-10 w-40 bg-white/90 border-blue-200"
             />
             <select 
               value={statusFilter} 
               onChange={e => setStatusFilter(e.target.value)} 
-              className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900"
+              className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
             >
               <option value="all">Tous les statuts</option>
               {statuses.map(status => <option key={status} value={status}>{status}</option>)}
@@ -217,7 +181,7 @@ export default function AdminDioceseDonationsPage() {
             <select 
               value={typeFilter} 
               onChange={e => setTypeFilter(e.target.value)} 
-              className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900"
+              className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
             >
               <option value="all">Tous les types</option>
               {types.map(type => <option key={type} value={type}>{type}</option>)}
@@ -233,14 +197,14 @@ export default function AdminDioceseDonationsPage() {
           <div className="overflow-x-auto rounded-xl">
             <table className="w-full text-left min-w-[900px]">
               <thead>
-                <tr className="text-blue-900/80 text-sm bg-blue-50">
-                  <th className="py-3 px-4">Donateur</th>
-                  <th className="py-3 px-4">Montant</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Paroisse</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Statut</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="text-black/80 text-sm bg-blue-50">
+                  <th className="py-3 px-4 text-black">Donateur</th>
+                  <th className="py-3 px-4 text-black">Montant</th>
+                  <th className="py-3 px-4 text-black">Type</th>
+                  <th className="py-3 px-4 text-black">Paroisse</th>
+                  <th className="py-3 px-4 text-black">Date</th>
+                  <th className="py-3 px-4 text-black">Statut</th>
+                  <th className="py-3 px-4 text-right text-black">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -254,14 +218,14 @@ export default function AdminDioceseDonationsPage() {
                   >
                     {editId === item.id ? (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">
+                        <td className="py-2 px-4 font-semibold text-black">
                           <Input name="donorName" value={editForm.donorName} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
                           <Input name="amount" type="number" value={editForm.amount} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="type" value={editForm.type} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+                          <select name="type" value={editForm.type} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
                             {types.map(type => <option key={type} value={type}>{type}</option>)}
                           </select>
                         </td>
@@ -272,7 +236,7 @@ export default function AdminDioceseDonationsPage() {
                           <Input name="date" type="date" value={editForm.date} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
                             {statuses.map(status => <option key={status} value={status}>{status}</option>)}
                           </select>
                         </td>
@@ -283,25 +247,25 @@ export default function AdminDioceseDonationsPage() {
                       </>
                     ) : (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">{item.donorName}</td>
-                        <td className="py-2 px-4 font-semibold">{item.amount.toLocaleString()} FCFA</td>
+                        <td className="py-2 px-4 font-semibold text-black">{item.donorName}</td>
+                        <td className="py-2 px-4 font-semibold text-black">{item.amount.toLocaleString()} FCFA</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            item.type === 'Offrande' ? 'bg-blue-100 text-blue-800' :
-                            item.type === 'Dîme' ? 'bg-green-100 text-green-800' :
-                            item.type === 'Don' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
+                            item.type === 'Offrande' ? 'bg-blue-100 text-black' :
+                            item.type === 'Dîme' ? 'bg-blue-100 text-black' :
+                            item.type === 'Don' ? 'bg-blue-100 text-black' :
+                            'bg-blue-100 text-black'
                           }`}>
                             {item.type}
                           </span>
                         </td>
-                        <td className="py-2 px-4">{item.parish}</td>
-                        <td className="py-2 px-4">{new Date(item.date).toLocaleDateString('fr-FR')}</td>
+                        <td className="py-2 px-4 text-black">{item.parish}</td>
+                        <td className="py-2 px-4 text-black">{new Date(item.date).toLocaleDateString('fr-FR')}</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            item.status === 'Reçu' ? 'bg-green-100 text-green-800' :
-                            item.status === 'En attente' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
+                            item.status === 'Reçu' ? 'bg-blue-100 text-black' :
+                            item.status === 'En attente' ? 'bg-blue-100 text-black' :
+                            'bg-blue-100 text-black'
                           }`}>
                             {item.status}
                           </span>
@@ -317,7 +281,26 @@ export default function AdminDioceseDonationsPage() {
               </tbody>
             </table>
             {paginatedDonations.length === 0 && (
-              <div className="text-center text-blue-900/60 py-8">Aucune donation trouvée dans ce diocèse.</div>
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <DollarSign className="w-12 h-12 text-green-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucune donation trouvée</h3>
+                <p className="text-gray-600 mb-6">
+                  {donations.length === 0 
+                    ? `Aucune donation n'est enregistrée dans Firestore pour le diocèse ${diocese}.`
+                    : "Aucune donation ne correspond à vos critères de recherche."
+                  }
+                </p>
+                {donations.length === 0 && (
+                  <Link href="/admindiocese/donations/create">
+                    <Button className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Enregistrer la première donation
+                    </Button>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </CardContent>

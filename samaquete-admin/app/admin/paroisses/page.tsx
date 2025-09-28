@@ -21,36 +21,7 @@ const diocesesList = [
   "Diocèse de Saint-Louis du Sénégal",
 ]
 
-const initialParishes = [
-  {
-    id: 1,
-    name: "Paroisse Saint-Joseph de Medina",
-    diocese: "Archidiocèse de Dakar",
-    city: "Dakar",
-    cure: "Père Jean Sarr",
-    vicaire: "Père Paul Diouf",
-    catechists: "Sœur Marie, M. Ndiaye",
-  
-  },
-  {
-    id: 2,
-    name: "Paroisse Sainte-Anne de Thiès",
-    diocese: "Diocèse de Thiès",
-    city: "Thiès",
-    cure: "Père André Faye",
-    vicaire: "",
-    catechists: "M. Fall, Mme Diop",
-  },
-  {
-    id: 3,
-    name: "Paroisse Sacré-Cœur de Kaolack",
-    diocese: "Diocèse de Kaolack",
-    city: "Kaolack",
-    cure: "Père Martin Sagna",
-    vicaire: "Père Luc Badiane",
-    catechists: "Mme Sarr",
-  },
-]
+// Données initiales supprimées - Utilisation uniquement des données Firestore
 
 function exportToCSV(parishes: any[]) {
   const header = ["Nom", "Diocèse", "Ville", "Curé", "Vicaire", "Catéchistes"]
@@ -68,7 +39,7 @@ function exportToCSV(parishes: any[]) {
 
 function downloadTemplate() {
   const header = ["Nom", "Diocèse", "Ville", "Curé", "Vicaire", "Catéchistes"]
-  const exampleRow = ["Paroisse Saint-Joseph", "Archidiocèse de Dakar", "Dakar", "Père Jean Sarr", "Père Paul Diouf", "Sœur Marie, M. Ndiaye"]
+  // Données d'exemple supprimées - Utilisation uniquement des données Firestore
   const csvContent = [header, exampleRow].map(e => e.join(",")).join("\n")
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
   const url = URL.createObjectURL(blob)
@@ -93,7 +64,11 @@ function importFromExcel(file: File, setParishes: Function, setImportModal: Func
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
       
       if (jsonData.length < 2) {
-        toast.error("Fichier invalide", "Le fichier Excel doit contenir au moins un en-tête et une ligne de données")
+        toast({
+        title: "Fichier invalide",
+        description: "Le fichier Excel doit contenir au moins un en-tête et une ligne de données",
+        variant: "destructive"
+      })
         return
       }
       
@@ -148,7 +123,11 @@ function importFromExcel(file: File, setParishes: Function, setImportModal: Func
       
     } catch (error) {
       console.error("Erreur lors de l'import:", error)
-      toast.error("Erreur d'import", "Erreur lors de la lecture du fichier Excel")
+      toast({
+        title: "Erreur d'import",
+        description: "Erreur lors de la lecture du fichier Excel",
+        variant: "destructive"
+      })
     }
   }
   
@@ -181,11 +160,18 @@ export default function AdminParishesPage() {
         ParishService.getParishes(),
         ParishService.getDioceses()
       ])
+      // Utiliser uniquement les données Firestore, pas de données fictives
       setParishes(parishesData)
       setDioceses(diocesesData)
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error)
-      toast.error("Erreur lors du chargement des données")
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du chargement des données",
+        variant: "destructive"
+      })
+      setParishes([]) // Aucune donnée en cas d'erreur
+      setDioceses([])
     } finally {
       setLoading(false)
     }
@@ -220,13 +206,24 @@ export default function AdminParishesPage() {
         const success = await ParishService.deleteParish(id)
         if (success) {
           setParishes(parishes.filter(p => p.id !== id))
-          toast.success("Paroisse supprimée", "La paroisse a été supprimée avec succès")
+          toast({
+        title: "Paroisse supprimée",
+        description: "La paroisse a été supprimée avec succès"
+      })
         } else {
-          toast.error("Erreur", "Erreur lors de la suppression de la paroisse")
+          toast({
+        title: "Erreur",
+        description: "Erreur lors de la suppression de la paroisse",
+        variant: "destructive"
+      })
         }
       } catch (error) {
         console.error("Erreur:", error)
-        toast.error("Erreur", "Erreur lors de la suppression")
+        toast({
+        title: "Erreur",
+        description: "Erreur lors de la suppression",
+        variant: "destructive"
+      })
       }
     }
   }
@@ -261,14 +258,25 @@ export default function AdminParishesPage() {
       
       if (success) {
         setEditId(null)
-        toast.success("Paroisse modifiée", "La paroisse a été modifiée avec succès")
+        toast({
+        title: "Paroisse modifiée",
+        description: "La paroisse a été modifiée avec succès"
+      })
         loadData() // Recharger les données
       } else {
-        toast.error("Erreur", "Erreur lors de la modification")
+        toast({
+        title: "Erreur",
+        description: "Erreur lors de la modification",
+        variant: "destructive"
+      })
       }
     } catch (error) {
       console.error("Erreur:", error)
-      toast.error("Erreur", "Erreur lors de la modification")
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la modification",
+        variant: "destructive"
+      })
     }
   }
 
@@ -284,7 +292,11 @@ export default function AdminParishesPage() {
           file.type === "application/vnd.ms-excel") {
         importFromExcel(file, setParishes, setImportModal, setMissingColumns, toast)
       } else {
-        toast.error("Type de fichier invalide", "Veuillez sélectionner un fichier Excel (.xlsx ou .xls)")
+        toast({
+        title: "Type de fichier invalide",
+        description: "Veuillez sélectionner un fichier Excel (.xlsx ou .xls)",
+        variant: "destructive"
+      })
       }
     }
     // Réinitialiser l'input
@@ -296,8 +308,8 @@ export default function AdminParishesPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-            <p className="text-blue-800">Chargement des paroisses...</p>
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-black" />
+            <p className="text-black">Chargement des paroisses...</p>
           </div>
         </div>
       </div>
@@ -309,8 +321,8 @@ export default function AdminParishesPage() {
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-3xl font-bold text-blue-900 mb-1">Gestion des paroisses</CardTitle>
-            <p className="text-blue-800/80 text-sm">Gérez les paroisses, curés, vicaires, catéchistes et communautés.</p>
+            <CardTitle className="text-3xl font-bold text-black mb-1">Gestion des paroisses</CardTitle>
+            <p className="text-black/80 text-sm">Gérez les paroisses, curés, vicaires, catéchistes et communautés.</p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Input
@@ -319,7 +331,7 @@ export default function AdminParishesPage() {
               onChange={e => setSearch(e.target.value)}
               className="h-10 w-40 bg-white/90 border-gray-200"
             />
-            <select value={dioceseFilter} onChange={e => setDioceseFilter(e.target.value)} className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+            <select value={dioceseFilter} onChange={e => setDioceseFilter(e.target.value)} className="h-10 rounded px-2 border-gray-200 bg-white/90 text-black">
               <option value="all">Tous les diocèses</option>
               {dioceses.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
@@ -333,7 +345,7 @@ export default function AdminParishesPage() {
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 id="excel-import"
               />
-              <Button variant="outline" className="flex items-center gap-2 text-blue-900 border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2">
+              <Button variant="outline" className="flex items-center gap-2 text-black border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2">
                 <Upload className="w-5 h-5" /> Import Excel
               </Button>
             </div>
@@ -342,12 +354,12 @@ export default function AdminParishesPage() {
             <Button 
               onClick={downloadTemplate} 
               variant="outline" 
-              className="flex items-center gap-2 text-blue-900 border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2"
+              className="flex items-center gap-2 text-black border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2"
             >
               <Download className="w-5 h-5" /> Modèle
             </Button>
             
-            <Button onClick={() => exportToCSV(filteredParishes)} variant="outline" className="flex items-center gap-2 text-blue-900 border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2">
+            <Button onClick={() => exportToCSV(filteredParishes)} variant="outline" className="flex items-center gap-2 text-black border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2">
               <Download className="w-5 h-5" /> Export CSV
             </Button>
             <Link href="/admin/paroisses/create">
@@ -361,14 +373,14 @@ export default function AdminParishesPage() {
           <div className="overflow-x-auto rounded-xl">
             <table className="w-full text-left min-w-[900px]">
               <thead>
-                <tr className="text-blue-900/80 text-sm bg-blue-50">
-                  <th className="py-3 px-4">Nom</th>
-                  <th className="py-3 px-4">Diocèse</th>
-                  <th className="py-3 px-4">Ville</th>
-                  <th className="py-3 px-4">Curé</th>
-                  <th className="py-3 px-4">Vicaire</th>
-                  <th className="py-3 px-4">Catéchistes</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="text-black/80 text-sm bg-blue-50">
+                  <th className="py-3 px-4 text-black">Nom</th>
+                  <th className="py-3 px-4 text-black">Diocèse</th>
+                  <th className="py-3 px-4 text-black">Ville</th>
+                  <th className="py-3 px-4 text-black">Curé</th>
+                  <th className="py-3 px-4 text-black">Vicaire</th>
+                  <th className="py-3 px-4 text-black">Catéchistes</th>
+                  <th className="py-3 px-4 text-right text-black">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -382,24 +394,24 @@ export default function AdminParishesPage() {
                   >
                     {editId === item.id ? (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">
+                        <td className="py-2 px-4 font-semibold text-black">
                           <Input name="name" value={editForm.name} onChange={handleEditChange} className="h-8" />
                         </td>
-                        <td className="py-2 px-4">
-                          <select name="dioceseId" value={editForm.dioceseId} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+                        <td className="py-2 px-4 text-black">
+                          <select name="dioceseId" value={editForm.dioceseId} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-black">
                             {dioceses.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                           </select>
                         </td>
-                        <td className="py-2 px-4">
+                        <td className="py-2 px-4 text-black">
                           <Input name="city" value={editForm.city} onChange={handleEditChange} className="h-8" />
                         </td>
-                        <td className="py-2 px-4">
+                        <td className="py-2 px-4 text-black">
                           <Input name="priest" value={editForm.priest} onChange={handleEditChange} className="h-8" />
                         </td>
-                        <td className="py-2 px-4">
+                        <td className="py-2 px-4 text-black">
                           <Input name="vicaire" value={editForm.vicaire} onChange={handleEditChange} className="h-8" />
                         </td>
-                        <td className="py-2 px-4">
+                        <td className="py-2 px-4 text-black">
                           <Input name="catechists" value={editForm.catechists} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
@@ -409,12 +421,12 @@ export default function AdminParishesPage() {
                       </>
                     ) : (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">{item.name}</td>
-                        <td className="py-2 px-4">{item.dioceseName}</td>
-                        <td className="py-2 px-4">{item.city}</td>
-                        <td className="py-2 px-4">{item.priest}</td>
-                        <td className="py-2 px-4">{item.vicaire || "-"}</td>
-                        <td className="py-2 px-4">{item.catechists || "-"}</td>
+                        <td className="py-2 px-4 font-semibold text-black">{item.name}</td>
+                        <td className="py-2 px-4 text-black">{item.dioceseName}</td>
+                        <td className="py-2 px-4 text-black">{item.city}</td>
+                        <td className="py-2 px-4 text-black">{item.priest}</td>
+                        <td className="py-2 px-4 text-black">{item.vicaire || "-"}</td>
+                        <td className="py-2 px-4 text-black">{item.catechists || "-"}</td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
@@ -426,7 +438,26 @@ export default function AdminParishesPage() {
               </tbody>
             </table>
             {paginatedParishes.length === 0 && (
-              <div className="text-center text-blue-900/60 py-8">Aucune paroisse trouvée.</div>
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Plus className="w-12 h-12 text-blue-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucune paroisse trouvée</h3>
+                <p className="text-gray-600 mb-6">
+                  {parishes.length === 0 
+                    ? "Aucune paroisse n'est enregistrée dans Firestore pour le moment."
+                    : "Aucune paroisse ne correspond à vos critères de recherche."
+                  }
+                </p>
+                {parishes.length === 0 && (
+                  <Link href="/admin/paroisses/create">
+                    <Button className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Créer la première paroisse
+                    </Button>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
@@ -456,18 +487,18 @@ export default function AdminParishesPage() {
             className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl"
           >
             <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-6 h-6 text-orange-500" />
-              <h3 className="text-lg font-semibold text-blue-900">Colonnes manquantes</h3>
+              <AlertTriangle className="w-6 h-6 text-black" />
+              <h3 className="text-lg font-semibold text-black">Colonnes manquantes</h3>
             </div>
             
-            <p className="text-gray-600 mb-4">
+            <p className="text-black mb-4">
               Le fichier Excel a été importé avec succès, mais certaines colonnes sont manquantes. 
               Les données ont été importées avec des valeurs par défaut pour les colonnes manquantes.
             </p>
             
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
-              <p className="text-orange-800 font-medium mb-2">Colonnes manquantes :</p>
-              <ul className="list-disc list-inside text-orange-800 space-y-1">
+              <p className="text-black font-medium mb-2">Colonnes manquantes :</p>
+              <ul className="list-disc list-inside text-black space-y-1">
                 {missingColumns.map((column, index) => (
                   <li key={index} className="font-medium">{column}</li>
                 ))}
@@ -475,11 +506,11 @@ export default function AdminParishesPage() {
             </div>
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
-              <p className="text-blue-800 text-sm">
+              <p className="text-black text-sm">
                 <strong>Colonnes attendues :</strong><br />
                 Nom, Diocèse, Ville, Curé, Vicaire, Catéchistes
               </p>
-              <p className="text-blue-700 text-sm mt-2">
+              <p className="text-black text-sm mt-2">
                 <strong>Note :</strong> Les paroisses ont été importées. Vous pouvez modifier les valeurs par défaut directement dans le tableau.
               </p>
             </div>

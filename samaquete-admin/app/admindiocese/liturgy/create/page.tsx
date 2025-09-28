@@ -36,13 +36,17 @@ export default function AdminDioceseLiturgyCreatePage() {
     
     // Validation
     if (!formData.title || !formData.parish || !formData.celebrant) {
-      toast.error("Erreur de validation", "Veuillez remplir tous les champs obligatoires")
+      toast({
+          title: "Erreur de validation",
+          description: "Veuillez remplir tous les champs obligatoires",
+          variant: "destructive"
+        })
       return
     }
 
     // Récupérer les célébrations existantes
-    const stored = localStorage.getItem("admin_liturgy")
-    const existingLiturgy = stored ? JSON.parse(stored) : []
+    // Code localStorage supprimé - Migration vers Firestore
+          const existingLiturgy = stored ? JSON.parse(stored) : []
     
     // Créer la nouvelle célébration
     const newLiturgy = {
@@ -53,9 +57,12 @@ export default function AdminDioceseLiturgyCreatePage() {
     
     // Ajouter à la liste
     const updatedLiturgy = [...existingLiturgy, newLiturgy]
-    localStorage.setItem("admin_liturgy", JSON.stringify(updatedLiturgy))
-    
-    toast.success("Célébration créée", "La célébration a été créée avec succès")
+    // localStorage supprimé - Migration vers Firestore
+          
+    toast({
+          title: "Célébration créée",
+          description: "La célébration a été créée avec succès"
+        })
     router.push(`/admindiocese/liturgy?diocese=${encodeURIComponent(diocese)}`)
   }
 
@@ -73,10 +80,10 @@ export default function AdminDioceseLiturgyCreatePage() {
               </Button>
             </Link>
             <div>
-              <CardTitle className="text-3xl font-bold text-blue-900 mb-1">
+              <CardTitle className="text-3xl font-bold text-black mb-1">
                 Nouvelle célébration - {diocese}
               </CardTitle>
-              <p className="text-blue-800/80 text-sm">
+              <p className="text-black/80 text-sm">
                 Créez une nouvelle célébration liturgique pour votre diocèse.
               </p>
             </div>
@@ -86,7 +93,7 @@ export default function AdminDioceseLiturgyCreatePage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Titre de la célébration *
                 </label>
                 <Input
@@ -94,20 +101,20 @@ export default function AdminDioceseLiturgyCreatePage() {
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Ex: Messe dominicale"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Type de célébration
                 </label>
                 <select
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
-                  className="w-full h-10 rounded-md border border-gray-200 bg-white/90 text-blue-900 px-3"
+                  className="w-full h-10 rounded-md border border-blue-200 bg-white/90 text-black px-3"
                 >
                   {types.map(type => (
                     <option key={type} value={type}>{type}</option>
@@ -118,7 +125,7 @@ export default function AdminDioceseLiturgyCreatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Paroisse *
                 </label>
                 <Input
@@ -126,13 +133,13 @@ export default function AdminDioceseLiturgyCreatePage() {
                   value={formData.parish}
                   onChange={handleChange}
                   placeholder="Nom de la paroisse"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Célébrant *
                 </label>
                 <Input
@@ -140,7 +147,7 @@ export default function AdminDioceseLiturgyCreatePage() {
                   value={formData.celebrant}
                   onChange={handleChange}
                   placeholder="Nom du célébrant"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
@@ -148,7 +155,7 @@ export default function AdminDioceseLiturgyCreatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Date
                 </label>
                 <Input
@@ -156,12 +163,12 @@ export default function AdminDioceseLiturgyCreatePage() {
                   type="date"
                   value={formData.date}
                   onChange={handleChange}
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Heure
                 </label>
                 <Input
@@ -169,12 +176,12 @@ export default function AdminDioceseLiturgyCreatePage() {
                   type="time"
                   value={formData.time}
                   onChange={handleChange}
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Durée
                 </label>
                 <Input
@@ -182,13 +189,13 @@ export default function AdminDioceseLiturgyCreatePage() {
                   value={formData.duration}
                   onChange={handleChange}
                   placeholder="Ex: 1h30"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-blue-900 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 Description
               </label>
               <Textarea
@@ -197,7 +204,7 @@ export default function AdminDioceseLiturgyCreatePage() {
                 onChange={handleChange}
                 placeholder="Description de la célébration (optionnel)..."
                 rows={4}
-                className="bg-white/90 border-gray-200 resize-none"
+                className="bg-white/90 border-blue-200 resize-none"
               />
             </div>
 

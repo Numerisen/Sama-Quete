@@ -48,20 +48,21 @@ export default function AdminDioceseDashboard() {
   useEffect(() => {
     // Simuler le chargement des statistiques filtrées par diocèse
     const loadStats = () => {
-      // Récupérer les données du localStorage et filtrer par diocèse
-      const parishes = JSON.parse(localStorage.getItem("admin_parishes") || "[]")
+      // Code localStorage supprimé - Migration vers Firestore
+      // TODO: Implémenter avec Firestore
+      const parishes: any[] = []
       const dioceseParishes = parishes.filter((p: any) => p.diocese === diocese)
       
-      const users = JSON.parse(localStorage.getItem("admin_users") || "[]")
+      const users: any[] = []
       const dioceseUsers = users.filter((u: any) => u.diocese === diocese)
       
-      const donations = JSON.parse(localStorage.getItem("admin_donations") || "[]")
+      const donations: any[] = []
       const dioceseDonations = donations.filter((d: any) => d.diocese === diocese)
       
-      const news = JSON.parse(localStorage.getItem("admin_news") || "[]")
+      const news: any[] = []
       const dioceseNews = news.filter((n: any) => n.diocese === diocese)
       
-      const notifications = JSON.parse(localStorage.getItem("admin_notifications") || "[]")
+      const notifications: any[] = []
       const dioceseNotifications = notifications.filter((n: any) => n.diocese === diocese)
 
       setStats({
@@ -101,7 +102,7 @@ export default function AdminDioceseDashboard() {
       title: "Paroisses",
       value: stats.parishes,
       icon: Church,
-      color: "text-blue-600",
+      color: "text-black",
       bgColor: "bg-blue-100",
       link: `/admindiocese/paroisses?diocese=${encodeURIComponent(diocese)}`
     },
@@ -109,32 +110,32 @@ export default function AdminDioceseDashboard() {
       title: "Utilisateurs",
       value: stats.users,
       icon: Users,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
+      color: "text-black",
+      bgColor: "bg-blue-100",
       link: `/admindiocese/users?diocese=${encodeURIComponent(diocese)}`
     },
     {
       title: "Donations",
       value: stats.donations,
       icon: DollarSign,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
+      color: "text-black",
+      bgColor: "bg-blue-100",
       link: `/admindiocese/donations?diocese=${encodeURIComponent(diocese)}`
     },
     {
       title: "Actualités",
       value: stats.news,
       icon: Newspaper,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
+      color: "text-black",
+      bgColor: "bg-blue-100",
       link: `/admindiocese/news?diocese=${encodeURIComponent(diocese)}`
     },
     {
       title: "Notifications",
       value: stats.notifications,
       icon: Bell,
-      color: "text-red-600",
-      bgColor: "bg-red-100",
+      color: "text-black",
+      bgColor: "bg-blue-100",
       link: `/admindiocese/notifications?diocese=${encodeURIComponent(diocese)}`
     }
   ]
@@ -147,10 +148,10 @@ export default function AdminDioceseDashboard() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-4xl font-bold text-blue-900 mb-2">
+        <h1 className="text-4xl font-bold text-black mb-2">
           Dashboard - {diocese}
         </h1>
-        <p className="text-blue-800/80 text-lg">
+        <p className="text-black/80 text-lg">
           Vue d'ensemble des activités de votre diocèse
         </p>
       </motion.div>
@@ -169,10 +170,10 @@ export default function AdminDioceseDashboard() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 mb-1">
+                      <p className="text-sm font-medium text-black mb-1">
                         {card.title}
                       </p>
-                      <p className="text-2xl font-bold text-blue-900">
+                      <p className="text-2xl font-bold text-black">
                         {card.value}
                       </p>
                     </div>
@@ -196,7 +197,7 @@ export default function AdminDioceseDashboard() {
         >
           <Card className="border-0 bg-white/80 shadow-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-900">
+              <CardTitle className="flex items-center gap-2 text-black">
                 <Activity className="w-5 h-5" />
                 Activité récente
               </CardTitle>
@@ -207,10 +208,10 @@ export default function AdminDioceseDashboard() {
                   <div key={activity.id} className="flex items-center gap-3 p-3 rounded-lg bg-blue-50/50">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-900">
+                      <p className="text-sm font-medium text-black">
                         {activity.message}
                       </p>
-                      <p className="text-xs text-blue-600">
+                      <p className="text-xs text-black">
                         {activity.time}
                       </p>
                     </div>
@@ -228,7 +229,7 @@ export default function AdminDioceseDashboard() {
         >
           <Card className="border-0 bg-white/80 shadow-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-900">
+              <CardTitle className="flex items-center gap-2 text-black">
                 <TrendingUp className="w-5 h-5" />
                 Actions rapides
               </CardTitle>

@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Plus, Edit, Trash2, Download, Image as ImageIcon, Star, Flame, Megaphone } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { NewsService, NewsItem } from "@/lib/firestore-services"
+import { useToast } from "@/hooks/use-toast"
 
 const categories = [
   { value: "all", label: "Toutes les catégories" },
@@ -22,90 +24,34 @@ const priorities = [
   { value: "low", label: "Basse" },
 ]
 
-const initialNews = [
-  {
-    id: 1,
-    title: "Célébration de la Journée Mondiale de la Jeunesse",
-    excerpt: "Rejoignez-nous pour une journée spéciale dédiée aux jeunes de notre paroisse avec des activités spirituelles et culturelles.",
-    date: "25 Janvier 2024",
-    time: "14:00",
-    location: "Salle paroissiale",
-    category: "Événement",
-    image: "/placeholder.svg?height=200&width=300",
-    priority: "high",
-  },
-  {
-    id: 2,
-    title: "Collecte pour les familles nécessiteuses",
-    excerpt: "Notre paroisse organise une collecte de vivres et de vêtements pour soutenir les familles en difficulté de notre communauté.",
-    date: "20 Janvier 2024",
-    time: "Après chaque messe",
-    location: "Entrée de l'église",
-    category: "Solidarité",
-    image: "/placeholder.svg?height=200&width=300",
-    priority: "medium",
-  },
-  {
-    id: 3,
-    title: "Retraite spirituelle de Carême",
-    excerpt: "Préparez-vous au temps du Carême avec une retraite spirituelle de trois jours animée par le Père Antoine Diop.",
-    date: "10 Février 2024",
-    time: "09:00 - 17:00",
-    location: "Centre spirituel",
-    category: "Formation",
-    image: "/placeholder.svg?height=200&width=300",
-    priority: "high",
-  },
-  {
-    id: 4,
-    title: "Nouveau groupe de prière des mères",
-    excerpt: "Formation d'un nouveau groupe de prière dédié aux mères de famille. Première rencontre le samedi prochain.",
-    date: "27 Janvier 2024",
-    time: "16:00",
-    location: "Salle de catéchèse",
-    category: "Groupe",
-    image: "/placeholder.svg?height=200&width=300",
-    priority: "medium",
-  },
-  {
-    id: 5,
-    title: "Travaux de rénovation de l'église",
-    excerpt: "Début des travaux de rénovation de la toiture de l'église. Merci pour votre patience et vos contributions.",
-    date: "15 Janvier 2024",
-    time: "08:00",
-    location: "Église principale",
-    category: "Information",
-    image: "/placeholder.svg?height=200&width=300",
-    priority: "low",
-  },
-]
+// Données initiales supprimées - Utilisation uniquement des données Firestore
 
 function getCategoryColor(category: string) {
   switch (category) {
     case "Événement":
-      return "bg-blue-100 text-blue-700"
+      return "bg-blue-100 text-black"
     case "Solidarité":
-      return "bg-green-100 text-green-700"
+      return "bg-green-100 text-black"
     case "Formation":
-      return "bg-purple-100 text-purple-700"
+      return "bg-purple-100 text-black"
     case "Groupe":
       return "bg-amber-100 text-amber-700"
     case "Information":
-      return "bg-gray-100 text-gray-700"
+      return "bg-gray-100 text-black"
     default:
-      return "bg-gray-100 text-gray-700"
+      return "bg-gray-100 text-black"
   }
 }
 function getPriorityIcon(priority: string) {
   switch (priority) {
     case "high":
-      return <Flame className="w-4 h-4 text-red-500 inline-block mr-1" />
+      return <Flame className="w-4 h-4 text-black inline-block mr-1" />
     case "medium":
-      return <Star className="w-4 h-4 text-yellow-500 inline-block mr-1" />
+      return <Star className="w-4 h-4 text-black inline-block mr-1" />
     case "low":
-      return <Megaphone className="w-4 h-4 text-blue-400 inline-block mr-1" />
+      return <Megaphone className="w-4 h-4 text-black inline-block mr-1" />
     default:
-      return <Megaphone className="w-4 h-4 text-blue-400 inline-block mr-1" />
+      return <Megaphone className="w-4 h-4 text-black inline-block mr-1" />
   }
 }
 
@@ -130,23 +76,70 @@ export default function AdminNewsPage() {
   const [priorityFilter, setPriorityFilter] = useState("all")
   const [editId, setEditId] = useState<number | null>(null)
   const [editForm, setEditForm] = useState<any>({ title: "", excerpt: "", date: "", time: "", location: "", category: "Événement", priority: "medium", image: "" })
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  // Initialisation depuis localStorage
+  // Charger les actualités depuis Firestore
   useEffect(() => {
-    const stored = localStorage.getItem("admin_news")
-    if (stored) {
-      setNews(JSON.parse(stored))
-    } else {
-      setNews(initialNews)
-      localStorage.setItem("admin_news", JSON.stringify(initialNews))
+    const loadNews = async () => {
+      try {
+        setLoading(true)
+        const firestoreNews = await NewsService.getAll()
+        
+        // Utiliser uniquement les données Firestore, pas de données fictives
+        const convertedNews = firestoreNews.map(news => ({
+          id: news.id!,
+          title: news.title,
+          excerpt: news.excerpt,
+          content: news.content,
+          date: news.date,
+          time: news.time,
+          location: news.location,
+          category: news.category,
+          priority: news.priority,
+          image: news.image,
+          diocese: news.diocese,
+          published: news.published
+        }))
+        setNews(convertedNews)
+      } catch (error) {
+        console.error('Erreur lors du chargement des actualités:', error)
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les actualités",
+          variant: "destructive"
+        })
+        setNews([]) // Aucune donnée en cas d'erreur
+      } finally {
+        setLoading(false)
+      }
     }
+
+    loadNews()
+  }, [toast])
+
+  // S'abonner aux changements en temps réel
+  useEffect(() => {
+    const unsubscribe = NewsService.subscribeToNews((firestoreNews) => {
+      const convertedNews = firestoreNews.map(news => ({
+        id: news.id!,
+        title: news.title,
+        excerpt: news.excerpt,
+        content: news.content,
+        date: news.date,
+        time: news.time,
+        location: news.location,
+        category: news.category,
+        priority: news.priority,
+        image: news.image,
+        diocese: news.diocese,
+        published: news.published
+      }))
+      setNews(convertedNews)
+    })
+
+    return () => unsubscribe()
   }, [])
-  // Sauvegarde à chaque modification
-  useEffect(() => {
-    if (news.length > 0) {
-      localStorage.setItem("admin_news", JSON.stringify(news))
-    }
-  }, [news])
 
   // Filtres combinés
   const filteredNews = news.filter(n => {
@@ -157,23 +150,65 @@ export default function AdminNewsPage() {
   })
 
   // Suppression
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm("Confirmer la suppression de cette actualité ?")) {
-      setNews(news.filter(n => n.id !== id))
+      try {
+        await NewsService.delete(id)
+        toast({
+          title: "Succès",
+          description: "Actualité supprimée avec succès",
+        })
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error)
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer l'actualité",
+          variant: "destructive"
+        })
+      }
     }
   }
+  
   // Edition inline
   const handleEdit = (item: any) => {
     setEditId(item.id)
     setEditForm({ ...item })
   }
+  
   const handleEditChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setEditForm({ ...editForm, [e.target.name]: e.target.value })
   }
-  const handleEditSave = (id: number) => {
-    setNews(news.map(n => n.id === id ? { ...editForm, id } : n))
-    setEditId(null)
+  
+  const handleEditSave = async (id: string) => {
+    try {
+      await NewsService.update(id, {
+        title: editForm.title,
+        excerpt: editForm.excerpt,
+        content: editForm.content,
+        date: editForm.date,
+        time: editForm.time,
+        location: editForm.location,
+        category: editForm.category,
+        priority: editForm.priority,
+        image: editForm.image,
+        diocese: editForm.diocese,
+        published: editForm.published
+      })
+      setEditId(null)
+      toast({
+        title: "Succès",
+        description: "Actualité modifiée avec succès",
+      })
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier l'actualité",
+        variant: "destructive"
+      })
+    }
   }
+  
   const handleEditCancel = () => {
     setEditId(null)
   }
@@ -183,8 +218,8 @@ export default function AdminNewsPage() {
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-3xl font-bold text-green-900 mb-1">Gestion des actualités</CardTitle>
-            <p className="text-green-800/80 text-sm">Publiez, modifiez et supprimez les actualités paroissiales.</p>
+            <CardTitle className="text-3xl font-bold text-black mb-1">Gestion des actualités</CardTitle>
+            <p className="text-black/80 text-sm">Publiez, modifiez et supprimez les actualités paroissiales.</p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Input
@@ -193,13 +228,13 @@ export default function AdminNewsPage() {
               onChange={e => setSearch(e.target.value)}
               className="h-10 w-40 bg-white/90 border-gray-200"
             />
-            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="h-10 rounded px-2 border-gray-200 bg-white/90 text-green-900">
+            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="h-10 rounded px-2 border-gray-200 bg-white/90 text-black">
               {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
             </select>
-            <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)} className="h-10 rounded px-2 border-gray-200 bg-white/90 text-green-900">
+            <select value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)} className="h-10 rounded px-2 border-gray-200 bg-white/90 text-black">
               {priorities.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
-            <Button onClick={() => exportToCSV(filteredNews)} variant="outline" className="flex items-center gap-2 text-green-900 border-green-200 bg-white/90 hover:bg-green-50 rounded-xl px-3 py-2">
+            <Button onClick={() => exportToCSV(filteredNews)} variant="outline" className="flex items-center gap-2 text-black border-green-200 bg-white/90 hover:bg-green-50 rounded-xl px-3 py-2">
               <Download className="w-5 h-5" /> Export CSV
             </Button>
             <Link href="/admin/news/create">
@@ -210,21 +245,26 @@ export default function AdminNewsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-xl">
-            <table className="w-full text-left min-w-[800px]">
-              <thead>
-                <tr className="text-green-900/80 text-sm bg-green-50">
-                  <th className="py-3 px-4">Image</th>
-                  <th className="py-3 px-4">Titre</th>
-                  <th className="py-3 px-4">Extrait</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Catégorie</th>
-                  <th className="py-3 px-4">Priorité</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredNews.map((item, i) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-black">Chargement des actualités...</div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl">
+              <table className="w-full text-left min-w-[800px]">
+                <thead>
+                  <tr className="text-black/80 text-sm bg-green-50">
+                    <th className="py-3 px-4 text-black">Image</th>
+                    <th className="py-3 px-4 text-black">Titre</th>
+                    <th className="py-3 px-4 text-black">Extrait</th>
+                    <th className="py-3 px-4 text-black">Date</th>
+                    <th className="py-3 px-4 text-black">Catégorie</th>
+                    <th className="py-3 px-4 text-black">Priorité</th>
+                    <th className="py-3 px-4 text-right text-black">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredNews.map((item, i) => (
                   <motion.tr
                     key={item.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -236,27 +276,27 @@ export default function AdminNewsPage() {
                       {item.image ? (
                         <img src={item.image} alt={item.title} className="w-16 h-16 object-cover rounded-xl border-2 border-green-200 shadow" />
                       ) : (
-                        <ImageIcon className="w-10 h-10 text-green-300" />
+                        <ImageIcon className="w-10 h-10 text-gray-500" />
                       )}
                     </td>
                     {editId === item.id ? (
                       <>
-                        <td className="py-2 px-4 font-semibold text-green-900">
+                        <td className="py-2 px-4 font-semibold text-black">
                           <Input name="title" value={editForm.title} onChange={handleEditChange} className="h-8" />
                         </td>
-                        <td className="py-2 px-4 text-green-800">
+                        <td className="py-2 px-4 text-black">
                           <textarea name="excerpt" value={editForm.excerpt} onChange={handleEditChange} className="h-8 w-full rounded border border-gray-200 px-2" />
                         </td>
                         <td className="py-2 px-4">
                           <Input name="date" value={editForm.date} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="category" value={editForm.category} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-green-900">
+                          <select name="category" value={editForm.category} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-black">
                             {categories.filter(c => c.value !== "all").map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                           </select>
                         </td>
                         <td className="py-2 px-4">
-                          <select name="priority" value={editForm.priority} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-green-900">
+                          <select name="priority" value={editForm.priority} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-black">
                             {priorities.filter(p => p.value !== "all").map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                           </select>
                         </td>
@@ -267,9 +307,9 @@ export default function AdminNewsPage() {
                       </>
                     ) : (
                       <>
-                        <td className="py-2 px-4 font-semibold text-green-900">{item.title}</td>
-                        <td className="py-2 px-4 text-green-800">{item.excerpt}</td>
-                        <td className="py-2 px-4">{item.date}</td>
+                        <td className="py-2 px-4 font-semibold text-black">{item.title}</td>
+                        <td className="py-2 px-4 text-black">{item.excerpt}</td>
+                        <td className="py-2 px-4 text-black">{item.date}</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(item.category)}`}>{item.category}</span>
                         </td>
@@ -287,12 +327,13 @@ export default function AdminNewsPage() {
                     )}
                   </motion.tr>
                 ))}
-              </tbody>
-            </table>
-            {filteredNews.length === 0 && (
-              <div className="text-center text-green-900/60 py-8">Aucune actualité trouvée.</div>
-            )}
-          </div>
+                </tbody>
+              </table>
+              {filteredNews.length === 0 && (
+                <div className="text-center text-black/60 py-8">Aucune actualité trouvée.</div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

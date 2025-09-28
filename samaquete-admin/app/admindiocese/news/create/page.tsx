@@ -35,13 +35,17 @@ export default function AdminDioceseNewsCreatePage() {
     
     // Validation
     if (!formData.title || !formData.content || !formData.author || !formData.parish) {
-      toast.error("Erreur de validation", "Veuillez remplir tous les champs obligatoires")
+      toast({
+          title: "Erreur de validation",
+          description: "Veuillez remplir tous les champs obligatoires",
+          variant: "destructive"
+        })
       return
     }
 
     // Récupérer les actualités existantes
-    const stored = localStorage.getItem("admin_news")
-    const existingNews = stored ? JSON.parse(stored) : []
+    // Code localStorage supprimé - Migration vers Firestore
+          const existingNews = stored ? JSON.parse(stored) : []
     
     // Créer la nouvelle actualité
     const newNews = {
@@ -52,9 +56,12 @@ export default function AdminDioceseNewsCreatePage() {
     
     // Ajouter à la liste
     const updatedNews = [...existingNews, newNews]
-    localStorage.setItem("admin_news", JSON.stringify(updatedNews))
-    
-    toast.success("Actualité créée", "L'actualité a été créée avec succès")
+    // localStorage supprimé - Migration vers Firestore
+          
+    toast({
+          title: "Actualité créée",
+          description: "L'actualité a été créée avec succès"
+        })
     router.push(`/admindiocese/news?diocese=${encodeURIComponent(diocese)}`)
   }
 
@@ -73,10 +80,10 @@ export default function AdminDioceseNewsCreatePage() {
               </Button>
             </Link>
             <div>
-              <CardTitle className="text-3xl font-bold text-blue-900 mb-1">
+              <CardTitle className="text-3xl font-bold text-black mb-1">
                 Nouvelle actualité - {diocese}
               </CardTitle>
-              <p className="text-blue-800/80 text-sm">
+              <p className="text-black/80 text-sm">
                 Créez une nouvelle actualité pour votre diocèse.
               </p>
             </div>
@@ -86,7 +93,7 @@ export default function AdminDioceseNewsCreatePage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Titre *
                 </label>
                 <Input
@@ -94,13 +101,13 @@ export default function AdminDioceseNewsCreatePage() {
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Titre de l'actualité"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Auteur *
                 </label>
                 <Input
@@ -108,7 +115,7 @@ export default function AdminDioceseNewsCreatePage() {
                   value={formData.author}
                   onChange={handleChange}
                   placeholder="Nom de l'auteur"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
@@ -116,7 +123,7 @@ export default function AdminDioceseNewsCreatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Paroisse *
                 </label>
                 <Input
@@ -124,20 +131,20 @@ export default function AdminDioceseNewsCreatePage() {
                   value={formData.parish}
                   onChange={handleChange}
                   placeholder="Nom de la paroisse"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Catégorie
                 </label>
                 <select
                   name="category"
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full h-10 rounded-md border border-gray-200 bg-white/90 text-blue-900 px-3"
+                  className="w-full h-10 rounded-md border border-blue-200 bg-white/90 text-black px-3"
                 >
                   {categories.map(category => (
                     <option key={category} value={category}>{category}</option>
@@ -146,14 +153,14 @@ export default function AdminDioceseNewsCreatePage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Statut
                 </label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full h-10 rounded-md border border-gray-200 bg-white/90 text-blue-900 px-3"
+                  className="w-full h-10 rounded-md border border-blue-200 bg-white/90 text-black px-3"
                 >
                   {statuses.map(status => (
                     <option key={status} value={status}>{status}</option>
@@ -163,7 +170,7 @@ export default function AdminDioceseNewsCreatePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-blue-900 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 Date de publication
               </label>
               <Input
@@ -171,12 +178,12 @@ export default function AdminDioceseNewsCreatePage() {
                 type="date"
                 value={formData.date}
                 onChange={handleChange}
-                className="bg-white/90 border-gray-200"
+                className="bg-white/90 border-blue-200"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-blue-900 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 Contenu *
               </label>
               <Textarea
@@ -185,7 +192,7 @@ export default function AdminDioceseNewsCreatePage() {
                 onChange={handleChange}
                 placeholder="Contenu de l'actualité..."
                 rows={8}
-                className="bg-white/90 border-gray-200 resize-none"
+                className="bg-white/90 border-blue-200 resize-none"
                 required
               />
             </div>

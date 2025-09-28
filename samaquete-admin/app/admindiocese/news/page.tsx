@@ -10,41 +10,7 @@ import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
 
-const initialNews = [
-  {
-    id: 1,
-    title: "Célébration de la fête de l'Assomption",
-    content: "La paroisse Saint-Joseph de Thiès célèbre la fête de l'Assomption avec une messe solennelle.",
-    author: "Père Jean Sarr",
-    diocese: "Diocèse de Thiès",
-    parish: "Paroisse Saint-Joseph",
-    date: "2024-08-15",
-    status: "Publié",
-    category: "Événement"
-  },
-  {
-    id: 2,
-    title: "Retraite spirituelle pour les jeunes",
-    content: "Une retraite spirituelle de 3 jours est organisée pour les jeunes du diocèse.",
-    author: "Sœur Marie Diop",
-    diocese: "Diocèse de Thiès",
-    parish: "Paroisse Sainte-Anne",
-    date: "2024-08-20",
-    status: "Brouillon",
-    category: "Formation"
-  },
-  {
-    id: 3,
-    title: "Collecte pour les nécessiteux",
-    content: "Une collecte spéciale est organisée pour aider les familles dans le besoin.",
-    author: "Père André Faye",
-    diocese: "Diocèse de Thiès",
-    parish: "Paroisse Sacré-Cœur",
-    date: "2024-08-25",
-    status: "Publié",
-    category: "Charité"
-  }
-]
+// Données initiales supprimées - Utilisation uniquement des données Firestore
 
 export default function AdminDioceseNewsPage() {
   const searchParams = useSearchParams()
@@ -60,30 +26,22 @@ export default function AdminDioceseNewsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // Initialisation depuis localStorage
+  // Charger les actualités depuis Firestore
   useEffect(() => {
-    const stored = localStorage.getItem("admin_news")
-    if (stored) {
-      const allNews = JSON.parse(stored)
-      const dioceseNews = allNews.filter((n: any) => n.diocese === diocese)
-      setNews(dioceseNews)
-    } else {
-      const dioceseNews = initialNews.filter(n => n.diocese === diocese)
-      setNews(dioceseNews)
-      localStorage.setItem("admin_news", JSON.stringify(initialNews))
+    const loadNews = async () => {
+      try {
+        // TODO: Implémenter le chargement depuis Firestore
+        // const firestoreNews = await NewsService.getAll()
+        // const dioceseNews = firestoreNews.filter(n => n.diocese === diocese)
+        // setNews(dioceseNews)
+        setNews([]) // Aucune donnée pour le moment
+      } catch (error) {
+        console.error('Erreur lors du chargement des actualités:', error)
+        setNews([])
+      }
     }
+    loadNews()
   }, [diocese])
-
-  // Sauvegarde à chaque modification
-  useEffect(() => {
-    if (news.length > 0) {
-      const stored = localStorage.getItem("admin_news")
-      const allNews = stored ? JSON.parse(stored) : []
-      const otherNews = allNews.filter((n: any) => n.diocese !== diocese)
-      const updatedNews = [...otherNews, ...news]
-      localStorage.setItem("admin_news", JSON.stringify(updatedNews))
-    }
-  }, [news, diocese])
 
   // Filtres et recherche
   const filteredNews = news.filter(n => {
@@ -110,7 +68,10 @@ export default function AdminDioceseNewsPage() {
   const handleDelete = (id: number) => {
     if (window.confirm("Confirmer la suppression de cette actualité ?")) {
       setNews(news.filter(n => n.id !== id))
-      toast.success("Actualité supprimée", "L'actualité a été supprimée avec succès")
+      toast({
+          title: "Actualité supprimée",
+          description: "L'actualité a été supprimée avec succès"
+        })
     }
   }
 
@@ -127,7 +88,10 @@ export default function AdminDioceseNewsPage() {
   const handleEditSave = (id: number) => {
     setNews(news.map(n => n.id === id ? { ...editForm, id } : n))
     setEditId(null)
-    toast.success("Actualité modifiée", "L'actualité a été modifiée avec succès")
+    toast({
+          title: "Actualité modifiée",
+          description: "L'actualité a été modifiée avec succès"
+        })
   }
 
   const handleEditCancel = () => {
@@ -142,10 +106,10 @@ export default function AdminDioceseNewsPage() {
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-3xl font-bold text-blue-900 mb-1">
+            <CardTitle className="text-3xl font-bold text-black mb-1">
               Gestion des actualités - {diocese}
             </CardTitle>
-            <p className="text-blue-800/80 text-sm">
+            <p className="text-black/80 text-sm">
               Gérez les actualités et informations de votre diocèse.
             </p>
           </div>
@@ -154,12 +118,12 @@ export default function AdminDioceseNewsPage() {
               placeholder="Rechercher..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="h-10 w-40 bg-white/90 border-gray-200"
+              className="h-10 w-40 bg-white/90 border-blue-200"
             />
             <select 
               value={statusFilter} 
               onChange={e => setStatusFilter(e.target.value)} 
-              className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900"
+              className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
             >
               <option value="all">Tous les statuts</option>
               {statuses.map(status => <option key={status} value={status}>{status}</option>)}
@@ -167,7 +131,7 @@ export default function AdminDioceseNewsPage() {
             <select 
               value={categoryFilter} 
               onChange={e => setCategoryFilter(e.target.value)} 
-              className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900"
+              className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
             >
               <option value="all">Toutes les catégories</option>
               {categories.map(category => <option key={category} value={category}>{category}</option>)}
@@ -183,14 +147,14 @@ export default function AdminDioceseNewsPage() {
           <div className="overflow-x-auto rounded-xl">
             <table className="w-full text-left min-w-[900px]">
               <thead>
-                <tr className="text-blue-900/80 text-sm bg-blue-50">
-                  <th className="py-3 px-4">Titre</th>
-                  <th className="py-3 px-4">Auteur</th>
-                  <th className="py-3 px-4">Paroisse</th>
-                  <th className="py-3 px-4">Catégorie</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Statut</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="text-black/80 text-sm bg-blue-50">
+                  <th className="py-3 px-4 text-black">Titre</th>
+                  <th className="py-3 px-4 text-black">Auteur</th>
+                  <th className="py-3 px-4 text-black">Paroisse</th>
+                  <th className="py-3 px-4 text-black">Catégorie</th>
+                  <th className="py-3 px-4 text-black">Date</th>
+                  <th className="py-3 px-4 text-black">Statut</th>
+                  <th className="py-3 px-4 text-right text-black">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -204,7 +168,7 @@ export default function AdminDioceseNewsPage() {
                   >
                     {editId === item.id ? (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">
+                        <td className="py-2 px-4 font-semibold text-black">
                           <Input name="title" value={editForm.title} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
@@ -214,7 +178,7 @@ export default function AdminDioceseNewsPage() {
                           <Input name="parish" value={editForm.parish} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="category" value={editForm.category} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+                          <select name="category" value={editForm.category} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
                             {categories.map(category => <option key={category} value={category}>{category}</option>)}
                           </select>
                         </td>
@@ -222,7 +186,7 @@ export default function AdminDioceseNewsPage() {
                           <Input name="date" type="date" value={editForm.date} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
                             {statuses.map(status => <option key={status} value={status}>{status}</option>)}
                           </select>
                         </td>
@@ -233,25 +197,25 @@ export default function AdminDioceseNewsPage() {
                       </>
                     ) : (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">{item.title}</td>
-                        <td className="py-2 px-4">{item.author}</td>
-                        <td className="py-2 px-4">{item.parish}</td>
+                        <td className="py-2 px-4 font-semibold text-black">{item.title}</td>
+                        <td className="py-2 px-4 text-black">{item.author}</td>
+                        <td className="py-2 px-4 text-black">{item.parish}</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            item.category === 'Événement' ? 'bg-blue-100 text-blue-800' :
-                            item.category === 'Formation' ? 'bg-green-100 text-green-800' :
-                            item.category === 'Charité' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
+                            item.category === 'Événement' ? 'bg-blue-100 text-black' :
+                            item.category === 'Formation' ? 'bg-blue-100 text-black' :
+                            item.category === 'Charité' ? 'bg-blue-100 text-black' :
+                            'bg-blue-100 text-black'
                           }`}>
                             {item.category}
                           </span>
                         </td>
-                        <td className="py-2 px-4">{new Date(item.date).toLocaleDateString('fr-FR')}</td>
+                        <td className="py-2 px-4 text-black">{new Date(item.date).toLocaleDateString('fr-FR')}</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            item.status === 'Publié' ? 'bg-green-100 text-green-800' :
-                            item.status === 'Brouillon' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
+                            item.status === 'Publié' ? 'bg-blue-100 text-black' :
+                            item.status === 'Brouillon' ? 'bg-blue-100 text-black' :
+                            'bg-blue-100 text-black'
                           }`}>
                             {item.status}
                           </span>
@@ -267,7 +231,26 @@ export default function AdminDioceseNewsPage() {
               </tbody>
             </table>
             {paginatedNews.length === 0 && (
-              <div className="text-center text-blue-900/60 py-8">Aucune actualité trouvée dans ce diocèse.</div>
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-12 h-12 text-orange-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucune actualité trouvée</h3>
+                <p className="text-gray-600 mb-6">
+                  {news.length === 0 
+                    ? `Aucune actualité n'est enregistrée dans Firestore pour le diocèse ${diocese}.`
+                    : "Aucune actualité ne correspond à vos critères de recherche."
+                  }
+                </p>
+                {news.length === 0 && (
+                  <Link href="/admindiocese/news/create">
+                    <Button className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Créer la première actualité
+                    </Button>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </CardContent>

@@ -33,25 +33,37 @@ export default function AdminDioceseUsersCreatePage() {
     
     // Validation
     if (!formData.name || !formData.email || !formData.parish) {
-      toast.error("Erreur de validation", "Veuillez remplir tous les champs obligatoires")
+      toast({
+          title: "Erreur de validation",
+          description: "Veuillez remplir tous les champs obligatoires",
+          variant: "destructive"
+        })
       return
     }
 
     // Validation email basique
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.email)) {
-      toast.error("Erreur de validation", "Veuillez entrer une adresse email valide")
+      toast({
+          title: "Erreur de validation",
+          description: "Veuillez entrer une adresse email valide",
+          variant: "destructive"
+        })
       return
     }
 
     // Récupérer les utilisateurs existants
-    const stored = localStorage.getItem("admin_users")
-    const existingUsers = stored ? JSON.parse(stored) : []
+    // Code localStorage supprimé - Migration vers Firestore
+          const existingUsers = stored ? JSON.parse(stored) : []
     
     // Vérifier si l'email existe déjà
     const emailExists = existingUsers.some((user: any) => user.email === formData.email)
     if (emailExists) {
-      toast.error("Erreur de validation", "Cette adresse email est déjà utilisée")
+      toast({
+          title: "Erreur de validation",
+          description: "Cette adresse email est déjà utilisée",
+          variant: "destructive"
+        })
       return
     }
     
@@ -64,9 +76,12 @@ export default function AdminDioceseUsersCreatePage() {
     
     // Ajouter à la liste
     const updatedUsers = [...existingUsers, newUser]
-    localStorage.setItem("admin_users", JSON.stringify(updatedUsers))
-    
-    toast.success("Utilisateur créé", "L'utilisateur a été créé avec succès")
+    // localStorage supprimé - Migration vers Firestore
+          
+    toast({
+          title: "Utilisateur créé",
+          description: "L'utilisateur a été créé avec succès"
+        })
     router.push(`/admindiocese/users?diocese=${encodeURIComponent(diocese)}`)
   }
 
@@ -85,10 +100,10 @@ export default function AdminDioceseUsersCreatePage() {
               </Button>
             </Link>
             <div>
-              <CardTitle className="text-3xl font-bold text-blue-900 mb-1">
+              <CardTitle className="text-3xl font-bold text-black mb-1">
                 Nouvel utilisateur - {diocese}
               </CardTitle>
-              <p className="text-blue-800/80 text-sm">
+              <p className="text-black/80 text-sm">
                 Créez un nouvel utilisateur pour votre diocèse.
               </p>
             </div>
@@ -98,7 +113,7 @@ export default function AdminDioceseUsersCreatePage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Nom complet *
                 </label>
                 <Input
@@ -106,13 +121,13 @@ export default function AdminDioceseUsersCreatePage() {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Nom et prénom"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Email *
                 </label>
                 <Input
@@ -121,7 +136,7 @@ export default function AdminDioceseUsersCreatePage() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="email@example.com"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                   required
                 />
               </div>
@@ -129,7 +144,7 @@ export default function AdminDioceseUsersCreatePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Téléphone
                 </label>
                 <Input
@@ -137,19 +152,19 @@ export default function AdminDioceseUsersCreatePage() {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+221 33 123 45 67"
-                  className="bg-white/90 border-gray-200"
+                  className="bg-white/90 border-blue-200"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Rôle
                 </label>
                 <select
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="w-full h-10 rounded-md border border-gray-200 bg-white/90 text-blue-900 px-3"
+                  className="w-full h-10 rounded-md border border-blue-200 bg-white/90 text-black px-3"
                 >
                   {roles.map(role => (
                     <option key={role} value={role}>{role}</option>
@@ -158,14 +173,14 @@ export default function AdminDioceseUsersCreatePage() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
+                <label className="block text-sm font-medium text-black mb-2">
                   Statut
                 </label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full h-10 rounded-md border border-gray-200 bg-white/90 text-blue-900 px-3"
+                  className="w-full h-10 rounded-md border border-blue-200 bg-white/90 text-black px-3"
                 >
                   {statuses.map(status => (
                     <option key={status} value={status}>{status}</option>
@@ -175,7 +190,7 @@ export default function AdminDioceseUsersCreatePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-blue-900 mb-2">
+              <label className="block text-sm font-medium text-black mb-2">
                 Paroisse *
               </label>
               <Input
@@ -183,7 +198,7 @@ export default function AdminDioceseUsersCreatePage() {
                 value={formData.parish}
                 onChange={handleChange}
                 placeholder="Nom de la paroisse"
-                className="bg-white/90 border-gray-200"
+                className="bg-white/90 border-blue-200"
                 required
               />
             </div>

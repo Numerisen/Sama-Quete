@@ -47,9 +47,9 @@ export default function AdminLoginPage() {
     >
       <Card className="w-full max-w-md shadow-xl rounded-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-gray-800">Connexion Admin</CardTitle>
-          <p className="text-gray-500">Accédez au tableau de bord SamaQuête</p>
-          <p className="text-sm text-gray-400 mt-2">(Utilisez: admin@samaquete.com / password)</p>
+          <CardTitle className="text-3xl font-bold text-black">Connexion Admin</CardTitle>
+          <p className="text-gray-600">Accédez au tableau de bord SamaQuête</p>
+          <p className="text-sm text-gray-500 mt-2">(Utilisez: admin@samaquete.com / password)</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
                 className="h-11"
               />
             </div>
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            {error && <p className="text-black text-sm text-center">{error}</p>}
             <Button type="submit" className="w-full h-12 text-lg" disabled={isPending}>
               {isPending ? (
                 <>

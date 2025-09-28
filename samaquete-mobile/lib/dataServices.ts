@@ -222,6 +222,40 @@ export class LiturgyService {
     }
   }
 
+  /**
+   * Récupère le texte du jour avec intégration API externe
+   * Utilise l'API externe en priorité, puis Firestore en fallback
+   */
+  static async getTodayLiturgyWithApi(parishId?: string): Promise<Liturgy | null> {
+    try {
+      // Essayer d'abord l'API externe
+      const { liturgyApiService } = await import('./liturgyApiService');
+      const apiData = await liturgyApiService.getTodayLiturgy();
+      
+      if (apiData) {
+        // Convertir les données de l'API vers le format Liturgy
+        return {
+          id: `api_${apiData.date}`,
+          date: apiData.date,
+          title: apiData.title,
+          firstReading: apiData.firstReading,
+          psalm: apiData.psalm,
+          secondReading: apiData.secondReading || '',
+          gospel: apiData.gospel,
+          reflection: apiData.reflection,
+          parishId: parishId,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        } as Liturgy;
+      }
+    } catch (apiError) {
+      console.warn('API externe indisponible, utilisation de Firestore:', apiError);
+    }
+
+    // Fallback vers Firestore
+    return this.getTodayLiturgy(parishId);
+  }
+
   static async getWeeklyLiturgy(parishId?: string): Promise<Liturgy[]> {
     try {
       const liturgyRef = collection(db, 'liturgy');

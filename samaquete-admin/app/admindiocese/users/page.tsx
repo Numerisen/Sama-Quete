@@ -10,48 +10,7 @@ import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
 
-const initialUsers = [
-  {
-    id: 1,
-    name: "Jean Sarr",
-    email: "jean.sarr@example.com",
-    phone: "+221 33 123 45 67",
-    role: "Curé",
-    parish: "Paroisse Saint-Joseph de Thiès",
-    diocese: "Diocèse de Thiès",
-    status: "Actif"
-  },
-  {
-    id: 2,
-    name: "Marie Diop",
-    email: "marie.diop@example.com",
-    phone: "+221 33 234 56 78",
-    role: "Catéchiste",
-    parish: "Paroisse Sainte-Anne de Thiès",
-    diocese: "Diocèse de Thiès",
-    status: "Actif"
-  },
-  {
-    id: 3,
-    name: "Paul Faye",
-    email: "paul.faye@example.com",
-    phone: "+221 33 345 67 89",
-    role: "Vicaire",
-    parish: "Paroisse Sacré-Cœur de Thiès",
-    diocese: "Diocèse de Thiès",
-    status: "Actif"
-  },
-  {
-    id: 4,
-    name: "Michel Diop",
-    email: "michel.diop@example.com",
-    phone: "+221 33 456 78 90",
-    role: "Curé",
-    parish: "Paroisse Notre-Dame de Thiès",
-    diocese: "Diocèse de Thiès",
-    status: "Actif"
-  }
-]
+// Données initiales supprimées - Utilisation uniquement des données Firestore
 
 export default function AdminDioceseUsersPage() {
   const searchParams = useSearchParams()
@@ -67,30 +26,22 @@ export default function AdminDioceseUsersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // Initialisation depuis localStorage
+  // Charger les utilisateurs depuis Firestore
   useEffect(() => {
-    const stored = localStorage.getItem("admin_users")
-    if (stored) {
-      const allUsers = JSON.parse(stored)
-      const dioceseUsers = allUsers.filter((u: any) => u.diocese === diocese)
-      setUsers(dioceseUsers)
-    } else {
-      const dioceseUsers = initialUsers.filter(u => u.diocese === diocese)
-      setUsers(dioceseUsers)
-      localStorage.setItem("admin_users", JSON.stringify(initialUsers))
+    const loadUsers = async () => {
+      try {
+        // TODO: Implémenter le chargement depuis Firestore
+        // const firestoreUsers = await UserService.getAll()
+        // const dioceseUsers = firestoreUsers.filter(u => u.diocese === diocese)
+        // setUsers(dioceseUsers)
+        setUsers([]) // Aucune donnée pour le moment
+      } catch (error) {
+        console.error('Erreur lors du chargement des utilisateurs:', error)
+        setUsers([])
+      }
     }
+    loadUsers()
   }, [diocese])
-
-  // Sauvegarde à chaque modification
-  useEffect(() => {
-    if (users.length > 0) {
-      const stored = localStorage.getItem("admin_users")
-      const allUsers = stored ? JSON.parse(stored) : []
-      const otherUsers = allUsers.filter((u: any) => u.diocese !== diocese)
-      const updatedUsers = [...otherUsers, ...users]
-      localStorage.setItem("admin_users", JSON.stringify(updatedUsers))
-    }
-  }, [users, diocese])
 
   // Filtres et recherche
   const filteredUsers = users.filter(u => {
@@ -117,7 +68,10 @@ export default function AdminDioceseUsersPage() {
   const handleDelete = (id: number) => {
     if (window.confirm("Confirmer la suppression de cet utilisateur ?")) {
       setUsers(users.filter(u => u.id !== id))
-      toast.success("Utilisateur supprimé", "L'utilisateur a été supprimé avec succès")
+      toast({
+          title: "Utilisateur supprimé",
+          description: "L'utilisateur a été supprimé avec succès"
+        })
     }
   }
 
@@ -134,7 +88,10 @@ export default function AdminDioceseUsersPage() {
   const handleEditSave = (id: number) => {
     setUsers(users.map(u => u.id === id ? { ...editForm, id } : u))
     setEditId(null)
-    toast.success("Utilisateur modifié", "L'utilisateur a été modifié avec succès")
+    toast({
+          title: "Utilisateur modifié",
+          description: "L'utilisateur a été modifié avec succès"
+        })
   }
 
   const handleEditCancel = () => {
@@ -149,10 +106,10 @@ export default function AdminDioceseUsersPage() {
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-3xl font-bold text-blue-900 mb-1">
+            <CardTitle className="text-3xl font-bold text-black mb-1">
               Gestion des utilisateurs - {diocese}
             </CardTitle>
-            <p className="text-blue-800/80 text-sm">
+            <p className="text-black/80 text-sm">
               Gérez les utilisateurs de votre diocèse, leurs rôles et permissions.
             </p>
           </div>
@@ -161,12 +118,12 @@ export default function AdminDioceseUsersPage() {
               placeholder="Rechercher..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="h-10 w-40 bg-white/90 border-gray-200"
+              className="h-10 w-40 bg-white/90 border-blue-200"
             />
             <select 
               value={roleFilter} 
               onChange={e => setRoleFilter(e.target.value)} 
-              className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900"
+              className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
             >
               <option value="all">Tous les rôles</option>
               {roles.map(role => <option key={role} value={role}>{role}</option>)}
@@ -174,7 +131,7 @@ export default function AdminDioceseUsersPage() {
             <select 
               value={statusFilter} 
               onChange={e => setStatusFilter(e.target.value)} 
-              className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900"
+              className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
             >
               <option value="all">Tous les statuts</option>
               {statuses.map(status => <option key={status} value={status}>{status}</option>)}
@@ -190,14 +147,14 @@ export default function AdminDioceseUsersPage() {
           <div className="overflow-x-auto rounded-xl">
             <table className="w-full text-left min-w-[900px]">
               <thead>
-                <tr className="text-blue-900/80 text-sm bg-blue-50">
-                  <th className="py-3 px-4">Nom</th>
-                  <th className="py-3 px-4">Email</th>
-                  <th className="py-3 px-4">Téléphone</th>
-                  <th className="py-3 px-4">Rôle</th>
-                  <th className="py-3 px-4">Paroisse</th>
-                  <th className="py-3 px-4">Statut</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="text-black/80 text-sm bg-blue-50">
+                  <th className="py-3 px-4 text-black">Nom</th>
+                  <th className="py-3 px-4 text-black">Email</th>
+                  <th className="py-3 px-4 text-black">Téléphone</th>
+                  <th className="py-3 px-4 text-black">Rôle</th>
+                  <th className="py-3 px-4 text-black">Paroisse</th>
+                  <th className="py-3 px-4 text-black">Statut</th>
+                  <th className="py-3 px-4 text-right text-black">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -211,7 +168,7 @@ export default function AdminDioceseUsersPage() {
                   >
                     {editId === user.id ? (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">
+                        <td className="py-2 px-4 font-semibold text-black">
                           <Input name="name" value={editForm.name} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
@@ -221,7 +178,7 @@ export default function AdminDioceseUsersPage() {
                           <Input name="phone" value={editForm.phone} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="role" value={editForm.role} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+                          <select name="role" value={editForm.role} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
                             {roles.map(role => <option key={role} value={role}>{role}</option>)}
                           </select>
                         </td>
@@ -229,7 +186,7 @@ export default function AdminDioceseUsersPage() {
                           <Input name="parish" value={editForm.parish} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
                             {statuses.map(status => <option key={status} value={status}>{status}</option>)}
                           </select>
                         </td>
@@ -240,23 +197,23 @@ export default function AdminDioceseUsersPage() {
                       </>
                     ) : (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">{user.name}</td>
-                        <td className="py-2 px-4">{user.email}</td>
-                        <td className="py-2 px-4">{user.phone}</td>
+                        <td className="py-2 px-4 font-semibold text-black">{user.name}</td>
+                        <td className="py-2 px-4 text-black">{user.email}</td>
+                        <td className="py-2 px-4 text-black">{user.phone}</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.role === 'Curé' ? 'bg-blue-100 text-blue-800' :
-                            user.role === 'Vicaire' ? 'bg-green-100 text-green-800' :
-                            user.role === 'Catéchiste' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
+                            user.role === 'Curé' ? 'bg-blue-100 text-black' :
+                            user.role === 'Vicaire' ? 'bg-blue-100 text-black' :
+                            user.role === 'Catéchiste' ? 'bg-blue-100 text-black' :
+                            'bg-blue-100 text-black'
                           }`}>
                             {user.role}
                           </span>
                         </td>
-                        <td className="py-2 px-4">{user.parish}</td>
+                        <td className="py-2 px-4 text-black">{user.parish}</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.status === 'Actif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            user.status === 'Actif' ? 'bg-blue-100 text-black' : 'bg-blue-100 text-black'
                           }`}>
                             {user.status}
                           </span>
@@ -272,7 +229,26 @@ export default function AdminDioceseUsersPage() {
               </tbody>
             </table>
             {paginatedUsers.length === 0 && (
-              <div className="text-center text-blue-900/60 py-8">Aucun utilisateur trouvé dans ce diocèse.</div>
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <User className="w-12 h-12 text-purple-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun utilisateur trouvé</h3>
+                <p className="text-gray-600 mb-6">
+                  {users.length === 0 
+                    ? `Aucun utilisateur n'est enregistré dans Firestore pour le diocèse ${diocese}.`
+                    : "Aucun utilisateur ne correspond à vos critères de recherche."
+                  }
+                </p>
+                {users.length === 0 && (
+                  <Link href="/admindiocese/users/create">
+                    <Button className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Créer le premier utilisateur
+                    </Button>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </CardContent>

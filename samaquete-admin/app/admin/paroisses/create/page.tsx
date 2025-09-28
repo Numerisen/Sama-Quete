@@ -121,19 +121,19 @@ export default function CreateParishPage() {
     <div className="max-w-xl mx-auto">
       <Card className="shadow-xl bg-white/80 border-0 rounded-2xl mt-8">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-blue-900 mb-1">Créer une nouvelle paroisse</CardTitle>
-          <p className="text-blue-800/80 text-sm">Remplissez le formulaire pour ajouter une paroisse.</p>
+          <CardTitle className="text-2xl font-bold text-black mb-1">Créer une nouvelle paroisse</CardTitle>
+          <p className="text-black/80 text-sm">Remplissez le formulaire pour ajouter une paroisse.</p>
         </CardHeader>
         <CardContent>
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Nom de la paroisse</label>
-              <Input name="name" value={form.name} onChange={handleChange} required placeholder="Nom de la paroisse" className="bg-white/90 border-gray-200" />
+              <label className="block text-black font-medium">Nom de la paroisse</label>
+              <Input name="name" value={form.name} onChange={handleChange} required placeholder="Nom de la paroisse" className="bg-white/90 border-blue-200" />
             </div>
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Diocèse *</label>
+              <label className="block text-black font-medium">Diocèse *</label>
               {loadingDioceses ? (
-                <div className="bg-white/90 border-gray-200 rounded px-3 py-2 w-full text-gray-500">
+                <div className="bg-white/90 border-blue-200 rounded px-3 py-2 w-full text-gray-600">
                   Chargement des diocèses...
                 </div>
               ) : (
@@ -141,7 +141,7 @@ export default function CreateParishPage() {
                   name="dioceseId" 
                   value={form.dioceseId} 
                   onChange={handleChange} 
-                  className="bg-white/90 border-gray-200 rounded px-3 py-2 w-full"
+                  className="bg-white/90 border-blue-200 rounded px-3 py-2 w-full"
                   required
                 >
                   <option value="">Sélectionner un diocèse</option>
@@ -152,43 +152,43 @@ export default function CreateParishPage() {
               )}
             </div>
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Ville</label>
-              <Input name="city" value={form.city} onChange={handleChange} required placeholder="Ville ou localité" className="bg-white/90 border-gray-200" />
+              <label className="block text-black font-medium">Ville</label>
+              <Input name="city" value={form.city} onChange={handleChange} required placeholder="Ville ou localité" className="bg-white/90 border-blue-200" />
             </div>
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Curé *</label>
-              <Input name="priest" value={form.priest} onChange={handleChange} required placeholder="Nom du curé" className="bg-white/90 border-gray-200" />
+              <label className="block text-black font-medium">Curé *</label>
+              <Input name="priest" value={form.priest} onChange={handleChange} required placeholder="Nom du curé" className="bg-white/90 border-blue-200" />
             </div>
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Vicaire</label>
-              <Input name="vicaire" value={form.vicaire} onChange={handleChange} placeholder="Nom du vicaire (optionnel)" className="bg-white/90 border-gray-200" />
+              <label className="block text-black font-medium">Vicaire</label>
+              <Input name="vicaire" value={form.vicaire} onChange={handleChange} placeholder="Nom du vicaire (optionnel)" className="bg-white/90 border-blue-200" />
             </div>
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Catéchistes</label>
-              <Input name="catechists" value={form.catechists} onChange={handleChange} placeholder="Liste des catéchistes (optionnel)" className="bg-white/90 border-gray-200" />
+              <label className="block text-black font-medium">Catéchistes</label>
+              <Input name="catechists" value={form.catechists} onChange={handleChange} placeholder="Liste des catéchistes (optionnel)" className="bg-white/90 border-blue-200" />
             </div>
             
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Email</label>
-              <Input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Email de contact (optionnel)" className="bg-white/90 border-gray-200" />
+              <label className="block text-black font-medium">Email</label>
+              <Input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Email de contact (optionnel)" className="bg-white/90 border-blue-200" />
             </div>
             
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Téléphone</label>
-              <Input name="phone" value={form.phone} onChange={handleChange} placeholder="Téléphone de contact (optionnel)" className="bg-white/90 border-gray-200" />
+              <label className="block text-black font-medium">Téléphone</label>
+              <Input name="phone" value={form.phone} onChange={handleChange} placeholder="Téléphone de contact (optionnel)" className="bg-white/90 border-blue-200" />
             </div>
             
             <div className="space-y-2">
-              <label className="block text-blue-900 font-medium">Adresse</label>
-              <Input name="address" value={form.address} onChange={handleChange} placeholder="Adresse complète (optionnel)" className="bg-white/90 border-gray-200" />
+              <label className="block text-black font-medium">Adresse</label>
+              <Input name="address" value={form.address} onChange={handleChange} placeholder="Adresse complète (optionnel)" className="bg-white/90 border-blue-200" />
             </div>
             
-            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+            {error && <div className="text-black text-sm text-center">{error}</div>}
             <Button type="submit" className="w-full h-12 text-lg bg-blue-900 hover:bg-blue-800 text-white rounded-xl" disabled={loading}>
               {loading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Création...</> : "Créer la paroisse"}
             </Button>
             <div className="text-center mt-2">
-              <Link href="/admin/paroisses" className="text-blue-700 hover:underline">Retour à la liste</Link>
+              <Link href="/admin/paroisses" className="text-black hover:underline">Retour à la liste</Link>
             </div>
           </form>
         </CardContent>

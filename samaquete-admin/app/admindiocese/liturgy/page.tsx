@@ -10,32 +10,7 @@ import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
 
-const initialLiturgy = [
-  {
-    id: 1,
-    title: "Messe dominicale",
-    type: "Messe",
-    parish: "Paroisse Saint-Joseph",
-    diocese: "Diocèse de Thiès",
-    date: "2024-08-18",
-    time: "09:00",
-    duration: "1h30",
-    celebrant: "Père Jean Sarr",
-    description: "Messe dominicale avec chants traditionnels"
-  },
-  {
-    id: 2,
-    title: "Adoration eucharistique",
-    type: "Adoration",
-    parish: "Paroisse Sainte-Anne",
-    diocese: "Diocèse de Thiès",
-    date: "2024-08-20",
-    time: "18:00",
-    duration: "1h00",
-    celebrant: "Père André Faye",
-    description: "Adoration eucharistique pour les jeunes"
-  }
-]
+// Données initiales supprimées - Utilisation uniquement des données Firestore
 
 export default function AdminDioceseLiturgyPage() {
   const searchParams = useSearchParams()
@@ -50,30 +25,22 @@ export default function AdminDioceseLiturgyPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // Initialisation depuis localStorage
+  // Charger la liturgie depuis Firestore
   useEffect(() => {
-    const stored = localStorage.getItem("admin_liturgy")
-    if (stored) {
-      const allLiturgy = JSON.parse(stored)
-      const dioceseLiturgy = allLiturgy.filter((l: any) => l.diocese === diocese)
-      setLiturgy(dioceseLiturgy)
-    } else {
-      const dioceseLiturgy = initialLiturgy.filter(l => l.diocese === diocese)
-      setLiturgy(dioceseLiturgy)
-      localStorage.setItem("admin_liturgy", JSON.stringify(initialLiturgy))
+    const loadLiturgy = async () => {
+      try {
+        // TODO: Implémenter le chargement depuis Firestore
+        // const firestoreLiturgy = await LiturgyService.getAll()
+        // const dioceseLiturgy = firestoreLiturgy.filter(l => l.diocese === diocese)
+        // setLiturgy(dioceseLiturgy)
+        setLiturgy([]) // Aucune donnée pour le moment
+      } catch (error) {
+        console.error('Erreur lors du chargement de la liturgie:', error)
+        setLiturgy([])
+      }
     }
+    loadLiturgy()
   }, [diocese])
-
-  // Sauvegarde à chaque modification
-  useEffect(() => {
-    if (liturgy.length > 0) {
-      const stored = localStorage.getItem("admin_liturgy")
-      const allLiturgy = stored ? JSON.parse(stored) : []
-      const otherLiturgy = allLiturgy.filter((l: any) => l.diocese !== diocese)
-      const updatedLiturgy = [...otherLiturgy, ...liturgy]
-      localStorage.setItem("admin_liturgy", JSON.stringify(updatedLiturgy))
-    }
-  }, [liturgy, diocese])
 
   // Filtres et recherche
   const filteredLiturgy = liturgy.filter(l => {
@@ -99,7 +66,10 @@ export default function AdminDioceseLiturgyPage() {
   const handleDelete = (id: number) => {
     if (window.confirm("Confirmer la suppression de cette célébration ?")) {
       setLiturgy(liturgy.filter(l => l.id !== id))
-      toast.success("Célébration supprimée", "La célébration a été supprimée avec succès")
+      toast({
+          title: "Célébration supprimée",
+          description: "La célébration a été supprimée avec succès"
+        })
     }
   }
 
@@ -116,7 +86,10 @@ export default function AdminDioceseLiturgyPage() {
   const handleEditSave = (id: number) => {
     setLiturgy(liturgy.map(l => l.id === id ? { ...editForm, id } : l))
     setEditId(null)
-    toast.success("Célébration modifiée", "La célébration a été modifiée avec succès")
+    toast({
+          title: "Célébration modifiée",
+          description: "La célébration a été modifiée avec succès"
+        })
   }
 
   const handleEditCancel = () => {
@@ -130,10 +103,10 @@ export default function AdminDioceseLiturgyPage() {
       <Card className="mb-8 shadow-xl bg-white/80 border-0 rounded-2xl">
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle className="text-3xl font-bold text-blue-900 mb-1">
+            <CardTitle className="text-3xl font-bold text-black mb-1">
               Gestion de la liturgie - {diocese}
             </CardTitle>
-            <p className="text-blue-800/80 text-sm">
+            <p className="text-black/80 text-sm">
               Gérez les célébrations et événements liturgiques de votre diocèse.
             </p>
           </div>
@@ -142,12 +115,12 @@ export default function AdminDioceseLiturgyPage() {
               placeholder="Rechercher..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="h-10 w-40 bg-white/90 border-gray-200"
+              className="h-10 w-40 bg-white/90 border-blue-200"
             />
             <select 
               value={typeFilter} 
               onChange={e => setTypeFilter(e.target.value)} 
-              className="h-10 rounded px-2 border-gray-200 bg-white/90 text-blue-900"
+              className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
             >
               <option value="all">Tous les types</option>
               {types.map(type => <option key={type} value={type}>{type}</option>)}
@@ -163,14 +136,14 @@ export default function AdminDioceseLiturgyPage() {
           <div className="overflow-x-auto rounded-xl">
             <table className="w-full text-left min-w-[900px]">
               <thead>
-                <tr className="text-blue-900/80 text-sm bg-blue-50">
-                  <th className="py-3 px-4">Titre</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Paroisse</th>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Heure</th>
-                  <th className="py-3 px-4">Célébrant</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+                <tr className="text-black/80 text-sm bg-blue-50">
+                  <th className="py-3 px-4 text-black">Titre</th>
+                  <th className="py-3 px-4 text-black">Type</th>
+                  <th className="py-3 px-4 text-black">Paroisse</th>
+                  <th className="py-3 px-4 text-black">Date</th>
+                  <th className="py-3 px-4 text-black">Heure</th>
+                  <th className="py-3 px-4 text-black">Célébrant</th>
+                  <th className="py-3 px-4 text-right text-black">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -184,11 +157,11 @@ export default function AdminDioceseLiturgyPage() {
                   >
                     {editId === item.id ? (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">
+                        <td className="py-2 px-4 font-semibold text-black">
                           <Input name="title" value={editForm.title} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4">
-                          <select name="type" value={editForm.type} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-blue-900">
+                          <select name="type" value={editForm.type} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
                             {types.map(type => <option key={type} value={type}>{type}</option>)}
                           </select>
                         </td>
@@ -211,20 +184,20 @@ export default function AdminDioceseLiturgyPage() {
                       </>
                     ) : (
                       <>
-                        <td className="py-2 px-4 font-semibold text-blue-900">{item.title}</td>
+                        <td className="py-2 px-4 font-semibold text-black">{item.title}</td>
                         <td className="py-2 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            item.type === 'Messe' ? 'bg-blue-100 text-blue-800' :
-                            item.type === 'Adoration' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
+                            item.type === 'Messe' ? 'bg-blue-100 text-black' :
+                            item.type === 'Adoration' ? 'bg-blue-100 text-black' :
+                            'bg-blue-100 text-black'
                           }`}>
                             {item.type}
                           </span>
                         </td>
-                        <td className="py-2 px-4">{item.parish}</td>
-                        <td className="py-2 px-4">{new Date(item.date).toLocaleDateString('fr-FR')}</td>
-                        <td className="py-2 px-4">{item.time}</td>
-                        <td className="py-2 px-4">{item.celebrant}</td>
+                        <td className="py-2 px-4 text-black">{item.parish}</td>
+                        <td className="py-2 px-4 text-black">{new Date(item.date).toLocaleDateString('fr-FR')}</td>
+                        <td className="py-2 px-4 text-black">{item.time}</td>
+                        <td className="py-2 px-4 text-black">{item.celebrant}</td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
@@ -236,7 +209,26 @@ export default function AdminDioceseLiturgyPage() {
               </tbody>
             </table>
             {paginatedLiturgy.length === 0 && (
-              <div className="text-center text-blue-900/60 py-8">Aucune célébration trouvée dans ce diocèse.</div>
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-12 h-12 text-indigo-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucune célébration trouvée</h3>
+                <p className="text-gray-600 mb-6">
+                  {liturgy.length === 0 
+                    ? `Aucune célébration n'est enregistrée dans Firestore pour le diocèse ${diocese}.`
+                    : "Aucune célébration ne correspond à vos critères de recherche."
+                  }
+                </p>
+                {liturgy.length === 0 && (
+                  <Link href="/admindiocese/liturgy/create">
+                    <Button className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Créer la première célébration
+                    </Button>
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </CardContent>

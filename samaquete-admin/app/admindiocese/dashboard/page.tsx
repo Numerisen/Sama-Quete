@@ -1,177 +1,751 @@
 "use client"
+import { useEffect, useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { 
+  Users, 
+  MapPin, 
+  DollarSign, 
+  PieChart, 
+  BarChart2, 
+  TrendingUp, 
+  CreditCard,
+  Calendar,
+  Eye,
+  Activity,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Download,
+  RefreshCw,
+  Filter,
+  Search,
+  Church,
+  BookOpen
+} from "lucide-react"
+import Link from "next/link"
+import { motion } from "framer-motion"
+import { Bar, Line, Pie, Doughnut } from "react-chartjs-2"
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  PointElement,
+  LineElement,
+  ArcElement,
+} from "chart.js"
+import { useToast } from "@/hooks/use-toast"
+import { NewsService, UserService, ParishService, DonationService } from "@/lib/firestore-services"
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAuth } from '@/lib/auth-context'
-import { Bell, Calendar, Church, DollarSign, Users } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement, ArcElement)
+
+function formatAmount(amount: number) {
+  return amount.toLocaleString("fr-FR").replace(/\s/g, " ");
+}
+
+function formatDate(date: string) {
+  return new Date(date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  });
+}
+
+interface DioceseStats {
+  totalUsers: number;
+  totalParishes: number;
+  totalDonations: number;
+  totalAmount: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  publishedNews: number;
+  draftNews: number;
+  todayDonations: number;
+  weekDonations: number;
+  monthDonations: number;
+  avgDonation: number;
+  topParish: string;
+  recentDonations: any[];
+  recentNews: any[];
+  recentUsers: any[];
+  dioceseName: string;
+}
 
 export default function DioceseDashboardPage() {
-  const { user, userRole, logout } = useAuth()
-  const router = useRouter()
+  const [stats, setStats] = useState<DioceseStats>({
+    totalUsers: 0,
+    totalParishes: 0,
+    totalDonations: 0,
+    totalAmount: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    publishedNews: 0,
+    draftNews: 0,
+    todayDonations: 0,
+    weekDonations: 0,
+    monthDonations: 0,
+    avgDonation: 0,
+    topParish: "",
+    recentDonations: [],
+    recentNews: [],
+    recentUsers: [],
+    dioceseName: "Archidiocèse de Dakar"
+  });
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const { toast } = useToast();
 
-  const handleLogout = async () => {
-    await logout()
-    router.push('/login')
+  const loadDioceseData = async () => {
+    try {
+      setLoading(true);
+      
+      // Charger toutes les données en parallèle depuis Firestore
+      const [users, parishes, donations, news] = await Promise.all([
+        UserService.getAll(),
+        ParishService.getAll(),
+        DonationService.getAll(),
+        NewsService.getAll()
+      ]);
+
+      // Filtrer les données pour le diocèse actuel
+      const dioceseUsers = users.filter(u => u.diocese === stats.dioceseName);
+      const dioceseParishes = parishes.filter(p => p.diocese === stats.dioceseName);
+      const dioceseDonations = donations.filter(d => d.diocese === stats.dioceseName);
+      const dioceseNews = news.filter(n => n.diocese === stats.dioceseName);
+
+      // Vérifier si des données existent pour ce diocèse
+      if (dioceseUsers.length === 0 && dioceseParishes.length === 0 && dioceseDonations.length === 0 && dioceseNews.length === 0) {
+        // Aucune donnée pour ce diocèse, afficher des valeurs par défaut
+        setStats(prev => ({
+          ...prev,
+          totalUsers: 0,
+          totalParishes: 0,
+          totalDonations: 0,
+          totalAmount: 0,
+          activeUsers: 0,
+          inactiveUsers: 0,
+          publishedNews: 0,
+          draftNews: 0,
+          todayDonations: 0,
+          weekDonations: 0,
+          monthDonations: 0,
+          avgDonation: 0,
+          topParish: "Aucune donnée",
+          recentDonations: [],
+          recentNews: [],
+          recentUsers: []
+        }));
+        setLastUpdate(new Date());
+        return;
+      }
+
+      // Calculer les statistiques avec les données réelles
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      const totalAmount = dioceseDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
+      const todayDonations = dioceseDonations.filter(d => d.date?.startsWith(today)).length;
+      const weekDonations = dioceseDonations.filter(d => d.date && d.date >= weekAgo).length;
+      const monthDonations = dioceseDonations.filter(d => d.date && d.date >= monthAgo).length;
+      const avgDonation = dioceseDonations.length > 0 ? Math.round(totalAmount / dioceseDonations.length) : 0;
+
+      // Paroisse avec le plus de dons
+      const parishStats: Record<string, number> = {};
+      dioceseDonations.forEach(d => {
+        if (d.parish) {
+          parishStats[d.parish] = (parishStats[d.parish] || 0) + (d.amount || 0);
+        }
+      });
+      const topParish = Object.keys(parishStats).length > 0 
+        ? Object.keys(parishStats).reduce((a, b) => parishStats[a] > parishStats[b] ? a : b)
+        : "Aucune donnée";
+
+      // Utilisateurs actifs/inactifs
+      const activeUsers = dioceseUsers.filter(u => u.status === "Actif").length;
+      const inactiveUsers = dioceseUsers.filter(u => u.status === "Inactif").length;
+
+      // Actualités publiées/brouillons
+      const publishedNews = dioceseNews.filter(n => n.published).length;
+      const draftNews = dioceseNews.filter(n => !n.published).length;
+
+      // Dernières activités (limitées à 5)
+      const recentDonations = dioceseDonations
+        .filter(d => d.date) // Filtrer les dons avec une date valide
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+        .slice(0, 5);
+
+      const recentNews = dioceseNews
+        .filter(n => n.createdAt) // Filtrer les actualités avec une date de création
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+        .slice(0, 5);
+
+      const recentUsers = dioceseUsers
+        .filter(u => u.createdAt) // Filtrer les utilisateurs avec une date de création
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+        .slice(0, 5);
+
+      setStats(prev => ({
+        ...prev,
+        totalUsers: dioceseUsers.length,
+        totalParishes: dioceseParishes.length,
+        totalDonations: dioceseDonations.length,
+        totalAmount,
+        activeUsers,
+        inactiveUsers,
+        publishedNews,
+        draftNews,
+        todayDonations,
+        weekDonations,
+        monthDonations,
+        avgDonation,
+        topParish,
+        recentDonations,
+        recentNews,
+        recentUsers
+      }));
+
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les données du tableau de bord diocèse",
+        variant: "destructive"
+      });
+      
+      // En cas d'erreur, afficher des valeurs par défaut
+      setStats(prev => ({
+        ...prev,
+        totalUsers: 0,
+        totalParishes: 0,
+        totalDonations: 0,
+        totalAmount: 0,
+        activeUsers: 0,
+        inactiveUsers: 0,
+        publishedNews: 0,
+        draftNews: 0,
+        todayDonations: 0,
+        weekDonations: 0,
+        monthDonations: 0,
+        avgDonation: 0,
+        topParish: "Erreur de chargement",
+        recentDonations: [],
+        recentNews: [],
+        recentUsers: []
+      }));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDioceseData();
+  }, []);
+
+  // Données pour les graphiques (basées sur les données réelles)
+  const donationsByDay = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    const dateStr = date.toISOString().split('T')[0];
+    return stats.recentDonations.filter(d => d.date?.startsWith(dateStr)).length;
+  });
+
+  const daysLabels = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return date.toLocaleDateString("fr-FR", { weekday: "short" });
+  });
+
+  // Données par paroisse (top 5) - basées sur les données réelles
+  const parishStats: Record<string, number> = {};
+  stats.recentDonations.forEach(d => {
+    if (d.parish) {
+      parishStats[d.parish] = (parishStats[d.parish] || 0) + 1;
+    }
+  });
+  const topParishes = Object.entries(parishStats)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5);
+
+  // Si aucune donnée, afficher un message
+  const hasData = stats.totalDonations > 0 || stats.totalUsers > 0 || stats.totalParishes > 0 || stats.totalAmount > 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-purple-100">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin text-purple-600" />
+          <span className="text-lg text-gray-600">Chargement du tableau de bord diocèse...</span>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <Church className="w-8 h-8 text-amber-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">SamaQuete</h1>
-                <p className="text-sm text-gray-600">Administration Diocèse</p>
+  // Afficher un message si aucune donnée n'est disponible
+  if (!hasData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center py-16">
+            <div className="mb-8">
+              <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Church className="w-12 h-12 text-purple-500" />
               </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">Tableau de bord diocèse vide</h1>
+              <p className="text-lg text-gray-600 mb-2">
+                Aucune donnée n'est disponible dans Firestore pour le diocèse :
+              </p>
+              <p className="text-xl font-semibold text-purple-600 mb-8">{stats.dioceseName}</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Bonjour, {userRole?.displayName || user?.email}
-              </span>
-              <Button variant="outline" onClick={handleLogout}>
-                Déconnexion
-              </Button>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="border-0 shadow-lg">
+                <CardContent className="p-6 text-center">
+                  <Users className="w-8 h-8 text-purple-500 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Utilisateurs</h3>
+                  <p className="text-sm text-gray-600">0 utilisateurs</p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-lg">
+                <CardContent className="p-6 text-center">
+                  <MapPin className="w-8 h-8 text-blue-500 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Paroisses</h3>
+                  <p className="text-sm text-gray-600">0 paroisses</p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 shadow-lg">
+                <CardContent className="p-6 text-center">
+                  <DollarSign className="w-8 h-8 text-green-500 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Dons</h3>
+                  <p className="text-sm text-gray-600">0 FCFA collectés</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Pour commencer à utiliser le tableau de bord diocèse, ajoutez des données via les sections :
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link href="/admindiocese/users">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Utilisateurs
+                  </Button>
+                </Link>
+                <Link href="/admindiocese/paroisses">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Paroisses
+                  </Button>
+                </Link>
+                <Link href="/admindiocese/donations">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    Dons
+                  </Button>
+                </Link>
+                <Link href="/admindiocese/news">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Activity className="w-4 h-4" />
+                    Actualités
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-      </header>
+      </div>
+    );
+  }
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Tableau de bord</h2>
-          <p className="text-gray-600 mt-2">
-            Gérez votre diocèse et vos paroisses
-          </p>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* En-tête avec actions */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Tableau de bord diocèse</h1>
+            <p className="text-gray-600 mt-1">
+              {stats.dioceseName} • Dernière mise à jour: {lastUpdate.toLocaleTimeString("fr-FR")}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button 
+              onClick={loadDioceseData} 
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Actualiser
+            </Button>
+            <Button className="flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Exporter
+            </Button>
+          </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Statistiques principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Paroisses</CardTitle>
-              <Church className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">
-                +2 depuis le mois dernier
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Utilisateurs</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">1,234</div>
-              <p className="text-xs text-muted-foreground">
-                +12% depuis le mois dernier
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Événements</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">45</div>
-              <p className="text-xs text-muted-foreground">
-                Ce mois-ci
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Donations</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">€12,345</div>
-              <p className="text-xs text-muted-foreground">
-                +8% depuis le mois dernier
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Actions rapides - Layout en une seule colonne */}
-        <div className="grid grid-cols-1 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Actions rapides</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Button className="justify-start" variant="outline">
-                  <Users className="mr-2 h-4 w-4" />
-                  Gérer les utilisateurs
-                </Button>
-                <Button className="justify-start" variant="outline">
-                  <Church className="mr-2 h-4 w-4" />
-                  Gérer les paroisses
-                </Button>
-                <Button className="justify-start" variant="outline">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Planifier un événement
-                </Button>
-                <Button className="justify-start" variant="outline">
-                  <Bell className="mr-2 h-4 w-4" />
-                  Envoyer une notification
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Informations du compte - Plus compact */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations du compte</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Email</p>
-                  <p className="text-sm text-gray-600">{user?.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Rôle</p>
-                  <p className="text-sm text-gray-600">{userRole?.role}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Permissions</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {userRole?.permissions.canManageUsers && (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                        Gestion utilisateurs
-                      </span>
-                    )}
-                    {userRole?.permissions.canManageParishes && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                        Gestion paroisses
-                      </span>
-                    )}
-                    {userRole?.permissions.canManageContent && (
-                      <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
-                        Gestion contenu
-                      </span>
-                    )}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-100 text-sm font-medium">Total Collecté</p>
+                    <p className="text-3xl font-bold">{formatAmount(stats.totalAmount)} FCFA</p>
+                    <p className="text-purple-100 text-sm mt-1">{stats.totalDonations} dons</p>
                   </div>
+                  <DollarSign className="w-12 h-12 text-purple-200" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm font-medium">Paroisses</p>
+                    <p className="text-3xl font-bold">{stats.totalParishes}</p>
+                    <p className="text-blue-100 text-sm mt-1">Dans le diocèse</p>
+                  </div>
+                  <Church className="w-12 h-12 text-blue-200" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-100 text-sm font-medium">Utilisateurs</p>
+                    <p className="text-3xl font-bold">{stats.activeUsers}</p>
+                    <p className="text-green-100 text-sm mt-1">{stats.inactiveUsers} inactifs</p>
+                  </div>
+                  <Users className="w-12 h-12 text-green-200" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-orange-100 text-sm font-medium">Actualités</p>
+                    <p className="text-3xl font-bold">{stats.publishedNews}</p>
+                    <p className="text-orange-100 text-sm mt-1">{stats.draftNews} brouillons</p>
+                  </div>
+                  <BookOpen className="w-12 h-12 text-orange-200" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Métriques de performance */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Aujourd'hui</h3>
+                <Calendar className="w-5 h-5 text-purple-500" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Dons</span>
+                  <span className="font-semibold text-gray-900">{stats.todayDonations}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Cette semaine</span>
+                  <span className="font-semibold text-gray-900">{stats.weekDonations}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Ce mois</span>
+                  <span className="font-semibold text-gray-900">{stats.monthDonations}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Performance</h3>
+                <TrendingUp className="w-5 h-5 text-green-500" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Don moyen</span>
+                  <span className="font-semibold text-gray-900">{formatAmount(stats.avgDonation)} FCFA</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Top paroisse</span>
+                  <span className="font-semibold text-gray-900 truncate max-w-32">{stats.topParish}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Statut</h3>
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Diocèse opérationnel</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Données synchronisées</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Paroisses actives</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-      </main>
+
+        {/* Graphiques */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart2 className="w-5 h-5 text-purple-500" />
+                Dons des 7 derniers jours
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Bar
+                data={{
+                  labels: daysLabels,
+                  datasets: [
+                    {
+                      label: "Nombre de dons",
+                      data: donationsByDay,
+                      backgroundColor: "rgba(147, 51, 234, 0.8)",
+                      borderColor: "rgb(147, 51, 234)",
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { display: false },
+                  },
+                  scales: {
+                    y: { beginAtZero: true },
+                  },
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-blue-500" />
+                Top 5 Paroisses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Doughnut
+                data={{
+                  labels: topParishes.map(([parish]) => parish),
+                  datasets: [
+                    {
+                      data: topParishes.map(([, count]) => count),
+                      backgroundColor: [
+                        "rgba(147, 51, 234, 0.8)",
+                        "rgba(59, 130, 246, 0.8)",
+                        "rgba(16, 185, 129, 0.8)",
+                        "rgba(245, 158, 11, 0.8)",
+                        "rgba(239, 68, 68, 0.8)",
+                      ],
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: { position: "bottom" },
+                  },
+                }}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Activité récente */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-green-500" />
+                Dons récents
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {stats.recentDonations.map((donation, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{donation.fullname || "Anonyme"}</p>
+                      <p className="text-sm text-gray-600">{donation.parish || "Non spécifié"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">{formatAmount(donation.amount || 0)} FCFA</p>
+                      <p className="text-xs text-gray-500">{formatDate(donation.date || "")}</p>
+                    </div>
+                  </div>
+                ))}
+                {stats.recentDonations.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">Aucun don récent</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-500" />
+                Actualités récentes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {stats.recentNews.map((news, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900 truncate">{news.title}</p>
+                      <p className="text-sm text-gray-600">{news.category}</p>
+                    </div>
+                    <Badge variant={news.published ? "default" : "secondary"}>
+                      {news.published ? "Publié" : "Brouillon"}
+                    </Badge>
+                  </div>
+                ))}
+                {stats.recentNews.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">Aucune actualité récente</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-500" />
+                Utilisateurs récents
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {stats.recentUsers.map((user, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{user.name}</p>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                    </div>
+                    <Badge variant={user.status === "Actif" ? "default" : "secondary"}>
+                      {user.status}
+                    </Badge>
+                  </div>
+                ))}
+                {stats.recentUsers.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">Aucun utilisateur récent</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Accès rapide */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-gray-500" />
+              Accès rapide
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <Link href="/admindiocese/users">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <Users className="w-6 h-6" />
+                  <span className="text-sm">Utilisateurs</span>
+                </Button>
+              </Link>
+              <Link href="/admindiocese/paroisses">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <MapPin className="w-6 h-6" />
+                  <span className="text-sm">Paroisses</span>
+                </Button>
+              </Link>
+              <Link href="/admindiocese/donations">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <DollarSign className="w-6 h-6" />
+                  <span className="text-sm">Dons</span>
+                </Button>
+              </Link>
+              <Link href="/admindiocese/news">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <Activity className="w-6 h-6" />
+                  <span className="text-sm">Actualités</span>
+                </Button>
+              </Link>
+              <Link href="/admindiocese/liturgy">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <BookOpen className="w-6 h-6" />
+                  <span className="text-sm">Liturgie</span>
+                </Button>
+              </Link>
+              <Link href="/admindiocese/settings">
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
+                  <Clock className="w-6 h-6" />
+                  <span className="text-sm">Paramètres</span>
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

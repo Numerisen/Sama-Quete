@@ -154,7 +154,7 @@ export default function InitUsersPage() {
               </Button>
             </form>
 
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <h3 className="font-semibold mb-2">UIDs des utilisateurs existants :</h3>
               <div className="text-sm space-y-1">
                 <p><strong>admin@admin.com:</strong> [Copiez depuis Firebase Console]</p>
