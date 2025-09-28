@@ -3,14 +3,17 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { User, Mail, Phone } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { User, Mail, Phone, Plus, Edit, Trash2, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
-
-// Données initiales supprimées - Utilisation uniquement des données Firestore
+import { UserService, ParishService } from "@/lib/firestore-services"
 
 export default function AdminDioceseUsersPage() {
   const searchParams = useSearchParams()
@@ -18,27 +21,55 @@ export default function AdminDioceseUsersPage() {
   const { toast } = useToast()
   
   const [users, setUsers] = useState<any[]>([])
+  const [parishes, setParishes] = useState<any[]>([])
   const [search, setSearch] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
-  // États de modification supprimés - Mode consultation uniquement
+  const [loading, setLoading] = useState(true)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<any>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // Charger les utilisateurs depuis Firestore
-  useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        // TODO: Implémenter le chargement depuis Firestore
-        // const firestoreUsers = await UserService.getAll()
-        // const dioceseUsers = firestoreUsers.filter(u => u.diocese === diocese)
-        // setUsers(dioceseUsers)
-        setUsers([]) // Aucune donnée pour le moment
-      } catch (error) {
-        console.error('Erreur lors du chargement des utilisateurs:', error)
-        setUsers([])
-      }
+  // État du formulaire
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+    parish: '',
+    status: 'Actif',
+    address: '',
+    description: ''
+  })
+
+  // Charger les utilisateurs et paroisses depuis Firestore
+  const loadUsers = async () => {
+    try {
+      setLoading(true)
+      const [firestoreUsers, firestoreParishes] = await Promise.all([
+        UserService.getAll(),
+        ParishService.getAll()
+      ])
+      const dioceseUsers = firestoreUsers.filter(u => u.diocese === diocese)
+      const dioceseParishes = firestoreParishes.filter(p => p.diocese === diocese)
+      setUsers(dioceseUsers)
+      setParishes(dioceseParishes)
+    } catch (error) {
+      console.error('Erreur lors du chargement des utilisateurs:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les utilisateurs depuis Firebase",
+        variant: "destructive"
+      })
+      setUsers([])
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadUsers()
   }, [diocese])
 
@@ -63,10 +94,125 @@ export default function AdminDioceseUsersPage() {
     setCurrentPage(1)
   }, [search, roleFilter, statusFilter, users])
 
-  // Fonctions de modification et suppression supprimées - Mode consultation uniquement
+  // Fonctions CRUD
+  const handleAddUser = async () => {
+    try {
+      const userData = {
+        ...formData,
+        diocese: diocese,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      
+      await UserService.create(userData)
+      toast({
+        title: "Succès",
+        description: "Utilisateur ajouté avec succès",
+        variant: "default"
+      })
+      setIsAddDialogOpen(false)
+      resetForm()
+      loadUsers()
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'utilisateur:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter l'utilisateur",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleEditUser = async () => {
+    try {
+      const userData = {
+        ...formData,
+        diocese: diocese,
+        updatedAt: new Date().toISOString()
+      }
+      
+      await UserService.update(editingUser.id, userData)
+      toast({
+        title: "Succès",
+        description: "Utilisateur modifié avec succès",
+        variant: "default"
+      })
+      setIsEditDialogOpen(false)
+      setEditingUser(null)
+      resetForm()
+      loadUsers()
+    } catch (error) {
+      console.error('Erreur lors de la modification de l\'utilisateur:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier l'utilisateur",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return
+    
+    try {
+      await UserService.delete(userId)
+      toast({
+        title: "Succès",
+        description: "Utilisateur supprimé avec succès",
+        variant: "default"
+      })
+      loadUsers()
+    } catch (error) {
+      console.error('Erreur lors de la suppression de l\'utilisateur:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer l'utilisateur",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      role: '',
+      parish: '',
+      status: 'Actif',
+      address: '',
+      description: ''
+    })
+  }
+
+  const openEditDialog = (user: any) => {
+    setEditingUser(user)
+    setFormData({
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      role: user.role || '',
+      parish: user.parish || '',
+      status: user.status || 'Actif',
+      address: user.address || '',
+      description: user.description || ''
+    })
+    setIsEditDialogOpen(true)
+  }
 
   const roles = ["Curé", "Vicaire", "Catéchiste", "Administrateur", "Utilisateur"]
   const statuses = ["Actif", "Inactif"]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-purple-100">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin text-purple-600" />
+          <span className="text-lg text-gray-600">Chargement des utilisateurs...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -103,7 +249,123 @@ export default function AdminDioceseUsersPage() {
               <option value="all">Tous les statuts</option>
               {statuses.map(status => <option key={status} value={status}>{status}</option>)}
             </select>
-            {/* Bouton de création supprimé - Mode consultation uniquement */}
+            <Button
+              onClick={loadUsers}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Actualiser
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Ajouter
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Ajouter un nouvel utilisateur</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nom complet *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      placeholder="Ex: Jean Dupont"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      placeholder="jean.dupont@example.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Téléphone</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      placeholder="+221 XX XXX XX XX"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Rôle *</Label>
+                    <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un rôle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map(role => (
+                          <SelectItem key={role} value={role}>{role}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="parish">Paroisse</Label>
+                    <Select value={formData.parish} onValueChange={(value) => setFormData({...formData, parish: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner une paroisse" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {parishes.map(parish => (
+                          <SelectItem key={parish.id} value={parish.name}>{parish.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Statut</Label>
+                    <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un statut" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statuses.map(status => (
+                          <SelectItem key={status} value={status}>{status}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="address">Adresse</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      placeholder="Adresse complète"
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      placeholder="Description de l'utilisateur..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Annuler
+                  </Button>
+                  <Button onClick={handleAddUser} disabled={!formData.name || !formData.email || !formData.role}>
+                    Ajouter
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -117,7 +379,7 @@ export default function AdminDioceseUsersPage() {
                   <th className="py-3 px-4 text-black">Rôle</th>
                   <th className="py-3 px-4 text-black">Paroisse</th>
                   <th className="py-3 px-4 text-black">Statut</th>
-                  {/* Colonne Actions supprimée - Mode consultation uniquement */}
+                  <th className="py-3 px-4 text-black">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -129,7 +391,6 @@ export default function AdminDioceseUsersPage() {
                     transition={{ delay: 0.1 + i * 0.05 }}
                     className="border-b last:border-0 hover:bg-blue-50/40"
                   >
-                    {/* Mode consultation uniquement - Pas d'édition ni suppression */}
                     <td className="py-2 px-4 font-semibold text-black">{user.name}</td>
                     <td className="py-2 px-4 text-black">{user.email}</td>
                     <td className="py-2 px-4 text-black">{user.phone}</td>
@@ -151,7 +412,25 @@ export default function AdminDioceseUsersPage() {
                         {user.status}
                       </span>
                     </td>
-                    {/* Actions supprimées - Mode consultation uniquement */}
+                    <td className="py-2 px-4">
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditDialog(user)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
                   </motion.tr>
                 ))}
               </tbody>
@@ -168,7 +447,12 @@ export default function AdminDioceseUsersPage() {
                     : "Aucun utilisateur ne correspond à vos critères de recherche."
                   }
                 </p>
-                {/* Bouton de création supprimé - Mode consultation uniquement */}
+                {users.length === 0 && (
+                  <Button onClick={() => setIsAddDialogOpen(true)} className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Ajouter le premier utilisateur
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -189,6 +473,111 @@ export default function AdminDioceseUsersPage() {
           }}
         />
       )}
+
+      {/* Dialog d'édition */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Modifier l'utilisateur</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nom complet *</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                placeholder="Ex: Jean Dupont"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email *</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                placeholder="jean.dupont@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Téléphone</Label>
+              <Input
+                id="edit-phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                placeholder="+221 XX XXX XX XX"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Rôle *</Label>
+              <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un rôle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map(role => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-parish">Paroisse</Label>
+              <Select value={formData.parish} onValueChange={(value) => setFormData({...formData, parish: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une paroisse" />
+                </SelectTrigger>
+                <SelectContent>
+                  {parishes.map(parish => (
+                    <SelectItem key={parish.id} value={parish.name}>{parish.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Statut</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statuses.map(status => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="edit-address">Adresse</Label>
+              <Input
+                id="edit-address"
+                value={formData.address}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                placeholder="Adresse complète"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Description de l'utilisateur..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleEditUser} disabled={!formData.name || !formData.email || !formData.role}>
+              Modifier
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

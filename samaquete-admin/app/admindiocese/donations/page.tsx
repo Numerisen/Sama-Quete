@@ -2,13 +2,13 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { DollarSign, User, Calendar, TrendingUp } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { DollarSign, User, Calendar, TrendingUp, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
-
-// Données initiales supprimées - Utilisation uniquement des données Firestore
+import { DonationService, ParishService } from "@/lib/firestore-services"
 
 export default function AdminDioceseDonationsPage() {
   const searchParams = useSearchParams()
@@ -16,26 +16,40 @@ export default function AdminDioceseDonationsPage() {
   const { toast } = useToast()
   
   const [donations, setDonations] = useState<any[]>([])
+  const [parishes, setParishes] = useState<any[]>([])
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
+  const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // Charger les dons depuis Firestore
-  useEffect(() => {
-    const loadDonations = async () => {
-      try {
-        // TODO: Implémenter le chargement depuis Firestore
-        // const firestoreDonations = await DonationService.getAll()
-        // const dioceseDonations = firestoreDonations.filter(d => d.diocese === diocese)
-        // setDonations(dioceseDonations)
-        setDonations([]) // Aucune donnée pour le moment
-      } catch (error) {
-        console.error('Erreur lors du chargement des dons:', error)
-        setDonations([])
-      }
+  // Charger les dons et paroisses depuis Firestore
+  const loadDonations = async () => {
+    try {
+      setLoading(true)
+      const [firestoreDonations, firestoreParishes] = await Promise.all([
+        DonationService.getAll(),
+        ParishService.getAll()
+      ])
+      const dioceseDonations = firestoreDonations.filter(d => d.diocese === diocese)
+      const dioceseParishes = firestoreParishes.filter(p => p.diocese === diocese)
+      setDonations(dioceseDonations)
+      setParishes(dioceseParishes)
+    } catch (error) {
+      console.error('Erreur lors du chargement des dons:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les dons depuis Firebase",
+        variant: "destructive"
+      })
+      setDonations([])
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadDonations()
   }, [diocese])
 
@@ -65,10 +79,20 @@ export default function AdminDioceseDonationsPage() {
   const receivedAmount = filteredDonations.filter(d => d.status === "Reçu").reduce((sum, d) => sum + (d.amount || 0), 0)
   const pendingAmount = filteredDonations.filter(d => d.status === "En attente").reduce((sum, d) => sum + (d.amount || 0), 0)
 
-  // Fonctions de modification et suppression supprimées - Mode consultation uniquement
 
   const statuses = ["Reçu", "En attente", "Annulé"]
   const types = ["Offrande", "Dîme", "Don", "Collecte", "Autre"]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-purple-100">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin text-purple-600" />
+          <span className="text-lg text-gray-600">Chargement des dons...</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -151,7 +175,14 @@ export default function AdminDioceseDonationsPage() {
               <option value="all">Tous les types</option>
               {types.map(type => <option key={type} value={type}>{type}</option>)}
             </select>
-            {/* Boutons d'action supprimés - Mode consultation uniquement */}
+            <Button
+              onClick={loadDonations}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Actualiser
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -165,7 +196,6 @@ export default function AdminDioceseDonationsPage() {
                   <th className="py-3 px-4 text-black">Paroisse</th>
                   <th className="py-3 px-4 text-black">Statut</th>
                   <th className="py-3 px-4 text-black">Date</th>
-                  {/* Colonne Actions supprimée - Mode consultation uniquement */}
                 </tr>
               </thead>
               <tbody>
@@ -177,7 +207,6 @@ export default function AdminDioceseDonationsPage() {
                     transition={{ delay: 0.1 + i * 0.05 }}
                     className="border-b last:border-0 hover:bg-blue-50/40"
                   >
-                    {/* Mode consultation uniquement - Pas d'édition ni suppression */}
                     <td className="py-2 px-4 font-semibold text-black">{donation.donorName || 'N/A'}</td>
                     <td className="py-2 px-4 text-black">{donation.type || 'N/A'}</td>
                     <td className="py-2 px-4 text-black font-semibold">{(donation.amount || 0).toLocaleString()} FCFA</td>
@@ -192,7 +221,6 @@ export default function AdminDioceseDonationsPage() {
                       </span>
                     </td>
                     <td className="py-2 px-4 text-black">{donation.date || 'N/A'}</td>
-                    {/* Actions supprimées - Mode consultation uniquement */}
                   </motion.tr>
                 ))}
               </tbody>
@@ -209,7 +237,6 @@ export default function AdminDioceseDonationsPage() {
                     : "Aucune donation ne correspond à vos critères de recherche."
                   }
                 </p>
-                {/* Bouton de création supprimé - Mode consultation uniquement */}
               </div>
             )}
           </div>
@@ -230,6 +257,7 @@ export default function AdminDioceseDonationsPage() {
           }}
         />
       )}
+
     </div>
   )
 }

@@ -3,7 +3,23 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-// Download supprimé - Mode consultation uniquement from "lucide-react"
+import { 
+  RefreshCw, 
+  Download, 
+  Church, 
+  Users, 
+  MapPin, 
+  DollarSign, 
+  Activity, 
+  BookOpen, 
+  Calendar, 
+  TrendingUp, 
+  CheckCircle, 
+  BarChart2, 
+  PieChart, 
+  Eye, 
+  Clock 
+} from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Bar, Line, Pie, Doughnut } from "react-chartjs-2"
@@ -21,6 +37,7 @@ import {
 } from "chart.js"
 import { useToast } from "@/hooks/use-toast"
 import { NewsService, UserService, ParishService, DonationService } from "@/lib/firestore-services"
+import { useSearchParams } from "next/navigation"
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement, ArcElement)
 
@@ -57,6 +74,9 @@ interface DioceseStats {
 }
 
 export default function DioceseDashboardPage() {
+  const searchParams = useSearchParams()
+  const diocese = searchParams.get('diocese') || 'Archidiocèse de Dakar'
+  
   const [stats, setStats] = useState<DioceseStats>({
     totalUsers: 0,
     totalParishes: 0,
@@ -74,7 +94,7 @@ export default function DioceseDashboardPage() {
     recentDonations: [],
     recentNews: [],
     recentUsers: [],
-    dioceseName: "Archidiocèse de Dakar"
+    dioceseName: diocese
   });
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -93,10 +113,10 @@ export default function DioceseDashboardPage() {
       ]);
 
       // Filtrer les données pour le diocèse actuel
-      const dioceseUsers = users.filter(u => u.diocese === stats.dioceseName);
-      const dioceseParishes = parishes.filter(p => p.diocese === stats.dioceseName);
-      const dioceseDonations = donations.filter(d => d.diocese === stats.dioceseName);
-      const dioceseNews = news.filter(n => n.diocese === stats.dioceseName);
+      const dioceseUsers = users.filter(u => u.diocese === diocese);
+      const dioceseParishes = parishes.filter(p => p.diocese === diocese);
+      const dioceseDonations = donations.filter(d => d.diocese === diocese);
+      const dioceseNews = news.filter(n => n.diocese === diocese);
 
       // Vérifier si des données existent pour ce diocèse
       if (dioceseUsers.length === 0 && dioceseParishes.length === 0 && dioceseDonations.length === 0 && dioceseNews.length === 0) {
@@ -227,7 +247,14 @@ export default function DioceseDashboardPage() {
 
   useEffect(() => {
     loadDioceseData();
-  }, []);
+    
+    // Actualisation automatique toutes les 5 minutes
+    const interval = setInterval(() => {
+      loadDioceseData();
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(interval);
+  }, [diocese]);
 
   // Données pour les graphiques (basées sur les données réelles)
   const donationsByDay = Array.from({ length: 7 }, (_, i) => {

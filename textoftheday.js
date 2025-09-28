@@ -85,30 +85,8 @@ function processLiturgyData(apiData) {
     const content = lecture.contenu || '';
     const reference = lecture.reference || '';
 
-    // Nettoyer le contenu en supprimant les références et les répétitions
+    // Utiliser le contenu tel qu'il est fourni par l'API
     let cleanContent = content;
-    
-    // Supprimer la référence du contenu si elle y est incluse
-    if (reference && content.includes(reference)) {
-      cleanContent = content.replace(reference, '').trim();
-    }
-    
-    // Supprimer les guillemets et espaces supplémentaires
-    cleanContent = cleanContent.replace(/^["«»]+|["«»]+$/g, '').trim();
-    
-    // Supprimer les répétitions de titres dans le contenu
-    cleanContent = cleanContent.replace(/^(PREMIÈRE LECTURE|PSAUME|DEUXIÈME LECTURE|ÉVANGILE)\s*/gmi, '');
-    cleanContent = cleanContent.replace(/^(R\/\s*Chante, ô mon âme, la louange du Seigneur!\s*ou:\s*Alléluia!\s*\(Ps 145, 1b\))\s*/gmi, '');
-    
-    // Supprimer les répétitions de sources dans le contenu
-    cleanContent = cleanContent.replace(/^(Lecture du livre du prophète Amos|Lecture de la première lettre de saint Paul apôtre à Timothée|Évangile de Jésus Christ selon saint Luc)\s*/gmi, '');
-    
-    // Supprimer les répétitions d'Alléluia
-    cleanContent = cleanContent.replace(/^(Alléluia\.\s*Alléluia\.\s*Alléluia\.\s*Alléluia\.)\s*/gmi, 'Alléluia. Alléluia. ');
-    cleanContent = cleanContent.replace(/^(Alléluia\.\s*Alléluia\.\s*Alléluia\.)\s*/gmi, 'Alléluia. Alléluia. ');
-    
-    // Supprimer les répétitions de "Évangile de Jésus Christ selon saint Luc"
-    cleanContent = cleanContent.replace(/^(Évangile de Jésus Christ selon saint Luc)\s*/gmi, '');
     
     // Classification plus précise
     if (type.includes('première lecture') || (type.includes('lecture') && !type.includes('deuxième') && !type.includes('seconde'))) {
@@ -156,38 +134,29 @@ function displayLiturgy(data) {
   // Première lecture
   if (data.firstReading) {
     console.log(colorize('\nPREMIÈRE LECTURE', 'red'));
-    console.log(`« ${data.firstReadingRef} »`);
-    console.log('Lecture du livre du prophète Amos');
-    console.log(`\n${data.firstReading}`);
-    console.log('- Parole du Seigneur.');
+    console.log(`${data.firstReadingRef}`);
+    console.log(`${data.firstReading}`);
   }
 
   // Psaume
   if (data.psalm) {
     console.log(colorize('\nPSAUME', 'red'));
-    console.log(`(${data.psalmRef})`);
-    console.log(colorize('R/ Chante, ô mon âme,', 'bright'));
-    console.log(colorize('la louange du Seigneur !', 'bright'));
-    console.log(colorize('ou : Alléluia ! (Ps 145, 1b)', 'bright'));
-    console.log(`\n${data.psalm}`);
+    console.log(`${data.psalmRef}`);
+    console.log(`${data.psalm}`);
   }
 
   // Deuxième lecture
   if (data.secondReading) {
     console.log(colorize('\nDEUXIÈME LECTURE', 'red'));
-    console.log(`« ${data.secondReadingRef} »`);
-    console.log('Lecture de la première lettre de saint Paul apôtre à Timothée');
-    console.log(`\n${data.secondReading}`);
-    console.log('- Parole du Seigneur.');
+    console.log(`${data.secondReadingRef}`);
+    console.log(`${data.secondReading}`);
   }
 
   // Évangile
   if (data.gospel) {
     console.log(colorize('\nÉVANGILE', 'red'));
-    console.log(`« ${data.gospelRef} »`);
-    console.log('Évangile de Jésus Christ selon saint Luc');
-    console.log(`\n${data.gospel}`);
-    console.log('Acclamons la Parole de Dieu.');
+    console.log(`${data.gospelRef}`);
+    console.log(`${data.gospel}`);
   }
 
   console.log('\n' + '='.repeat(80));

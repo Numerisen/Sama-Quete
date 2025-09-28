@@ -11,7 +11,7 @@ export default function AdminDioceseSidebar() {
 
   const links = [
     { 
-      href: `/admindiocese?diocese=${encodeURIComponent(diocese)}`, 
+      href: `/admindiocese/dashboard?diocese=${encodeURIComponent(diocese)}`, 
       label: "Tableau de bord", 
       icon: <Home className="w-6 h-6" /> 
     },
@@ -84,16 +84,23 @@ export default function AdminDioceseSidebar() {
       </div>
       
       <nav className="flex-1 flex flex-col gap-1 mt-4 overflow-y-auto">
-        {links.map(link => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8 ${pathname === link.href ? "bg-white/20 font-semibold shadow-lg" : ""}`}
-          >
-            {link.icon}
-            <span>{link.label}</span>
-          </Link>
-        ))}
+        {links.map(link => {
+          // Détection spéciale pour le tableau de bord
+          const isActive = link.label === "Tableau de bord" 
+            ? pathname === "/admindiocese/dashboard" || pathname === "/admindiocese"
+            : pathname === link.href.split('?')[0]
+          
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8 ${isActive ? "bg-white/20 font-semibold shadow-lg" : ""}`}
+            >
+              {link.icon}
+              <span>{link.label}</span>
+            </Link>
+          )
+        })}
       </nav>
       
       <div className="mt-auto p-4 text-xs text-center text-white/60">

@@ -173,22 +173,9 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
                 <View key={index} style={styles.readingSection}>
                   <Text style={styles.readingTitle}>{reading.title.toUpperCase()}</Text>
                   <Text style={styles.readingReference}>{reading.reference}</Text>
-                  <Text style={styles.readingSource}>
-                    {reading.title === "Première lecture" && "Lecture du livre du prophète Amos"}
-                    {reading.title === "Psaume" && "Psaume"}
-                    {reading.title === "Deuxième lecture" && "Lecture de la lettre de saint Paul"}
-                    {reading.title === "Évangile" && "Évangile de Jésus Christ selon saint Marc"}
+                  <Text style={styles.readingText}>
+                    {reading.excerpt}
                   </Text>
-                  <Text style={styles.readingText}>{reading.excerpt}</Text>
-                  {reading.title === "Première lecture" && (
-                    <Text style={styles.readingEnding}>- Parole du Seigneur.</Text>
-                  )}
-                  {reading.title === "Psaume" && (
-                    <View style={styles.psalmResponse}>
-                      <Text style={styles.psalmResponseText}>R/ Chante, ô mon âme, la louange du Seigneur !</Text>
-                      <Text style={styles.psalmAlternative}>ou : Alléluia ! (Ps 145, 1b)</Text>
-                    </View>
-                  )}
                 </View>
               ))}
             </View>
