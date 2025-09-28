@@ -190,31 +190,30 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
             </View>
           )}
 
-          {/* Section lectures d'aujourd'hui */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Lectures d'aujourd'hui</Text>
-            <View style={styles.liturgicalColorBadge}>
-              <Text style={styles.liturgicalColorText}>Couleur {todayReadings.color}</Text>
-            </View>
-          </View>
-
-          <View style={styles.readingsList}>
+          {/* Section lectures d'aujourd'hui - Affichage fluide */}
+          <View style={styles.liturgyContainer}>
+            <Text style={styles.mainTitle}>LECTURES DE LA MESSE</Text>
+            
             {todayReadings.readings.map((reading, index) => (
-              <View key={index} style={styles.readingCard}>
-                <View style={styles.readingItem}>
-                  <View style={styles.readingIconContainer}>
-                    <Ionicons name="book" size={16} color="#ffffff" />
+              <View key={index} style={styles.readingSection}>
+                <Text style={styles.readingTitle}>{reading.title.toUpperCase()}</Text>
+                <Text style={styles.readingReference}>« {reading.reference} »</Text>
+                <Text style={styles.readingSource}>
+                  {reading.title === "Première lecture" && "Lecture du livre du prophète Amos"}
+                  {reading.title === "Psaume" && "Psaume"}
+                  {reading.title === "Deuxième lecture" && "Lecture de la lettre de saint Paul"}
+                  {reading.title === "Évangile" && "Évangile de Jésus Christ selon saint Marc"}
+                </Text>
+                <Text style={styles.readingText}>{reading.excerpt}</Text>
+                {reading.title === "Première lecture" && (
+                  <Text style={styles.readingEnding}>- Parole du Seigneur.</Text>
+                )}
+                {reading.title === "Psaume" && (
+                  <View style={styles.psalmResponse}>
+                    <Text style={styles.psalmResponseText}>R/ Chante, ô mon âme, la louange du Seigneur !</Text>
+                    <Text style={styles.psalmAlternative}>ou : Alléluia ! (Ps 145, 1b)</Text>
                   </View>
-                  <View style={styles.readingContent}>
-                    <View style={styles.readingHeader}>
-                      <Text style={styles.readingTitle}>{reading.title}</Text>
-                      <View style={styles.referenceBadge}>
-                        <Text style={styles.referenceText}>{reading.reference}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.readingExcerpt}>{reading.excerpt}</Text>
-                  </View>
-                </View>
+                )}
               </View>
             ))}
           </View>
@@ -335,18 +334,71 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  readingCard: {
-    backgroundColor: '#f8fafc', // bg-slate-50 - légèrement plus accentué que white/90
-    borderRadius: 12,
-    padding: 16,
+  // Nouveaux styles pour l'affichage fluide
+  liturgyContainer: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 24,
+  },
+  mainTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    textAlign: 'left',
+    marginBottom: 24,
+    letterSpacing: 0.5,
+  },
+  readingSection: {
+    marginBottom: 32,
+  },
+  readingTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#dc2626', // Rouge comme sur l'image
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  readingReference: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 4,
+    fontStyle: 'italic',
+  },
+  readingSource: {
+    fontSize: 14,
+    color: '#374151',
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#e2e8f0', // border-slate-200 - bordure subtile
+  },
+  readingText: {
+    fontSize: 15,
+    color: '#1f2937',
+    lineHeight: 22,
+    textAlign: 'left',
+    marginBottom: 8,
+  },
+  readingEnding: {
+    fontSize: 15,
+    color: '#1f2937',
+    lineHeight: 22,
+    textAlign: 'left',
+    marginLeft: 16,
+  },
+  psalmResponse: {
+    marginTop: 8,
+  },
+  psalmResponseText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    lineHeight: 22,
+    marginBottom: 4,
+  },
+  psalmAlternative: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    lineHeight: 22,
   },
   sectionTitle: {
     fontSize: 18,
@@ -363,123 +415,6 @@ const styles = StyleSheet.create({
   liturgicalColorText: {
     color: '#166534', // text-green-700
     fontSize: 12,
-    fontWeight: '600',
-  },
-  readingsList: {
-    marginBottom: 24,
-  },
-  readingItem: {
-    flexDirection: 'row',
-  },
-  readingIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#60a5fa', // from-blue-400 to-blue-500
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    marginTop: 4,
-  },
-  readingContent: {
-    flex: 1,
-  },
-  readingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  readingTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1f2937', // text-gray-800
-  },
-  referenceBadge: {
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: '#d1d5db', // border-gray-300
-  },
-  referenceText: {
-    fontSize: 12,
-    color: '#6b7280', // text-gray-500
-    fontWeight: '500',
-  },
-  readingExcerpt: {
-    fontSize: 14,
-    color: '#4b5563', // text-gray-600
-    lineHeight: 20,
-  },
-  scheduleCard: {
-    backgroundColor: '#f8fafc', // bg-slate-50 - légèrement plus accentué que white/90
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#e2e8f0', // border-slate-200 - bordure subtile
-  },
-  scheduleList: {
-    marginBottom: 24,
-  },
-  scheduleItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  todayScheduleItem: {
-    backgroundColor: '#dbeafe', // bg-blue-50
-    borderColor: '#bfdbfe', // border-blue-200
-  },
-  scheduleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  scheduleDay: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1f2937', // text-gray-800
-  },
-  timeBadge: {
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: '#d1d5db', // border-gray-300
-  },
-  timeText: {
-    fontSize: 12,
-    color: '#6b7280', // text-gray-500
-    fontWeight: '600',
-  },
-  scheduleRight: {
-    alignItems: 'flex-end',
-  },
-  scheduleType: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1f2937', // text-gray-800
-  },
-  todayBadge: {
-    backgroundColor: '#dbeafe', // bg-blue-100
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginTop: 4,
-    borderWidth: 0,
-  },
-  todayText: {
-    fontSize: 12,
-    color: '#1d4ed8', // text-blue-700
     fontWeight: '600',
   },
   // Nouveaux styles pour l'intégration API

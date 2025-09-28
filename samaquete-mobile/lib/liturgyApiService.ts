@@ -102,28 +102,50 @@ class LiturgyApiService {
       const content = lecture.contenu || '';
       const reference = lecture.reference || '';
 
-      if (type.includes('première lecture') || type.includes('lecture')) {
-        // Extraire la référence du contenu si elle y est incluse
-        const cleanContent = content.replace(reference, '').trim();
+      // Nettoyer le contenu en supprimant les références et les répétitions
+      let cleanContent = content;
+      
+      // Supprimer la référence du contenu si elle y est incluse
+      if (reference && content.includes(reference)) {
+        cleanContent = content.replace(reference, '').trim();
+      }
+      
+      // Supprimer les guillemets et espaces supplémentaires
+      cleanContent = cleanContent.replace(/^["«»]+|["«»]+$/g, '').trim();
+      
+      // Supprimer les répétitions de titres dans le contenu
+      cleanContent = cleanContent.replace(/^(PREMIÈRE LECTURE|PSAUME|DEUXIÈME LECTURE|ÉVANGILE)\s*/gmi, '');
+      cleanContent = cleanContent.replace(/^(R\/\s*Chante, ô mon âme, la louange du Seigneur!\s*ou:\s*Alléluia!\s*\(Ps 145, 1b\))\s*/gmi, '');
+      
+      // Supprimer les répétitions de sources dans le contenu
+      cleanContent = cleanContent.replace(/^(Lecture du livre du prophète Amos|Lecture de la première lettre de saint Paul apôtre à Timothée|Évangile de Jésus Christ selon saint Luc)\s*/gmi, '');
+      
+      // Supprimer les répétitions d'Alléluia
+      cleanContent = cleanContent.replace(/^(Alléluia\.\s*Alléluia\.\s*Alléluia\.\s*Alléluia\.)\s*/gmi, 'Alléluia. Alléluia. ');
+      cleanContent = cleanContent.replace(/^(Alléluia\.\s*Alléluia\.\s*Alléluia\.)\s*/gmi, 'Alléluia. Alléluia. ');
+      
+      // Supprimer les répétitions de "Évangile de Jésus Christ selon saint Luc"
+      cleanContent = cleanContent.replace(/^(Évangile de Jésus Christ selon saint Luc)\s*/gmi, '');
+
+      // Classification plus précise
+      if (type.includes('première lecture') || (type.includes('lecture') && !type.includes('deuxième') && !type.includes('seconde'))) {
         firstReading = cleanContent;
         firstReadingRef = reference;
       } else if (type.includes('psaume') || type.includes('psalm')) {
-        // Extraire la référence du contenu si elle y est incluse
-        const cleanContent = content.replace(reference, '').trim();
+        // Pour le psaume, nettoyer encore plus pour éviter les répétitions
+        cleanContent = cleanContent.replace(/^R\/\s*Chante, ô mon âme, la louange du Seigneur!\s*ou:\s*Alléluia!\s*\(Ps 145, 1b\)\s*/gmi, '');
+        // Supprimer les répétitions du refrain dans le texte
+        cleanContent = cleanContent.replace(/^R\/\s*Chante, ô mon âme, la louange du Seigneur!\s*ou:\s*Alléluia!\s*\(Ps 145, 1b\)\s*/gmi, '');
         psalm = cleanContent;
         psalmRef = reference;
       } else if (type.includes('deuxième lecture') || type.includes('seconde lecture')) {
-        // Extraire la référence du contenu si elle y est incluse
-        const cleanContent = content.replace(reference, '').trim();
         secondReading = cleanContent;
         secondReadingRef = reference;
       } else if (type.includes('évangile') || type.includes('gospel')) {
-        // Extraire la référence du contenu si elle y est incluse
-        const cleanContent = content.replace(reference, '').trim();
         gospel = cleanContent;
         gospelRef = reference;
       } else if (type.includes('réflexion') || type.includes('méditation')) {
-        reflection = content;
+        reflection = cleanContent;
       }
     });
 
