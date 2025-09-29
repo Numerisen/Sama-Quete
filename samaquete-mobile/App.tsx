@@ -92,6 +92,7 @@ export default function App() {
         return <DonationsScreen 
           setCurrentScreen={setCurrentScreen}
           selectedParish={selectedParish}
+          setSelectedParish={setSelectedParish}
           setSelectionContext={setSelectionContext}
           setSelectedDonationType={setSelectedDonationType}
           setSelectedAmount={setSelectedAmount}

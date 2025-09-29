@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../lib/ThemeContext';
+import { useParishes } from '../../../hooks/useParishes';
 
 interface ParishSelectionScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -11,32 +12,7 @@ interface ParishSelectionScreenProps {
 
 export default function ParishSelectionScreen({ setCurrentScreen, setSelectedParish }: ParishSelectionScreenProps) {
   const { colors } = useTheme();
-  const parishes = [
-    {
-      name: 'Cathédrale du Souvenir Africain',
-      location: 'Dakar',
-      description: 'Cathédrale principale de Dakar',
-      icon: 'business',
-    },
-    {
-      name: 'Paroisse Sainte-Anne',
-      location: 'Rufisque',
-      description: 'Communauté dynamique de Rufisque',
-      icon: 'business',
-    },
-    {
-      name: 'Paroisse Saint-Joseph',
-      location: 'Thiès',
-      description: 'Au cœur de la région de Thiès',
-      icon: 'business',
-    },
-    {
-      name: 'Paroisse Notre-Dame',
-      location: 'Saint-Louis',
-      description: 'Patrimoine spirituel de Saint-Louis',
-      icon: 'business',
-    },
-  ];
+  const { parishes, loading, error } = useParishes();
 
   const handleParishSelection = (parishName: string) => {
     setSelectedParish(parishName);
@@ -60,24 +36,45 @@ export default function ParishSelectionScreen({ setCurrentScreen, setSelectedPar
           </View>
         </View>
 
-        {/* Liste des paroisses */}
+        {/* Liste des paroisses depuis Firebase */}
         <View style={[styles.parishesContainer, { backgroundColor: colors.background }]}>
-          {parishes.map((parish, index) => (
+          {loading && (
+            <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+              <ActivityIndicator color={colors.text} />
+              <Text style={{ marginTop: 8, color: colors.textSecondary }}>Chargement des paroisses…</Text>
+            </View>
+          )}
+
+          {error && !loading && (
+            <View style={{ paddingVertical: 12 }}>
+              <Text style={{ color: '#dc2626' }}>Erreur: {error}</Text>
+            </View>
+          )}
+
+          {!loading && !error && parishes.length === 0 && (
+            <View style={{ paddingVertical: 12 }}>
+              <Text style={{ color: colors.textSecondary }}>Aucune paroisse disponible.</Text>
+            </View>
+          )}
+
+          {!loading && !error && parishes.map((parish, index) => (
             <TouchableOpacity
-              key={index}
+              key={parish.id || index}
               style={[styles.parishCard, { backgroundColor: colors.card }]}
               onPress={() => handleParishSelection(parish.name)}
             >
               <View style={styles.parishIcon}>
-                <Ionicons name={parish.icon as any} size={24} color="#92400E" />
+                <Ionicons name={'business' as any} size={24} color="#92400E" />
               </View>
               <View style={styles.parishInfo}>
                 <Text style={[styles.parishName, { color: colors.text }]}>{parish.name}</Text>
                 <View style={styles.locationContainer}>
                   <Ionicons name="location" size={14} color={colors.textSecondary} />
-                  <Text style={[styles.parishLocation, { color: colors.textSecondary }]}>{parish.location}</Text>
+                  <Text style={[styles.parishLocation, { color: colors.textSecondary }]}>{parish.city || parish.location}</Text>
                 </View>
-                <Text style={[styles.parishDescription, { color: colors.textSecondary }]}>{parish.description}</Text>
+                {parish.dioceseName ? (
+                  <Text style={[styles.parishDescription, { color: colors.textSecondary }]}>Diocèse: {parish.dioceseName}</Text>
+                ) : null}
               </View>
               <View style={styles.navigationArrow}>
                 <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />

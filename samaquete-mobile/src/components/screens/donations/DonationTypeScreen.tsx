@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { formatPrice, formatAmount } from '../../../../lib/numberFormat';
 
 interface DonationTypeScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -134,7 +135,7 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
                 styles.amountButtonText,
                 selectedAmount === amount && styles.selectedAmountButtonText
               ]}>
-                {amount} FCFA
+                {formatPrice(amount)} FCFA
               </Text>
             </TouchableOpacity>
           ))}
@@ -165,7 +166,7 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
         <LinearGradient colors={['#f59e0b', '#d97706']} style={styles.footer}>
           <Text style={styles.selectedAmountLabel}>Montant sélectionné</Text>
           <Text style={styles.selectedAmountValue}>
-            {finalAmount} FCFA
+            {formatAmount(finalAmount)}
           </Text>
           
           <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>

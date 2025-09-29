@@ -9,7 +9,7 @@ const https = require('https');
 const http = require('http');
 
 // Configuration de l'API
-const API_URL = 'https://81b5b72e4de7.ngrok-free.app/api/text-of-the-day';
+const API_URL = 'https://4da4d63456b0.ngrok-free.app/api/text-of-the-day';
 
 // Couleurs pour le terminal
 const colors = {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice } from '../../../../lib/numberFormat';
@@ -7,13 +7,18 @@ import { formatPrice } from '../../../../lib/numberFormat';
 interface DonationsScreenProps {
   setCurrentScreen: (screen: string) => void;
   selectedParish: string;
+  setSelectedParish: (parish: string) => void;
   setSelectionContext: (context: string) => void;
   setSelectedDonationType: (type: string) => void;
   setSelectedAmount: (amount: string) => void;
 }
 
-export default function DonationsScreen({ setCurrentScreen, selectedParish, setSelectionContext, setSelectedDonationType, setSelectedAmount }: DonationsScreenProps) {
+import { useParishes } from '../../../../hooks/useParishes';
+
+export default function DonationsScreen({ setCurrentScreen, selectedParish, setSelectedParish, setSelectionContext, setSelectedDonationType, setSelectedAmount }: DonationsScreenProps) {
   const [currentParish, setCurrentParish] = useState<any>(null);
+  const [showParishModal, setShowParishModal] = useState(false);
+  const { parishes, loading, error } = useParishes();
 
   // Données statiques par défaut avec les montants exacts de l'image
   const defaultPricing = {
@@ -126,7 +131,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
                     style={styles.amountButton}
                     onPress={() => handleDonationSelect(type, price)}
                   >
-                    <Text style={styles.amountText}>{price} FCFA</Text>
+                    <Text style={styles.amountText}>{formatPrice(price)} FCFA</Text>
                   </TouchableOpacity>
                 ))}
                 <TouchableOpacity
@@ -149,13 +154,69 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
             </View>
             <TouchableOpacity
               style={styles.changeButton}
-              onPress={() => setCurrentScreen('parish-selection')}
+              onPress={() => setShowParishModal(true)}
             >
               <Text style={styles.changeButtonText}>Changer</Text>
             </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
+
+      {/* Modal de sélection des paroisses depuis Firebase */}
+      <Modal
+        visible={showParishModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowParishModal(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: 18, fontWeight: '600' }}>Sélectionner une paroisse</Text>
+            <TouchableOpacity onPress={() => setShowParishModal(false)}>
+              <Ionicons name="close" size={24} color="#111827" />
+            </TouchableOpacity>
+          </View>
+
+          {loading && (
+            <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+              <ActivityIndicator />
+              <Text style={{ marginTop: 8, color: '#6b7280' }}>Chargement des paroisses…</Text>
+            </View>
+          )}
+
+          {error && !loading && (
+            <View style={{ padding: 16 }}>
+              <Text style={{ color: '#dc2626' }}>Erreur: {error}</Text>
+            </View>
+          )}
+
+          {!loading && !error && (
+            <FlatList
+              data={parishes}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}
+                  onPress={() => {
+                    setSelectedParish(item.name);
+                    setShowParishModal(false);
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View>
+                      <Text style={{ fontSize: 16, fontWeight: '500', color: '#111827' }}>{item.name}</Text>
+                      <Text style={{ fontSize: 12, color: '#6b7280' }}>{item.city || item.location}{item.dioceseName ? ` · ${item.dioceseName}` : ''}</Text>
+                    </View>
+                    {selectedParish === item.name && (
+                      <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }

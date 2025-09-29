@@ -78,6 +78,17 @@ export interface DonationItem {
   updatedAt?: any
 }
 
+export interface DonationTypeItem {
+  id?: string
+  name: string
+  description?: string
+  suggestedAmount?: number
+  isActive: boolean
+  diocese?: string
+  createdAt?: any
+  updatedAt?: any
+}
+
 export interface LiturgyItem {
   id?: string
   title: string
@@ -507,6 +518,100 @@ export class LiturgyService {
         ...doc.data()
       })) as LiturgyItem[]
       callback(liturgy)
+    })
+  }
+}
+
+export class DonationTypeService {
+  private static collection = 'admin_donation_types'
+
+  static async getAll(): Promise<DonationTypeItem[]> {
+    const q = query(collection(db, this.collection), orderBy('createdAt', 'desc'))
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as DonationTypeItem[]
+  }
+
+  static async getByDiocese(diocese: string): Promise<DonationTypeItem[]> {
+    const q = query(
+      collection(db, this.collection),
+      where('diocese', '==', diocese)
+    )
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as DonationTypeItem[]
+  }
+
+  static async getActiveByDiocese(diocese: string): Promise<DonationTypeItem[]> {
+    const q = query(
+      collection(db, this.collection),
+      where('diocese', '==', diocese),
+      where('isActive', '==', true)
+    )
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as DonationTypeItem[]
+  }
+
+  static async getById(id: string): Promise<DonationTypeItem | null> {
+    const docRef = doc(db, this.collection, id)
+    const docSnap = await getDoc(docRef)
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as DonationTypeItem
+    }
+    return null
+  }
+
+  static async create(data: Omit<DonationTypeItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    const docRef = await addDoc(collection(db, this.collection), {
+      ...data,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    })
+    return docRef.id
+  }
+
+  static async update(id: string, data: Partial<Omit<DonationTypeItem, 'id' | 'createdAt' | 'updatedAt'>>): Promise<void> {
+    const docRef = doc(db, this.collection, id)
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp()
+    })
+  }
+
+  static async delete(id: string): Promise<void> {
+    const docRef = doc(db, this.collection, id)
+    await deleteDoc(docRef)
+  }
+
+  static subscribeToDonationTypes(callback: (types: DonationTypeItem[]) => void): Unsubscribe {
+    const q = query(collection(db, this.collection), orderBy('createdAt', 'desc'))
+    return onSnapshot(q, (querySnapshot) => {
+      const types = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as DonationTypeItem[]
+      callback(types)
+    })
+  }
+
+  static subscribeToDonationTypesByDiocese(diocese: string, callback: (types: DonationTypeItem[]) => void): Unsubscribe {
+    const q = query(
+      collection(db, this.collection),
+      where('diocese', '==', diocese)
+    )
+    return onSnapshot(q, (querySnapshot) => {
+      const types = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as DonationTypeItem[]
+      callback(types)
     })
   }
 }

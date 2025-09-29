@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
-import { Home, Users, Newspaper, DollarSign, Bot, Settings, ShieldCheck, Church, Bell, Calendar, Activity, FileText } from "lucide-react"
+import { Home, Users, Newspaper, DollarSign, Bot, Settings, ShieldCheck, Church, Bell, Calendar, Activity, FileText, Tag } from "lucide-react"
 
 export default function AdminDioceseSidebar() {
   const pathname = usePathname()
@@ -34,6 +34,11 @@ export default function AdminDioceseSidebar() {
       href: `/admindiocese/donations?diocese=${encodeURIComponent(diocese)}`, 
       label: "Dons", 
       icon: <DollarSign className="w-6 h-6" /> 
+    },
+    { 
+      href: `/admindiocese/donation-types?diocese=${encodeURIComponent(diocese)}`, 
+      label: "Types de Dons", 
+      icon: <Tag className="w-6 h-6" /> 
     },
     { 
       href: `/admindiocese/liturgy?diocese=${encodeURIComponent(diocese)}`, 

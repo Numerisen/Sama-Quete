@@ -11,7 +11,7 @@ import { db } from './firebase';
 const LITURGY_API_CONFIG = {
   // URL de base - changez selon votre configuration
   // BASE_URL: 'http://localhost:5000', // Local
-  BASE_URL: 'https://81b5b72e4de7.ngrok-free.app', // ngrok
+  BASE_URL: 'https://4da4d63456b0.ngrok-free.app', // ngrok
   // BASE_URL: 'https://votre-api-deployee.com', // Production
   
   // Endpoints
@@ -223,7 +223,9 @@ class LiturgyApiService {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          // Évite l'interstitiel ngrok qui casse les requêtes fetch
+          'ngrok-skip-browser-warning': 'true'
         },
         signal: controller.signal
       });
@@ -267,7 +269,8 @@ class LiturgyApiService {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
         },
         signal: controller.signal
       });
