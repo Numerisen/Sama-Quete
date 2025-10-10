@@ -1,26 +1,138 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { usePrayerTimes, getWeeklySchedule } from '../../../../hooks/usePrayerTimes';
+import { 
+  registerForPushNotificationsAsync, 
+  scheduleAllPrayerNotifications,
+  notifyPrayerTimesUpdated 
+} from '../../../../lib/notificationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface PrayerCalendarScreenProps {
   setCurrentScreen: (screen: string) => void;
 }
 
 export default function PrayerCalendarScreen({ setCurrentScreen }: PrayerCalendarScreenProps) {
-  const weeklySchedule = [
-    { day: "Lundi", time: "06:30", type: "Messe quotidienne", isToday: true },
-    { day: "Mardi", time: "06:30", type: "Messe quotidienne", isToday: false },
-    { day: "Mercredi", time: "06:30", type: "Messe quotidienne", isToday: false },
-    { day: "Jeudi", time: "06:30", type: "Messe quotidienne", isToday: false },
-    { day: "Vendredi", time: "06:30", type: "Messe quotidienne", isToday: false },
-    { day: "Samedi", time: "18:00", type: "Messe de vigile", isToday: false },
-    { day: "Dimanche", time: "09:00", type: "Messe dominicale", isToday: false },
-  ];
+  const [parishId, setParishId] = useState<string>('paroisse-saint-jean-bosco');
+  const [parishName, setParishName] = useState<string>('Paroisse Saint Jean Bosco');
+  const [refreshing, setRefreshing] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  const { prayerTimes, loading, error, refresh } = usePrayerTimes(parishId);
+  const weeklySchedule = getWeeklySchedule(prayerTimes);
+
+  // Charger la paroisse sélectionnée
+  useEffect(() => {
+    loadSelectedParish();
+    checkNotificationStatus();
+  }, []);
+
+  // Surveiller les changements des heures de prières
+  useEffect(() => {
+    if (prayerTimes.length > 0 && lastUpdate) {
+      const now = new Date();
+      // Si les données ont été mises à jour il y a moins de 5 secondes, c'est une nouvelle mise à jour
+      if (now.getTime() - lastUpdate.getTime() < 5000) {
+        handlePrayerTimesUpdate();
+      }
+    }
+    setLastUpdate(new Date());
+  }, [prayerTimes]);
+
+  const loadSelectedParish = async () => {
+    try {
+      const selectedParish = await AsyncStorage.getItem('selectedParish');
+      console.log('📍 Paroisse sélectionnée (AsyncStorage):', selectedParish);
+      
+      if (selectedParish) {
+        const parish = JSON.parse(selectedParish);
+        const id = parish.id || 'paroisse-saint-jean-bosco';
+        const name = parish.name || 'Paroisse Saint Jean Bosco';
+        
+        console.log('🏛️ ParishId utilisé:', id);
+        console.log('🏛️ Parish name:', name);
+        
+        setParishId(id);
+        setParishName(name);
+      } else {
+        console.log('⚠️ Aucune paroisse sélectionnée, utilisation de la valeur par défaut');
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement de la paroisse:', error);
+    }
+  };
+
+  const checkNotificationStatus = async () => {
+    try {
+      const enabled = await AsyncStorage.getItem('prayerNotificationsEnabled');
+      setNotificationsEnabled(enabled === 'true');
+    } catch (error) {
+      console.error('Erreur lors de la vérification des notifications:', error);
+    }
+  };
+
+  const handlePrayerTimesUpdate = async () => {
+    // Envoyer une notification indiquant que les heures ont été mises à jour
+    await notifyPrayerTimesUpdated(parishName);
+
+    // Re-planifier les notifications si elles sont activées
+    if (notificationsEnabled) {
+      await scheduleAllPrayerNotifications(prayerTimes, 15);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    refresh();
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const toggleNotifications = async () => {
+    try {
+      if (!notificationsEnabled) {
+        // Activer les notifications
+        const granted = await registerForPushNotificationsAsync();
+        if (granted) {
+          await scheduleAllPrayerNotifications(prayerTimes, 15);
+          await AsyncStorage.setItem('prayerNotificationsEnabled', 'true');
+          setNotificationsEnabled(true);
+          Alert.alert(
+            'Notifications activées',
+            'Vous recevrez des rappels 15 minutes avant chaque heure de prière.'
+          );
+        } else {
+          Alert.alert(
+            'Permission refusée',
+            'Veuillez autoriser les notifications dans les paramètres de votre appareil.'
+          );
+        }
+      } else {
+        // Désactiver les notifications
+        await AsyncStorage.setItem('prayerNotificationsEnabled', 'false');
+        setNotificationsEnabled(false);
+        Alert.alert(
+          'Notifications désactivées',
+          'Vous ne recevrez plus de rappels pour les heures de prière.'
+        );
+      }
+    } catch (error) {
+      console.error('Erreur lors de la gestion des notifications:', error);
+      Alert.alert('Erreur', 'Impossible de modifier les paramètres de notification');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         {/* Header avec gradient bleu */}
         <LinearGradient colors={['#3b82f6', '#2563eb']} style={styles.header}>
           <TouchableOpacity
@@ -33,16 +145,52 @@ export default function PrayerCalendarScreen({ setCurrentScreen }: PrayerCalenda
           <View style={styles.headerContent}>
             <Ionicons name="calendar" size={32} color="#ffffff" style={styles.headerIcon} />
             <Text style={styles.headerTitle}>Calendrier des prières</Text>
-            <Text style={styles.headerSubtitle}>Programme de la semaine</Text>
+            <Text style={styles.headerSubtitle}>{parishName}</Text>
+            
+            {/* Bouton notifications */}
+            <TouchableOpacity 
+              style={styles.notificationButton}
+              onPress={toggleNotifications}
+            >
+              <Ionicons 
+                name={notificationsEnabled ? "notifications" : "notifications-off"} 
+                size={20} 
+                color="#ffffff" 
+              />
+              <Text style={styles.notificationButtonText}>
+                {notificationsEnabled ? 'Actives' : 'Inactives'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
 
         <View style={styles.content}>
+          {/* Indicateur de chargement */}
+          {loading && !refreshing && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text style={styles.loadingText}>Chargement des heures de prières...</Text>
+            </View>
+          )}
+
+          {/* Affichage des erreurs */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={48} color="#ef4444" />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity onPress={refresh} style={styles.retryButton}>
+                <Text style={styles.retryButtonText}>Réessayer</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Section programme de la semaine */}
-          <Text style={styles.sectionTitle}>Programme de la semaine</Text>
-          
-          <View style={styles.scheduleList}>
-            {weeklySchedule.map((schedule, index) => (
+          {!loading && !error && weeklySchedule.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Programme de la semaine</Text>
+              
+              <View style={styles.scheduleList}>
+                {weeklySchedule.map((schedule, index) => (
               <View 
                 key={index} 
                 style={[
@@ -71,17 +219,30 @@ export default function PrayerCalendarScreen({ setCurrentScreen }: PrayerCalenda
             ))}
           </View>
 
-          {/* Section informations supplémentaires */}
-          <View style={styles.infoCard}>
-            <View style={styles.infoHeader}>
-              <Ionicons name="information-circle" size={20} color="#3b82f6" />
-              <Text style={styles.infoTitle}>Informations</Text>
+              {/* Section informations supplémentaires */}
+              <View style={styles.infoCard}>
+                <View style={styles.infoHeader}>
+                  <Ionicons name="information-circle" size={20} color="#3b82f6" />
+                  <Text style={styles.infoTitle}>Informations</Text>
+                </View>
+                <Text style={styles.infoText}>
+                  Les horaires sont synchronisés avec votre paroisse. 
+                  {notificationsEnabled && ' Vous recevrez un rappel 15 minutes avant chaque heure de prière.'}
+                </Text>
+              </View>
+            </>
+          )}
+
+          {/* Message quand il n'y a pas de données */}
+          {!loading && !error && weeklySchedule.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="calendar-outline" size={64} color="#9ca3af" />
+              <Text style={styles.emptyTitle}>Aucune heure de prière configurée</Text>
+              <Text style={styles.emptyText}>
+                Les heures de prières n'ont pas encore été configurées pour cette paroisse.
+              </Text>
             </View>
-            <Text style={styles.infoText}>
-              Les horaires peuvent varier selon les périodes liturgiques. 
-              Consultez les annonces paroissiales pour les mises à jour.
-            </Text>
-          </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -235,6 +396,72 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     color: '#1e40af', // text-blue-800
+    lineHeight: 20,
+  },
+  notificationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginTop: 12,
+  },
+  notificationButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  errorContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
     lineHeight: 20,
   },
 });

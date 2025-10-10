@@ -64,7 +64,7 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
       subtitle: 'Quête, denier, cierge',
       icon: 'heart',
       color: '#ef4444',
-      screen: 'parish-selection',
+      screen: 'donations',
     },
     {
       title: 'Textes liturgiques',
@@ -199,7 +199,7 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
                 <Ionicons name="calendar" size={20} color="#ffffff" />
               </View>
               <Text style={styles.statValue}>12</Text>
-              <Text style={styles.statLabel}>Jours de prière</Text>
+              <Text style={styles.statLabel}>Heures de prière</Text>
             </TouchableOpacity>
             <View style={styles.statCard}>
               <View style={styles.statIcon}>

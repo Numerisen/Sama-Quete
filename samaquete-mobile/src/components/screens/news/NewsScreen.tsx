@@ -355,6 +355,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 8,
     textAlign: 'center',
+
   },
   footerSubtitle: {
     fontSize: 13,

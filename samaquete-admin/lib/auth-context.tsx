@@ -20,6 +20,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   isAdmin: boolean
   isDioceseAdmin: boolean
+  isParishAdmin: boolean
   hasPermission: (permission: keyof UserRole['permissions']) => boolean
 }
 
@@ -72,7 +73,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Déterminer le type d'utilisateur basé sur le rôle Firestore
   const isAdmin = userRole?.role === 'super_admin'
-  const isDioceseAdmin = userRole?.role === 'diocese_admin' || userRole?.role === 'parish_admin'
+  const isDioceseAdmin = userRole?.role === 'diocese_admin'
+  const isParishAdmin = userRole?.role === 'parish_admin'
 
   // Fonction pour vérifier les permissions
   const checkPermission = (permission: keyof UserRole['permissions']) => {
@@ -88,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     isAdmin,
     isDioceseAdmin,
+    isParishAdmin,
     hasPermission: checkPermission
   }
 

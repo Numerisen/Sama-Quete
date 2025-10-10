@@ -7,11 +7,11 @@ import { useEffect } from 'react'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: 'admin' | 'super_admin' | 'diocese' | 'any'
+  requiredRole?: 'admin' | 'super_admin' | 'diocese' | 'paroisse' | 'any'
 }
 
 export default function ProtectedRoute({ children, requiredRole = 'any' }: ProtectedRouteProps) {
-  const { user, userRole, loading, isAdmin, isDioceseAdmin } = useAuth()
+  const { user, userRole, loading, isAdmin, isDioceseAdmin, isParishAdmin } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -36,8 +36,13 @@ export default function ProtectedRoute({ children, requiredRole = 'any' }: Prote
         router.push('/admin/dashboard')
         return
       }
+
+      if (requiredRole === 'paroisse' && !isParishAdmin) {
+        router.push('/admin/dashboard')
+        return
+      }
     }
-  }, [user, userRole, loading, isAdmin, isDioceseAdmin, router, requiredRole])
+  }, [user, userRole, loading, isAdmin, isDioceseAdmin, isParishAdmin, router, requiredRole])
 
   if (loading || (user && !userRole)) {
     return (

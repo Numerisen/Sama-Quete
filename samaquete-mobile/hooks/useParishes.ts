@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Diocese, Parish, ParishService } from '../lib/parish-service'
+import { ChurchStorageService } from '../lib/church-storage'
 
 export interface UseParishesReturn {
   parishes: Parish[]
@@ -32,9 +33,29 @@ export function useParishes(): UseParishesReturn {
       setParishes(parishesData)
       setDioceses(diocesesData)
       
+      // Essayer de récupérer l'église sauvegardée
+      const savedChurch = await ChurchStorageService.getSelectedChurch()
+      
+      if (savedChurch) {
+        // Vérifier que l'église sauvegardée existe encore dans la liste
+        const churchExists = parishesData.find(p => p.id === savedChurch.id)
+        if (churchExists) {
+          setSelectedParish(savedChurch)
+          console.log('Église restaurée depuis le stockage:', savedChurch.name)
+        } else {
+          // L'église sauvegardée n'existe plus, la supprimer
+          await ChurchStorageService.clearSelectedChurch()
+          console.log('Église sauvegardée supprimée car elle n\'existe plus')
+        }
+      }
+      
       // Si aucune paroisse n'est sélectionnée et qu'il y a des paroisses, sélectionner la première
       if (!selectedParish && parishesData.length > 0) {
-        setSelectedParish(parishesData[0])
+        const firstParish = parishesData[0]
+        setSelectedParish(firstParish)
+        // Sauvegarder automatiquement la première paroisse
+        await ChurchStorageService.saveSelectedChurch(firstParish)
+        console.log('Première paroisse sélectionnée et sauvegardée:', firstParish.name)
       }
     } catch (err) {
       console.error('Erreur lors du chargement des paroisses:', err)
@@ -57,6 +78,18 @@ export function useParishes(): UseParishesReturn {
     }
   }
 
+  // Fonction pour changer d'église avec sauvegarde automatique
+  const changeSelectedParish = async (parish: Parish | null) => {
+    setSelectedParish(parish)
+    if (parish) {
+      await ChurchStorageService.saveSelectedChurch(parish)
+      console.log('Église changée et sauvegardée:', parish.name)
+    } else {
+      await ChurchStorageService.clearSelectedChurch()
+      console.log('Église désélectionnée')
+    }
+  }
+
   useEffect(() => {
     loadParishes()
   }, [])
@@ -67,7 +100,7 @@ export function useParishes(): UseParishesReturn {
     loading,
     error,
     selectedParish,
-    setSelectedParish,
+    setSelectedParish: changeSelectedParish, // Utiliser la nouvelle fonction avec sauvegarde
     refreshParishes,
     searchParishes
   }

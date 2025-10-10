@@ -6,62 +6,106 @@ import { formatPrice } from '../../../../lib/numberFormat';
 
 interface DonationsScreenProps {
   setCurrentScreen: (screen: string) => void;
-  selectedParish: string;
-  setSelectedParish: (parish: string) => void;
   setSelectionContext: (context: string) => void;
   setSelectedDonationType: (type: string) => void;
   setSelectedAmount: (amount: string) => void;
 }
 
 import { useParishes } from '../../../../hooks/useParishes';
+import { DonationTypeService } from '../../../../lib/donationTypeService';
 
-export default function DonationsScreen({ setCurrentScreen, selectedParish, setSelectedParish, setSelectionContext, setSelectedDonationType, setSelectedAmount }: DonationsScreenProps) {
-  const [currentParish, setCurrentParish] = useState<any>(null);
+interface DonationTypeDisplay {
+  id: string;
+  icon: string;
+  title: string;
+  description: string;
+  gradientColors: [string, string];
+  prices: string[];
+}
+
+export default function DonationsScreen({ setCurrentScreen, setSelectionContext, setSelectedDonationType, setSelectedAmount }: DonationsScreenProps) {
   const [showParishModal, setShowParishModal] = useState(false);
-  const { parishes, loading, error } = useParishes();
+  const { parishes, loading: parishesLoading, error, selectedParish, setSelectedParish } = useParishes();
+  const [donationTypes, setDonationTypes] = useState<DonationTypeDisplay[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(true);
 
-  // Données statiques par défaut avec les montants exacts de l'image
-  const defaultPricing = {
-    quete: ["1,500", "3,000", "7,000"],
-    denier: ["8,000", "15,000", "25,000"],
-    cierge: ["800", "1,500", "2,500"],
-    messe: ["12,000", "20,000", "30,000"],
-  };
+  // Charger les types de dons depuis Firestore
+  useEffect(() => {
+    const loadDonationTypes = async () => {
+      setLoadingTypes(true);
+      try {
+        let types: any[] = [];
+        
+        // Si une paroisse est sélectionnée, charger ses types de dons spécifiques
+        if (selectedParish?.id) {
+          types = await DonationTypeService.getActiveTypesByParish(selectedParish.id);
+        }
+        
+        // Si aucun type spécifique à la paroisse ou erreur, utiliser les types par défaut
+        if (types.length === 0) {
+          types = await DonationTypeService.getActiveTypes();
+        }
+        
+        if (types.length > 0) {
+          // Convertir les types Firestore en format utilisable par l'app mobile
+          const formattedTypes = types.map((type: any) => ({
+            id: type.id,
+            icon: type.icon || "heart-outline",
+            title: type.name,
+            description: type.description || "",
+            gradientColors: type.gradientColors || ["#f87171", "#ef4444"],
+            prices: type.defaultAmounts || ["1,000", "2,000", "5,000", "10,000"],
+          }));
+          setDonationTypes(formattedTypes);
+        } else {
+          // Types par défaut si aucun type n'est configuré dans Firestore
+          setDonationTypes(getDefaultDonationTypes());
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des types de dons:', error);
+        // En cas d'erreur, utiliser les types par défaut
+        setDonationTypes(getDefaultDonationTypes());
+      } finally {
+        setLoadingTypes(false);
+      }
+    };
 
-  const currentPricing = currentParish?.pricing || defaultPricing;
+    loadDonationTypes();
+  }, [selectedParish?.id]);
 
-  const donationTypes = [
+  // Types de dons par défaut (fallback)
+  const getDefaultDonationTypes = (): DonationTypeDisplay[] => [
     {
       id: "quete",
       icon: "heart-outline",
       title: "Quête dominicale",
       description: "Soutien hebdomadaire à la paroisse",
-      gradientColors: ["#f87171", "#ef4444"], // from-red-400 to-red-500
-      prices: currentPricing.quete,
+      gradientColors: ["#f87171", "#ef4444"] as [string, string],
+      prices: ["1,500", "3,000", "7,000", "10,000"],
     },
     {
       id: "denier",
       icon: "add",
       title: "Denier du culte",
       description: "Contribution annuelle diocésaine",
-      gradientColors: ["#fbbf24", "#f59e0b"], // from-amber-400 to-amber-500
-      prices: currentPricing.denier,
+      gradientColors: ["#fbbf24", "#f59e0b"] as [string, string],
+      prices: ["8,000", "15,000", "25,000", "50,000"],
     },
     {
       id: "cierge",
       icon: "flame",
       title: "Cierge Pascal",
       description: "Lumière pour vos intentions",
-      gradientColors: ["#facc15", "#eab308"], // from-yellow-400 to-yellow-500
-      prices: currentPricing.cierge,
+      gradientColors: ["#facc15", "#eab308"] as [string, string],
+      prices: ["800", "1,500", "2,500", "5,000"],
     },
     {
       id: "messe",
       icon: "business",
       title: "Messe d'intention",
       description: "Messe célébrée pour vos proches",
-      gradientColors: ["#60a5fa", "#3b82f6"], // from-blue-400 to-blue-500
-      prices: currentPricing.messe,
+      gradientColors: ["#60a5fa", "#3b82f6"] as [string, string],
+      prices: ["12,000", "20,000", "30,000", "50,000"],
     },
   ];
 
@@ -76,6 +120,8 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
       setCurrentScreen("donation-type");
     }
   };
+
+  const loading = parishesLoading || loadingTypes;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -93,7 +139,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
               <Text style={styles.headerTitle}>Faire un don</Text>
               <View style={styles.parishInfo}>
                 <Ionicons name="location" size={16} color="#ffffff" />
-                <Text style={styles.parishName}>{selectedParish}</Text>
+                <Text style={styles.parishName}>{selectedParish?.name || 'Sélectionner une église'}</Text>
               </View>
             </View>
           </View>
@@ -101,12 +147,12 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
           {/* Carte tarifs spéciaux intégrée dans le header */}
           <View style={styles.specialRatesCard}>
             <Text style={styles.specialRatesTitle}>Tarifs spéciaux</Text>
-            <Text style={styles.specialRatesSubtitle}>Pour {selectedParish}</Text>
+            <Text style={styles.specialRatesSubtitle}>Pour {selectedParish?.name || 'votre église'}</Text>
           </View>
         </LinearGradient>
 
         {/* Contenu principal avec gradient d'arrière-plan */}
-        <LinearGradient colors={['#fef2f2', '#ffffff', '#fffbeb']} style={styles.content}>
+        <View style={styles.content}>
           {donationTypes.map((type, index) => (
             <TouchableOpacity
               key={index}
@@ -114,7 +160,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
               onPress={() => handleDonationSelect(type)}
             >
               <View style={styles.cardHeader}>
-                <LinearGradient colors={type.gradientColors} style={styles.cardIcon}>
+                <LinearGradient colors={type.gradientColors as any} style={styles.cardIcon}>
                   <Ionicons name={type.icon as any} size={24} color="#ffffff" />
                 </LinearGradient>
                 <View style={styles.cardInfo}>
@@ -125,7 +171,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
               </View>
 
               <View style={styles.amountOptions}>
-                {type.prices.map((price, amountIndex) => (
+                {type.prices.map((price: string, amountIndex: number) => (
                   <TouchableOpacity
                     key={amountIndex}
                     style={styles.amountButton}
@@ -143,7 +189,7 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
               </View>
             </TouchableOpacity>
           ))}
-        </LinearGradient>
+        </View>
 
         {/* Footer pour changer d'église */}
         <View style={styles.footer}>
@@ -192,24 +238,37 @@ export default function DonationsScreen({ setCurrentScreen, selectedParish, setS
 
           {!loading && !error && (
             <FlatList
+              contentContainerStyle={styles.parishList}
               data={parishes}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={{ paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}
+                  style={[styles.parishCard]}
                   onPress={() => {
-                    setSelectedParish(item.name);
+                    setSelectedParish(item);
                     setShowParishModal(false);
                   }}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View>
-                      <Text style={{ fontSize: 16, fontWeight: '500', color: '#111827' }}>{item.name}</Text>
-                      <Text style={{ fontSize: 12, color: '#6b7280' }}>{item.city || item.location}{item.dioceseName ? ` · ${item.dioceseName}` : ''}</Text>
+                  <View style={styles.parishItemContent}>
+                    <View style={styles.parishItemIcon}>
+                      <Ionicons name="business" size={24} color="#92400E" />
                     </View>
-                    {selectedParish === item.name && (
-                      <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-                    )}
+                    <View style={styles.parishItemInfo}>
+                      <Text style={styles.parishItemName}>{item.name}</Text>
+                      <View style={styles.locationContainer}>
+                        <Ionicons name="location" size={14} color="#6b7280" />
+                        <Text style={styles.parishItemLocation}>{item.city || item.location}</Text>
+                      </View>
+                      {!!item.dioceseName && (
+                        <Text style={styles.parishItemDiocese}>Diocèse: {item.dioceseName}</Text>
+                      )}
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {selectedParish?.id === item.id && (
+                        <Ionicons name="checkmark-circle" size={22} color="#f59e0b" />
+                      )}
+                      <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+                    </View>
                   </View>
                 </TouchableOpacity>
               )}
@@ -396,5 +455,60 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Styles pour la liste de paroisses (alignés avec ParishSelectionScreen)
+  parishList: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  parishCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  parishItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  parishItemIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#fcd34d',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  parishItemInfo: {
+    flex: 1,
+  },
+  parishItemName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  parishItemLocation: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginLeft: 6,
+  },
+  parishItemDiocese: {
+    fontSize: 12,
+    color: '#6b7280',
   },
 });

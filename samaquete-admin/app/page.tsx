@@ -24,8 +24,12 @@ export default function HomePage() {
         // Si utilisateur connecté avec rôle, rediriger selon le rôle
         if (userRole.role === 'super_admin') {
           router.push('/admin/dashboard')
-        } else if (userRole.role === 'diocese_admin' || userRole.role === 'parish_admin') {
+        } else if (userRole.role === 'diocese_admin') {
           router.push('/admindiocese/dashboard')
+        } else if (userRole.role === 'parish_admin') {
+          // Rediriger vers l'interface paroisse avec le nom de la paroisse
+          const parishName = userRole.parishId || 'Paroisse Saint Jean Bosco'
+          router.push(`/adminparoisse/dashboard?paroisse=${encodeURIComponent(parishName)}`)
         }
       }
     }

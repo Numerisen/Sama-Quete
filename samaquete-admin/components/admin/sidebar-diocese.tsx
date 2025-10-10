@@ -41,11 +41,6 @@ export default function AdminDioceseSidebar() {
       icon: <Tag className="w-6 h-6" /> 
     },
     { 
-      href: `/admindiocese/liturgy?diocese=${encodeURIComponent(diocese)}`, 
-      label: "Liturgie", 
-      icon: <Calendar className="w-6 h-6" /> 
-    },
-    { 
       href: `/admindiocese/notifications?diocese=${encodeURIComponent(diocese)}`, 
       label: "Notifications", 
       icon: <Bell className="w-6 h-6" /> 

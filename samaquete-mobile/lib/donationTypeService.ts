@@ -13,15 +13,20 @@ export interface DonationType {
   id: string;
   name: string;
   description?: string;
+  icon?: string;
+  gradientColors?: [string, string];
+  defaultAmounts?: [string, string, string, string];
   suggestedAmount?: number;
   isActive: boolean;
   diocese?: string;
+  parishId?: string;
+  order?: number;
   createdAt?: any;
   updatedAt?: any;
 }
 
 export class DonationTypeService {
-  private static collection = 'admin_donation_types';
+  private static collection = 'donation_types';
 
   // Récupérer tous les types de dons actifs
   static async getActiveTypes(): Promise<DonationType[]> {
@@ -29,7 +34,7 @@ export class DonationTypeService {
       const q = query(
         collection(db, this.collection),
         where('isActive', '==', true),
-        orderBy('createdAt', 'desc')
+        orderBy('order', 'asc')
       );
       
       const querySnapshot = await getDocs(q);
@@ -43,6 +48,27 @@ export class DonationTypeService {
     }
   }
 
+  // Récupérer les types de dons actifs par paroisse
+  static async getActiveTypesByParish(parishId: string): Promise<DonationType[]> {
+    try {
+      const q = query(
+        collection(db, this.collection),
+        where('parishId', '==', parishId),
+        where('isActive', '==', true),
+        orderBy('order', 'asc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as DonationType[];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des types de dons par paroisse:', error);
+      return [];
+    }
+  }
+
   // Récupérer les types de dons actifs par diocèse
   static async getActiveTypesByDiocese(diocese: string): Promise<DonationType[]> {
     try {
@@ -50,7 +76,7 @@ export class DonationTypeService {
         collection(db, this.collection),
         where('diocese', '==', diocese),
         where('isActive', '==', true),
-        orderBy('createdAt', 'desc')
+        orderBy('order', 'asc')
       );
       
       const querySnapshot = await getDocs(q);
@@ -70,7 +96,7 @@ export class DonationTypeService {
       const q = query(
         collection(db, this.collection),
         where('diocese', '==', diocese),
-        orderBy('createdAt', 'desc')
+        orderBy('order', 'asc')
       );
       
       const querySnapshot = await getDocs(q);
@@ -89,7 +115,28 @@ export class DonationTypeService {
     const q = query(
       collection(db, this.collection),
       where('isActive', '==', true),
-      orderBy('createdAt', 'desc')
+      orderBy('order', 'asc')
+    );
+    
+    return onSnapshot(q, (querySnapshot) => {
+      const types = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as DonationType[];
+      callback(types);
+    });
+  }
+
+  // Écouter les changements en temps réel des types de dons actifs par paroisse
+  static subscribeToActiveTypesByParish(
+    parishId: string, 
+    callback: (types: DonationType[]) => void
+  ): Unsubscribe {
+    const q = query(
+      collection(db, this.collection),
+      where('parishId', '==', parishId),
+      where('isActive', '==', true),
+      orderBy('order', 'asc')
     );
     
     return onSnapshot(q, (querySnapshot) => {
@@ -110,7 +157,7 @@ export class DonationTypeService {
       collection(db, this.collection),
       where('diocese', '==', diocese),
       where('isActive', '==', true),
-      orderBy('createdAt', 'desc')
+      orderBy('order', 'asc')
     );
     
     return onSnapshot(q, (querySnapshot) => {

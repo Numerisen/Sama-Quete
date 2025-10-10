@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Switch, Alert, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../lib/ThemeContext';
+import { useParishes } from '../../../../hooks/useParishes';
 
 interface SettingsScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -16,6 +17,10 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
   const [isEditing, setIsEditing] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [biometricAuth, setBiometricAuth] = useState(false);
+  const [showChurchModal, setShowChurchModal] = useState(false);
+  
+  // Utiliser le hook des paroisses pour gérer l'église actuelle
+  const { parishes, loading, selectedParish, setSelectedParish } = useParishes();
   
   const [editedProfile, setEditedProfile] = useState({
     firstName: userProfile?.firstName || 'Jean',
@@ -40,6 +45,12 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
         { text: 'Déconnexion', onPress: () => setIsAuthenticated(false) }
       ]
     );
+  };
+
+  const handleChurchSelection = (parish: any) => {
+    setSelectedParish(parish);
+    setShowChurchModal(false);
+    Alert.alert('Succès', `Église changée pour ${parish.name}`);
   };
 
   const recentActivities = [
@@ -132,6 +143,27 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
           </View>
         </View>
 
+        {/* Église actuelle */}
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Votre église</Text>
+        
+        <TouchableOpacity 
+          style={[styles.preferenceCard, { backgroundColor: colors.card }]}
+          onPress={() => setShowChurchModal(true)}
+        >
+          <View style={styles.preferenceItem}>
+            <View style={[styles.preferenceIcon, { backgroundColor: colors.border }]}>
+              <Ionicons name="business-outline" size={24} color={colors.textSecondary} />
+            </View>
+            <View style={styles.preferenceContent}>
+              <Text style={[styles.preferenceTitle, { color: colors.text }]}>Église actuelle</Text>
+              <Text style={[styles.preferenceDescription, { color: colors.textSecondary }]}>
+                {selectedParish?.name || 'Aucune église sélectionnée'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          </View>
+        </TouchableOpacity>
+
         {/* Préférences */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Préférences</Text>
         
@@ -212,6 +244,66 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
           <Text style={[styles.logoutText, { color: colors.error }]}>Se déconnecter</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal de sélection des paroisses */}
+      <Modal
+        visible={showChurchModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowChurchModal(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Changer d'église</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowChurchModal(false)}
+            >
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#f59e0b" />
+              <Text style={[styles.loadingText, { color: colors.text }]}>
+                Chargement des paroisses...
+              </Text>
+            </View>
+          )}
+
+          {!loading && (
+            <FlatList
+              data={parishes}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.parishItem,
+                    selectedParish?.id === item.id && styles.selectedParishItem
+                  ]}
+                  onPress={() => handleChurchSelection(item)}
+                >
+                  <View style={styles.parishItemContent}>
+                    <View style={styles.parishItemIcon}>
+                      <Ionicons name="business" size={24} color="#f59e0b" />
+                    </View>
+                    <View style={styles.parishItemInfo}>
+                      <Text style={[styles.parishItemName, { color: colors.text }]}>{item.name}</Text>
+                      <Text style={[styles.parishItemLocation, { color: colors.textSecondary }]}>{item.city}</Text>
+                      <Text style={[styles.parishItemDiocese, { color: colors.accent }]}>{item.dioceseName}</Text>
+                    </View>
+                    {selectedParish?.id === item.id && (
+                      <Ionicons name="checkmark-circle" size={24} color="#f59e0b" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+              style={styles.parishList}
+            />
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -432,5 +524,86 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  
+  // Styles pour le modal de sélection d'église
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  parishList: {
+    flex: 1,
+    padding: 20,
+  },
+  parishItem: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  selectedParishItem: {
+    borderColor: '#f59e0b',
+    backgroundColor: '#fef3c7',
+  },
+  parishItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  parishItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fef3c7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  parishItemInfo: {
+    flex: 1,
+  },
+  parishItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  parishItemLocation: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  parishItemDiocese: {
+    fontSize: 12,
+    color: '#f59e0b',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
   },
 });

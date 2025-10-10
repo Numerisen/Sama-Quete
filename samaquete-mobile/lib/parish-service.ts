@@ -21,6 +21,12 @@ export interface Parish {
     phone?: string
     address?: string
   }
+  pricing?: {
+    quete: string[]
+    denier: string[]
+    cierge: string[]
+    messe: string[]
+  }
   isActive: boolean
   createdAt: any
   updatedAt: any
