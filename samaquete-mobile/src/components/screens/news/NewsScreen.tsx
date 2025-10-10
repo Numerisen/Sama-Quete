@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image, RefreshControl, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../lib/ThemeContext';
+import { useNews } from '../../../../hooks/useNews';
+import { ChurchStorageService } from '../../../../lib/church-storage';
 
 interface NewsScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -10,66 +12,54 @@ interface NewsScreenProps {
 
 export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
   const { colors } = useTheme();
-  const [selectedParish, setSelectedParish] = useState('Paroisse Saint-Joseph');
+  const [parishId, setParishId] = useState<string>('');
+  const [selectedParish, setSelectedParish] = useState('Ma paroisse');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const newsItems = [
-    {
-      id: 1,
-      title: 'Célébration de la Journée Mondiale de la Jeunesse',
-      description: 'Rejoignez-nous pour une journée spéciale dédiée aux jeunes de notre paroisse avec des activités spirituelles et culturelles.',
-      date: '25 Janvier 2024',
-      time: '14:00',
-      location: 'Salle paroissiale',
-      type: 'event',
-      typeIcon: '🔥',
-      typeColor: '#f59e0b',
-      image: null,
-    },
-    {
-      id: 2,
-      title: 'Collecte pour les familles nécessiteuses',
-      description: 'Notre paroisse organise une collecte de vivres et de vêtements pour soutenir le...',
-      date: '20 Janvier 2024',
-      location: 'Entrée de l\'église',
-      type: 'star',
-      typeIcon: '⭐',
-      typeColor: '#fbbf24',
-      image: null,
-    },
-    {
-      id: 3,
-      title: 'Retraite spirituelle de Carême',
-      description: 'Préparez-vous au temps du Carême avec une retraite spirituelle de trois jou...',
-      date: '10 Février 2024',
-      location: 'Centre spirituel',
-      type: 'event',
-      typeIcon: '🔥',
-      typeColor: '#f59e0b',
-      image: null,
-    },
-    {
-      id: 4,
-      title: 'Nouveau groupe de prière des mères',
-      description: 'Formation d\'un nouveau groupe de prière dédié aux mères de famille....',
-      date: '27 Janvier 2024',
-      location: 'Salle de catéchisme',
-      type: 'star',
-      typeIcon: '⭐',
-      typeColor: '#fbbf24',
-      image: null,
-    },
-    {
-      id: 5,
-      title: 'Travaux de rénovation de l\'église',
-      description: 'Début des travaux de rénovation de la toiture de l\'église. Merci pour votre...',
-      date: '15 Janvier 2024',
-      location: 'Église principale',
-      type: 'work',
-      typeIcon: '🔨',
-      typeColor: '#6b7280',
-      image: null,
-    },
-  ];
+  // Charger les vraies actualités depuis Firestore
+  const { news, loading, error } = useNews(parishId);
+
+  // Charger la paroisse sélectionnée
+  useEffect(() => {
+    loadSelectedParish();
+  }, []);
+
+  const loadSelectedParish = async () => {
+    try {
+      const selectedParishData = await ChurchStorageService.getSelectedChurch();
+      
+      if (selectedParishData && selectedParishData.id) {
+        setParishId(selectedParishData.id);
+        setSelectedParish(selectedParishData.name);
+        console.log('📰 Paroisse chargée pour actualités:', selectedParishData.id, selectedParishData.name);
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors du chargement de la paroisse:', error);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadSelectedParish();
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  // Convertir les actualités Firestore au format du design
+  const newsItems = news.map((item, index) => ({
+    id: item.id || index,
+    title: item.title,
+    description: item.excerpt,
+    date: item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString('fr-FR', { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    }) : '',
+    location: item.author || 'Paroisse',
+    type: item.category === 'Événement' ? 'event' : item.category === 'Annonce' ? 'star' : 'work',
+    typeIcon: item.category === 'Événement' ? '🔥' : item.category === 'Annonce' ? '⭐' : '🔨',
+    typeColor: item.category === 'Événement' ? '#f59e0b' : item.category === 'Annonce' ? '#fbbf24' : '#6b7280',
+    image: null,
+  }));
 
   const handleParishChange = () => {
     // En production, cela ouvrirait un modal de sélection de paroisse
@@ -82,7 +72,13 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         {/* Header vert avec gradient */}
         <LinearGradient colors={['#10b981', '#059669']} style={styles.header}>
           <TouchableOpacity
@@ -96,12 +92,16 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
             <Text style={styles.headerTitle}>Actualités</Text>
             <Text style={styles.headerSubtitle}>Vie paroissiale</Text>
             
-            {/* Carte des nouvelles */}
-            <View style={styles.newsCard}>
-              <Ionicons name="people" size={24} color="#ffffff" />
-              <Text style={styles.newsCardTitle}>5 nouvelles actualités</Text>
-              <Text style={styles.newsCardSubtitle}>Cette semaine</Text>
-            </View>
+              {/* Carte des nouvelles */}
+              <View style={styles.newsCard}>
+                <Ionicons name="newspaper" size={24} color="#ffffff" />
+                <Text style={styles.newsCardTitle}>
+                  {loading ? 'Chargement...' : `${newsItems.length} actualité${newsItems.length > 1 ? 's' : ''}`}
+                </Text>
+                <Text style={styles.newsCardSubtitle}>
+                  {selectedParish}
+                </Text>
+              </View>
           </View>
         </LinearGradient>
 
@@ -116,7 +116,22 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
 
         {/* Liste des actualités */}
         <View style={[styles.newsContainer, { backgroundColor: colors.background }]}>
-          {newsItems.map((item) => (
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#10b981" />
+              <Text style={styles.loadingText}>Chargement des actualités...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={48} color="#ef4444" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : newsItems.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="newspaper-outline" size={64} color="#cbd5e1" />
+              <Text style={styles.emptyText}>Aucune actualité pour le moment</Text>
+            </View>
+          ) : newsItems.map((item) => (
             <View key={item.id} style={[styles.newsItem, { backgroundColor: colors.card }]}>
               {/* Image placeholder */}
               <View style={[styles.newsImage, { backgroundColor: colors.surface }]}>
@@ -165,6 +180,8 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
             </View>
           ))}
         </View>
+        
+        {!loading && !error && newsItems.length === 0 && null}
 
         {/* Footer pour les notifications */}
         <LinearGradient colors={['#10b981', '#059669']} style={styles.footer}>
@@ -382,5 +399,37 @@ const styles = StyleSheet.create({
     color: '#10b981',
     fontSize: 14,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: '#64748b',
+  },
+  errorContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: '#1e293b',
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
   },
 });
