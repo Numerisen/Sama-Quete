@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Mod
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice } from '../../../../lib/numberFormat';
+import { useParishes } from '../../../../hooks/useParishes';
+import { useDonationTypesRealtime } from '../../../../hooks/useDonationTypes';
+import { ChurchStorageService } from '../../../../lib/church-storage';
 
 interface DonationsScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -10,9 +13,6 @@ interface DonationsScreenProps {
   setSelectedDonationType: (type: string) => void;
   setSelectedAmount: (amount: string) => void;
 }
-
-import { useParishes } from '../../../../hooks/useParishes';
-import { DonationTypeService } from '../../../../lib/donationTypeService';
 
 interface DonationTypeDisplay {
   id: string;
@@ -26,52 +26,70 @@ interface DonationTypeDisplay {
 export default function DonationsScreen({ setCurrentScreen, setSelectionContext, setSelectedDonationType, setSelectedAmount }: DonationsScreenProps) {
   const [showParishModal, setShowParishModal] = useState(false);
   const { parishes, loading: parishesLoading, error, selectedParish, setSelectedParish } = useParishes();
-  const [donationTypes, setDonationTypes] = useState<DonationTypeDisplay[]>([]);
-  const [loadingTypes, setLoadingTypes] = useState(true);
+  const [parishId, setParishId] = useState<string>('');
+  const [displayTypes, setDisplayTypes] = useState<DonationTypeDisplay[]>([]);
 
-  // Charger les types de dons depuis Firestore
+  // Utiliser le hook pour charger les types de dons en temps réel
+  const { donationTypes, loading: loadingTypes, error: typesError } = useDonationTypesRealtime(parishId);
+
+  // Charger le parishId depuis le stockage
   useEffect(() => {
-    const loadDonationTypes = async () => {
-      setLoadingTypes(true);
+    const loadParishId = async () => {
       try {
-        let types: any[] = [];
-        
-        // Si une paroisse est sélectionnée, charger ses types de dons spécifiques
-        if (selectedParish?.id) {
-          types = await DonationTypeService.getActiveTypesByParish(selectedParish.id);
-        }
-        
-        // Si aucun type spécifique à la paroisse ou erreur, utiliser les types par défaut
-        if (types.length === 0) {
-          types = await DonationTypeService.getActiveTypes();
-        }
-        
-        if (types.length > 0) {
-          // Convertir les types Firestore en format utilisable par l'app mobile
-          const formattedTypes = types.map((type: any) => ({
-            id: type.id,
-            icon: type.icon || "heart-outline",
-            title: type.name,
-            description: type.description || "",
-            gradientColors: type.gradientColors || ["#f87171", "#ef4444"],
-            prices: type.defaultAmounts || ["1,000", "2,000", "5,000", "10,000"],
-          }));
-          setDonationTypes(formattedTypes);
-        } else {
-          // Types par défaut si aucun type n'est configuré dans Firestore
-          setDonationTypes(getDefaultDonationTypes());
+        const parish = await ChurchStorageService.getSelectedChurch();
+        if (parish && parish.id) {
+          setParishId(parish.id);
+          console.log('💰 ParishId chargé pour types de dons:', parish.id);
         }
       } catch (error) {
-        console.error('Erreur lors du chargement des types de dons:', error);
-        // En cas d'erreur, utiliser les types par défaut
-        setDonationTypes(getDefaultDonationTypes());
-      } finally {
-        setLoadingTypes(false);
+        console.error('❌ Erreur lors du chargement du parishId:', error);
       }
     };
+    loadParishId();
+  }, []);
 
-    loadDonationTypes();
-  }, [selectedParish?.id]);
+  // Convertir les types de dons Firestore en format affichage
+  useEffect(() => {
+    if (donationTypes.length > 0) {
+      const formattedTypes = donationTypes.map((type: any) => ({
+        id: type.id,
+        icon: getIconForType(type.icon || 'heart'),
+        title: type.name,
+        description: type.description || "",
+        gradientColors: getGradientForType(type.icon || 'heart'),
+        prices: type.defaultAmounts.map((amount: number) => formatPrice(amount)),
+      }));
+      setDisplayTypes(formattedTypes);
+      console.log('✅ Types de dons formatés:', formattedTypes.length);
+    } else if (!loadingTypes) {
+      // Si aucun type n'est chargé et qu'on ne charge plus, utiliser les types par défaut
+      setDisplayTypes(getDefaultDonationTypes());
+    }
+  }, [donationTypes, loadingTypes]);
+
+  // Fonction pour mapper les icônes
+  const getIconForType = (iconName: string): string => {
+    const iconMap: { [key: string]: string } = {
+      'heart': 'heart-outline',
+      'gift': 'gift-outline',
+      'church': 'business-outline',
+      'users': 'people-outline',
+      'flame': 'flame-outline',
+    };
+    return iconMap[iconName] || 'heart-outline';
+  };
+
+  // Fonction pour mapper les gradients
+  const getGradientForType = (iconName: string): [string, string] => {
+    const gradientMap: { [key: string]: [string, string] } = {
+      'heart': ['#f87171', '#ef4444'],
+      'gift': ['#fbbf24', '#f59e0b'],
+      'church': ['#8b5cf6', '#7c3aed'],
+      'users': ['#10b981', '#059669'],
+      'flame': ['#f97316', '#ea580c'],
+    };
+    return gradientMap[iconName] || ['#f87171', '#ef4444'];
+  };
 
   // Types de dons par défaut (fallback)
   const getDefaultDonationTypes = (): DonationTypeDisplay[] => [
@@ -153,7 +171,17 @@ export default function DonationsScreen({ setCurrentScreen, setSelectionContext,
 
         {/* Contenu principal avec gradient d'arrière-plan */}
         <View style={styles.content}>
-          {donationTypes.map((type, index) => (
+          {loadingTypes ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#10b981" />
+              <Text style={styles.loadingText}>Chargement des types de dons...</Text>
+            </View>
+          ) : displayTypes.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="cash-outline" size={64} color="#cbd5e1" />
+              <Text style={styles.emptyText}>Aucun type de don configuré pour cette paroisse</Text>
+            </View>
+          ) : displayTypes.map((type, index) => (
             <TouchableOpacity
               key={index}
               style={styles.donationCard}
@@ -177,7 +205,7 @@ export default function DonationsScreen({ setCurrentScreen, setSelectionContext,
                     style={styles.amountButton}
                     onPress={() => handleDonationSelect(type, price)}
                   >
-                    <Text style={styles.amountText}>{formatPrice(price)} FCFA</Text>
+                    <Text style={styles.amountText}>{price} FCFA</Text>
                   </TouchableOpacity>
                 ))}
                 <TouchableOpacity
@@ -191,21 +219,7 @@ export default function DonationsScreen({ setCurrentScreen, setSelectionContext,
           ))}
         </View>
 
-        {/* Footer pour changer d'église */}
-        <View style={styles.footer}>
-          <View style={styles.changeChurchCard}>
-            <View style={styles.changeChurchInfo}>
-              <Text style={styles.changeChurchTitle}>Changer d'église ?</Text>
-              <Text style={styles.changeChurchSubtitle}>Chaque église a ses propres tarifs</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.changeButton}
-              onPress={() => setShowParishModal(true)}
-            >
-              <Text style={styles.changeButtonText}>Changer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        
       </ScrollView>
 
       {/* Modal de sélection des paroisses depuis Firebase */}
@@ -510,5 +524,26 @@ const styles = StyleSheet.create({
   parishItemDiocese: {
     fontSize: 12,
     color: '#6b7280',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: '#64748b',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
   },
 });

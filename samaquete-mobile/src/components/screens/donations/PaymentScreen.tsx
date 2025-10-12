@@ -4,17 +4,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatNumber } from '../../../../lib/numberFormat';
 import { useTheme } from '../../../../lib/ThemeContext';
+import { useParishes } from '../../../../hooks/useParishes';
 
 interface PaymentScreenProps {
   setCurrentScreen: (screen: string) => void;
-  selectedParish: string;
   selectedDonationType: string;
   selectedAmount: string;
 }
 
-export default function PaymentScreen({ setCurrentScreen, selectedParish, selectedDonationType, selectedAmount }: PaymentScreenProps) {
+export default function PaymentScreen({ setCurrentScreen, selectedDonationType, selectedAmount }: PaymentScreenProps) {
   const { colors } = useTheme();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('carte');
+  
+  // Utiliser le hook useParishes pour obtenir la paroisse sélectionnée
+  const { selectedParish } = useParishes();
 
   const paymentMethods = [
     {
@@ -47,7 +50,7 @@ export default function PaymentScreen({ setCurrentScreen, selectedParish, select
     // Logique de paiement ici
     console.log('Paiement effectué:', {
       method: selectedPaymentMethod,
-      parish: selectedParish,
+      parish: selectedParish?.name || 'Paroisse',
       type: selectedDonationType,
       amount: selectedAmount
     });
@@ -74,7 +77,7 @@ export default function PaymentScreen({ setCurrentScreen, selectedParish, select
           <Text style={styles.headerTitle}>Finaliser le don</Text>
           <View style={styles.churchInfo}>
             <Ionicons name="location-outline" size={16} color="white" />
-            <Text style={styles.churchName}>{selectedParish}</Text>
+            <Text style={styles.churchName}>{selectedParish?.name || 'Paroisse'}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -91,7 +94,7 @@ export default function PaymentScreen({ setCurrentScreen, selectedParish, select
           
           <View style={styles.summaryRow}>
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Église</Text>
-            <Text style={[styles.summaryValue, { color: colors.text }]}>{selectedParish}</Text>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>{selectedParish?.name || 'Paroisse'}</Text>
           </View>
           
           <View style={styles.summaryRow}>

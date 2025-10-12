@@ -1,69 +1,101 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image, RefreshControl, ActivityIndicator, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../lib/ThemeContext';
 import { useNews } from '../../../../hooks/useNews';
-import { ChurchStorageService } from '../../../../lib/church-storage';
+import { useParishes } from '../../../../hooks/useParishes';
 
 interface NewsScreenProps {
   setCurrentScreen: (screen: string) => void;
 }
 
+interface NewsItem {
+  id: string | number;
+  title: string;
+  description: string;
+  date: string;
+  location: string | null;
+  type: string;
+  typeIcon: string;
+  typeColor: string;
+  image: string | null;
+  content?: string;
+  category?: string;
+}
+
 export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
   const { colors } = useTheme();
-  const [parishId, setParishId] = useState<string>('');
-  const [selectedParish, setSelectedParish] = useState('Ma paroisse');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  // Utiliser le hook useParishes pour gérer la paroisse sélectionnée
+  const { selectedParish, loading: parishLoading } = useParishes();
+  
+  const parishId = selectedParish?.id || '';
+  const parishName = selectedParish?.name || 'Ma paroisse';
 
   // Charger les vraies actualités depuis Firestore
   const { news, loading, error } = useNews(parishId);
 
-  // Charger la paroisse sélectionnée
-  useEffect(() => {
-    loadSelectedParish();
-  }, []);
-
-  const loadSelectedParish = async () => {
-    try {
-      const selectedParishData = await ChurchStorageService.getSelectedChurch();
-      
-      if (selectedParishData && selectedParishData.id) {
-        setParishId(selectedParishData.id);
-        setSelectedParish(selectedParishData.name);
-        console.log('📰 Paroisse chargée pour actualités:', selectedParishData.id, selectedParishData.name);
-      }
-    } catch (error) {
-      console.error('❌ Erreur lors du chargement de la paroisse:', error);
-    }
-  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadSelectedParish();
+    // Le hook useParishes gère déjà le rafraîchissement
     setTimeout(() => setRefreshing(false), 1000);
   };
 
+  // Mapper les catégories aux icônes et couleurs
+  const getCategoryStyle = (category: string) => {
+    const categoryMap: Record<string, { icon: string; color: string; type: string }> = {
+      'Annonce': { icon: '📢', color: '#fbbf24', type: 'announcement' },
+      'Événement': { icon: '🎉', color: '#f59e0b', type: 'event' },
+      'Célébration': { icon: '✨', color: '#8b5cf6', type: 'celebration' },
+      'Formation': { icon: '📚', color: '#10b981', type: 'formation' },
+      'Pastorale': { icon: '🙏', color: '#ef4444', type: 'pastoral' },
+      'Jeunesse': { icon: '🌟', color: '#06b6d4', type: 'youth' },
+      'Caritative': { icon: '❤️', color: '#ec4899', type: 'charity' },
+      'Autre': { icon: '📰', color: '#6b7280', type: 'other' },
+    };
+    return categoryMap[category] || categoryMap['Autre'];
+  };
+
   // Convertir les actualités Firestore au format du design
-  const newsItems = news.map((item, index) => ({
-    id: item.id || index,
-    title: item.title,
-    description: item.excerpt,
-    date: item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString('fr-FR', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
-    }) : '',
-    location: item.author || 'Paroisse',
-    type: item.category === 'Événement' ? 'event' : item.category === 'Annonce' ? 'star' : 'work',
-    typeIcon: item.category === 'Événement' ? '🔥' : item.category === 'Annonce' ? '⭐' : '🔨',
-    typeColor: item.category === 'Événement' ? '#f59e0b' : item.category === 'Annonce' ? '#fbbf24' : '#6b7280',
-    image: null,
-  }));
+  const newsItems: NewsItem[] = news.map((item, index) => {
+    const categoryStyle = getCategoryStyle(item.category);
+    // Afficher l'auteur seulement si showAuthor est true
+    // Si showAuthor est false, ne pas afficher du tout (même pas "Paroisse")
+    const displayAuthor = item.showAuthor !== false ? (item.author || 'Paroisse') : null;
+    
+    return {
+      id: item.id || index,
+      title: item.title,
+      description: item.excerpt,
+      content: item.content,
+      category: item.category,
+      date: item.createdAt ? new Date(item.createdAt.toDate()).toLocaleDateString('fr-FR', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      }) : '',
+      location: displayAuthor,
+      type: categoryStyle.type,
+      typeIcon: categoryStyle.icon,
+      typeColor: categoryStyle.color,
+      image: item.image || null,
+    };
+  });
+
+  const handleNewsPress = (newsItem: NewsItem) => {
+    setSelectedNews(newsItem);
+    setModalVisible(true);
+  };
 
   const handleParishChange = () => {
     // En production, cela ouvrirait un modal de sélection de paroisse
-    setSelectedParish('Paroisse Sainte-Anne');
+    // La sélection de paroisse est maintenant gérée par le hook useParishes
+    console.log('Changement de paroisse demandé');
   };
 
   const handleNotifications = () => {
@@ -99,20 +131,22 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
                   {loading ? 'Chargement...' : `${newsItems.length} actualité${newsItems.length > 1 ? 's' : ''}`}
                 </Text>
                 <Text style={styles.newsCardSubtitle}>
-                  {selectedParish}
+                  {parishName}
                 </Text>
               </View>
           </View>
         </LinearGradient>
 
-        {/* Sélection de paroisse */}
-        <View style={[styles.parishSelector, { backgroundColor: colors.background }]}>
+        {/* Sélection de paroisse 
+         <View style={[styles.parishSelector, { backgroundColor: colors.background }]}>
           <TouchableOpacity style={[styles.parishButton, { backgroundColor: colors.card }]} onPress={handleParishChange}>
             <Ionicons name="location" size={16} color={colors.primary} />
-            <Text style={[styles.parishText, { color: colors.text }]}>{selectedParish}</Text>
+            <Text style={[styles.parishText, { color: colors.text }]}>{parishName}</Text>
             <Ionicons name="chevron-down" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
+        */}
+       
 
         {/* Liste des actualités */}
         <View style={[styles.newsContainer, { backgroundColor: colors.background }]}>
@@ -132,11 +166,24 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
               <Text style={styles.emptyText}>Aucune actualité pour le moment</Text>
             </View>
           ) : newsItems.map((item) => (
-            <View key={item.id} style={[styles.newsItem, { backgroundColor: colors.card }]}>
-              {/* Image placeholder */}
-              <View style={[styles.newsImage, { backgroundColor: colors.surface }]}>
-                <Ionicons name="image" size={24} color={colors.textSecondary} />
-              </View>
+            <TouchableOpacity 
+              key={item.id} 
+              style={[styles.newsItem, { backgroundColor: colors.card }]}
+              onPress={() => handleNewsPress(item)}
+              activeOpacity={0.7}
+            >
+              {/* Image réelle ou placeholder */}
+              {item.image ? (
+                <Image 
+                  source={{ uri: item.image }} 
+                  style={styles.newsImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={[styles.newsImage, { backgroundColor: colors.surface }]}>
+                  <Ionicons name="image" size={24} color={colors.textSecondary} />
+                </View>
+              )}
               
               {/* Contenu de l'actualité */}
               <View style={styles.newsContent}>
@@ -145,8 +192,7 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
                   <View style={[styles.typeBadge, { backgroundColor: item.typeColor }]}>
                     <Text style={styles.typeIcon}>{item.typeIcon}</Text>
                     <Text style={styles.typeText}>
-                      {item.type === 'event' ? 'Événement' : 
-                       item.type === 'star' ? 'Important' : 'Travaux'}
+                      {item.category}
                     </Text>
                   </View>
                 </View>
@@ -164,26 +210,21 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
                     <Text style={[styles.metadataText, { color: colors.textSecondary }]}>{item.date}</Text>
                   </View>
                   
-                  {item.time && (
+                  {item.location && (
                     <View style={styles.metadataItem}>
-                      <Ionicons name="time" size={14} color={colors.textSecondary} />
-                      <Text style={[styles.metadataText, { color: colors.textSecondary }]}>{item.time}</Text>
+                      <Ionicons name="location" size={14} color={colors.textSecondary} />
+                      <Text style={[styles.metadataText, { color: colors.textSecondary }]}>{item.location}</Text>
                     </View>
                   )}
-                  
-                  <View style={styles.metadataItem}>
-                    <Ionicons name="location" size={14} color={colors.textSecondary} />
-                    <Text style={[styles.metadataText, { color: colors.textSecondary }]}>{item.location}</Text>
-                  </View>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
         
         {!loading && !error && newsItems.length === 0 && null}
 
-        {/* Footer pour les notifications */}
+        {/* Footer pour les notifications 
         <LinearGradient colors={['#10b981', '#059669']} style={styles.footer}>
           <View style={styles.footerContent}>
             <Ionicons name="heart" size={32} color="#ffffff" style={styles.footerIcon} />
@@ -196,8 +237,84 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
               <Text style={[styles.notificationsButtonText, { color: colors.text }]}>Gérer les notifications</Text>
             </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </LinearGradient>*/}
       </ScrollView>
+
+      {/* Modal de détails de l'actualité */}
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          <ScrollView style={styles.modalScrollView}>
+            {/* Header du modal avec image */}
+            {selectedNews?.image ? (
+              <Image 
+                source={{ uri: selectedNews.image }} 
+                style={styles.modalImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.modalImagePlaceholder, { backgroundColor: colors.surface }]}>
+                <Ionicons name="newspaper" size={64} color={colors.textSecondary} />
+              </View>
+            )}
+
+            {/* Bouton fermer */}
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setModalVisible(false)}
+            >
+              <View style={styles.closeButtonCircle}>
+                <Ionicons name="close" size={24} color="#ffffff" />
+              </View>
+            </TouchableOpacity>
+
+            {/* Contenu du modal */}
+            <View style={styles.modalContent}>
+              {/* Badge catégorie */}
+              {selectedNews?.category && (
+                <View style={[styles.modalCategoryBadge, { backgroundColor: selectedNews.typeColor }]}>
+                  <Text style={styles.modalCategoryText}>{selectedNews.category}</Text>
+                </View>
+              )}
+
+              {/* Titre */}
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {selectedNews?.title}
+              </Text>
+
+              {/* Métadonnées */}
+              <View style={styles.modalMetadata}>
+                <View style={styles.modalMetadataItem}>
+                  <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+                  <Text style={[styles.modalMetadataText, { color: colors.textSecondary }]}>
+                    {selectedNews?.date}
+                  </Text>
+                </View>
+                {selectedNews?.location && (
+                  <View style={styles.modalMetadataItem}>
+                    <Ionicons name="person-outline" size={16} color={colors.textSecondary} />
+                    <Text style={[styles.modalMetadataText, { color: colors.textSecondary }]}>
+                      {selectedNews?.location}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Séparateur */}
+              <View style={[styles.modalDivider, { backgroundColor: colors.border }]} />
+
+              {/* Contenu complet */}
+              <Text style={[styles.modalContentText, { color: colors.text }]}>
+                {selectedNews?.content || selectedNews?.description}
+              </Text>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -431,5 +548,82 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
     textAlign: 'center',
+  },
+  // Styles du modal
+  modalContainer: {
+    flex: 1,
+  },
+  modalScrollView: {
+    flex: 1,
+  },
+  modalImage: {
+    width: '100%',
+    height: 300,
+  },
+  modalImagePlaceholder: {
+    width: '100%',
+    height: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 48,
+    right: 16,
+    zIndex: 10,
+  },
+  closeButtonCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalCategoryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  modalCategoryText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    lineHeight: 32,
+  },
+  modalMetadata: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    marginBottom: 20,
+  },
+  modalMetadataItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  modalMetadataText: {
+    fontSize: 14,
+  },
+  modalDivider: {
+    height: 1,
+    marginVertical: 20,
+  },
+  modalContentText: {
+    fontSize: 16,
+    lineHeight: 26,
+    letterSpacing: 0.3,
   },
 });

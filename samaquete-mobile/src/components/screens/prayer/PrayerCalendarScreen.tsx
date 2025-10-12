@@ -8,25 +8,28 @@ import {
   scheduleAllPrayerNotifications,
   notifyPrayerTimesUpdated 
 } from '../../../../lib/notificationService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useParishes } from '../../../../hooks/useParishes';
 
 interface PrayerCalendarScreenProps {
   setCurrentScreen: (screen: string) => void;
 }
 
 export default function PrayerCalendarScreen({ setCurrentScreen }: PrayerCalendarScreenProps) {
-  const [parishId, setParishId] = useState<string>('paroisse-saint-jean-bosco');
-  const [parishName, setParishName] = useState<string>('Paroisse Saint Jean Bosco');
   const [refreshing, setRefreshing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
+  // Utiliser le hook useParishes pour gérer la paroisse sélectionnée
+  const { selectedParish, loading: parishLoading } = useParishes();
+  
+  const parishId = selectedParish?.id || 'paroisse-saint-jean-bosco';
+  const parishName = selectedParish?.name || 'Paroisse Saint Jean Bosco';
+
   const { prayerTimes, loading, error, refresh } = usePrayerTimes(parishId);
   const weeklySchedule = getWeeklySchedule(prayerTimes);
 
-  // Charger la paroisse sélectionnée
+  // Charger les notifications
   useEffect(() => {
-    loadSelectedParish();
     checkNotificationStatus();
   }, []);
 
@@ -42,28 +45,6 @@ export default function PrayerCalendarScreen({ setCurrentScreen }: PrayerCalenda
     setLastUpdate(new Date());
   }, [prayerTimes]);
 
-  const loadSelectedParish = async () => {
-    try {
-      const selectedParish = await AsyncStorage.getItem('selectedParish');
-      console.log('📍 Paroisse sélectionnée (AsyncStorage):', selectedParish);
-      
-      if (selectedParish) {
-        const parish = JSON.parse(selectedParish);
-        const id = parish.id || 'paroisse-saint-jean-bosco';
-        const name = parish.name || 'Paroisse Saint Jean Bosco';
-        
-        console.log('🏛️ ParishId utilisé:', id);
-        console.log('🏛️ Parish name:', name);
-        
-        setParishId(id);
-        setParishName(name);
-      } else {
-        console.log('⚠️ Aucune paroisse sélectionnée, utilisation de la valeur par défaut');
-      }
-    } catch (error) {
-      console.error('Erreur lors du chargement de la paroisse:', error);
-    }
-  };
 
   const checkNotificationStatus = async () => {
     try {

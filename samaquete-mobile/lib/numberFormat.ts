@@ -25,11 +25,16 @@ export function formatAmount(amount: number | string): string {
 
 /**
  * Formate un prix pour l'affichage dans les cartes de don
- * @param price - Le prix à formater
+ * @param price - Le prix à formater (nombre ou string)
  * @returns Le prix formaté (ex: "1 000")
  */
-export function formatPrice(price: string): string {
-  // Si le prix contient déjà des virgules, les remplacer par des espaces
+export function formatPrice(price: number | string): string {
+  // Si c'est déjà un nombre, le formater directement
+  if (typeof price === 'number') {
+    return formatNumber(price);
+  }
+  
+  // Si c'est une string qui contient déjà des virgules, les remplacer par des espaces
   if (price.includes(',')) {
     return price.replace(/,/g, ' ');
   }

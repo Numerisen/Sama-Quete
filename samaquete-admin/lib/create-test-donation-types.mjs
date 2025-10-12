@@ -1,16 +1,24 @@
-const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
 
-// Initialiser Firebase Admin
-const app = initializeApp({
-  credential: cert(require('../../../samaquete-mobile/google-services.json'))
-});
+// Configuration Firebase (à adapter avec vos vraies credentials)
+const firebaseConfig = {
+  apiKey: "AIzaSyDgLyN_XqPQm9bfp2F7y9dGEkNhHDhJHk4",
+  authDomain: "sama-quete.firebaseapp.com",
+  projectId: "sama-quete",
+  storageBucket: "sama-quete.firebasestorage.app",
+  messagingSenderId: "1045326893063",
+  appId: "1:1045326893063:web:4a16f19f10e43e2b6d8f71",
+  measurementId: "G-Z4VEB6XTJM"
+};
 
+// Initialiser Firebase
+const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-async function initDonationTypes() {
+async function createDonationTypes() {
   try {
-    // L'ID de la paroisse "Paroisse Saint Jean BOSCO" (trouvé précédemment)
+    // L'ID de la paroisse "Paroisse Saint Jean BOSCO"
     const parishId = 'BRVgyxJZA6OjBt5VZszs';
     
     console.log('📦 Création des types de dons pour la paroisse...');
@@ -63,7 +71,7 @@ async function initDonationTypes() {
     ];
     
     for (const type of donationTypes) {
-      const docRef = await db.collection('parish_donation_types').add(type);
+      const docRef = await addDoc(collection(db, 'parish_donation_types'), type);
       console.log(`✅ Type de don "${type.name}" créé avec l'ID: ${docRef.id}`);
     }
     
@@ -76,11 +84,12 @@ async function initDonationTypes() {
     console.log(`2. Modifier/ajouter des types de dons`);
     console.log(`3. Les voir apparaître dans l'app mobile!`);
     
+    process.exit(0);
   } catch (error) {
     console.error('❌ Erreur lors de la création des types de dons:', error);
-  } finally {
-    process.exit();
+    process.exit(1);
   }
 }
 
-initDonationTypes();
+createDonationTypes();
+

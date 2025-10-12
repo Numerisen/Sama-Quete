@@ -28,7 +28,6 @@ SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('splash');
-  const [selectedParish, setSelectedParish] = useState('');
   const [selectedDonationType, setSelectedDonationType] = useState('');
   const [selectedAmount, setSelectedAmount] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
@@ -64,8 +63,6 @@ export default function App() {
 
   const screenProps = {
     setCurrentScreen,
-    selectedParish,
-    setSelectedParish,
     selectedDonationType,
     setSelectedDonationType,
     selectedAmount,
@@ -87,7 +84,7 @@ export default function App() {
       case 'dashboard':
         return <DashboardScreen {...screenProps} />;
       case 'parish-selection':
-        return <ParishSelectionScreen {...screenProps} />;
+        return <ParishSelectionScreen setCurrentScreen={setCurrentScreen} />;
       case 'donations':
         return <DonationsScreen 
           setCurrentScreen={setCurrentScreen}
@@ -96,7 +93,12 @@ export default function App() {
           setSelectedAmount={setSelectedAmount}
         />;
       case 'donation-type':
-        return <DonationTypeScreen {...screenProps} />;
+        return <DonationTypeScreen 
+          setCurrentScreen={setCurrentScreen}
+          setSelectedAmount={setSelectedAmount}
+          setSelectedDonationType={setSelectedDonationType}
+          selectionContext={selectionContext}
+        />;
       case 'donation-history':
         return <DonationHistoryScreen {...screenProps} />;
       case 'auth':
@@ -104,7 +106,6 @@ export default function App() {
       case 'payment':
         return <PaymentScreen 
           setCurrentScreen={setCurrentScreen}
-          selectedParish={selectedParish}
           selectedDonationType={selectedDonationType}
           selectedAmount={selectedAmount}
         />;

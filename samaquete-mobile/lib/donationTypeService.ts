@@ -15,9 +15,10 @@ export interface DonationType {
   description?: string;
   icon?: string;
   gradientColors?: [string, string];
-  defaultAmounts?: [string, string, string, string];
+  defaultAmounts: number[];  // Tableau de 4 montants en FCFA
   suggestedAmount?: number;
-  isActive: boolean;
+  isActive?: boolean;
+  active?: boolean;  // Support pour les deux formats
   diocese?: string;
   parishId?: string;
   order?: number;
@@ -27,6 +28,7 @@ export interface DonationType {
 
 export class DonationTypeService {
   private static collection = 'donation_types';
+  private static parishCollection = 'parish_donation_types';
 
   // Récupérer tous les types de dons actifs
   static async getActiveTypes(): Promise<DonationType[]> {
@@ -48,23 +50,26 @@ export class DonationTypeService {
     }
   }
 
-  // Récupérer les types de dons actifs par paroisse
+  // Récupérer les types de dons actifs par paroisse (depuis parish_donation_types)
   static async getActiveTypesByParish(parishId: string): Promise<DonationType[]> {
     try {
+      // Requête simple sans orderBy pour éviter composite index
       const q = query(
-        collection(db, this.collection),
+        collection(db, this.parishCollection),
         where('parishId', '==', parishId),
-        where('isActive', '==', true),
-        orderBy('order', 'asc')
+        where('active', '==', true)
       );
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const types = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as DonationType[];
+      
+      // Tri côté client
+      return types.sort((a, b) => (a.order || 0) - (b.order || 0));
     } catch (error) {
-      console.error('Erreur lors de la récupération des types de dons par paroisse:', error);
+      console.error('❌ Erreur lors de la récupération des types de dons par paroisse:', error);
       return [];
     }
   }
@@ -132,11 +137,11 @@ export class DonationTypeService {
     parishId: string, 
     callback: (types: DonationType[]) => void
   ): Unsubscribe {
+    // Requête simple sans orderBy pour éviter composite index
     const q = query(
-      collection(db, this.collection),
+      collection(db, this.parishCollection),
       where('parishId', '==', parishId),
-      where('isActive', '==', true),
-      orderBy('order', 'asc')
+      where('active', '==', true)
     );
     
     return onSnapshot(q, (querySnapshot) => {
@@ -144,7 +149,10 @@ export class DonationTypeService {
         id: doc.id,
         ...doc.data()
       })) as DonationType[];
-      callback(types);
+      
+      // Tri côté client
+      const sortedTypes = types.sort((a, b) => (a.order || 0) - (b.order || 0));
+      callback(sortedTypes);
     });
   }
 

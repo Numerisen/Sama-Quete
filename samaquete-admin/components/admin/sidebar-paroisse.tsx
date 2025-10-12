@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
-import { Home, Users, Newspaper, DollarSign, Bot, Settings, ShieldCheck, Church, Bell, Calendar, Activity, FileText, Tag, Clock, Heart } from "lucide-react"
+import { Home, Users, Newspaper, DollarSign, Bot, Settings, ShieldCheck, Church, Bell, Calendar, Activity, FileText, Tag, Clock, Heart, Gift } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 export default function AdminParoisseSidebar() {
@@ -22,10 +22,14 @@ export default function AdminParoisseSidebar() {
       label: "Heures de prières", 
       icon: <Clock className="w-6 h-6" /> 
     },
-
+    { 
+      href: `/adminparoisse/donation-types?paroisse=${encodeURIComponent(paroisse)}`, 
+      label: "Types de dons", 
+      icon: <Gift className="w-6 h-6" /> 
+    },
     { 
       href: `/adminparoisse/donations?paroisse=${encodeURIComponent(paroisse)}`, 
-      label: "Dons de la paroisse", 
+      label: "Historique dons", 
       icon: <DollarSign className="w-6 h-6" /> 
     },
     

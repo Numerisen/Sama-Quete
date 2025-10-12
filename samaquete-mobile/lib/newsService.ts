@@ -21,6 +21,7 @@ export interface ParishNews {
   published: boolean
   image?: string
   author?: string
+  showAuthor?: boolean
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }

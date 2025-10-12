@@ -1,27 +1,28 @@
 import { useState, useEffect } from 'react';
 import { DonationTypeService, DonationType } from '../lib/donationTypeService';
 
-export const useDonationTypes = (diocese?: string) => {
+export const useDonationTypes = (parishId?: string) => {
   const [donationTypes, setDonationTypes] = useState<DonationType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!parishId) {
+      setLoading(false);
+      return;
+    }
+
     const loadDonationTypes = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        let types: DonationType[];
-        if (diocese) {
-          types = await DonationTypeService.getActiveTypesByDiocese(diocese);
-        } else {
-          types = await DonationTypeService.getActiveTypes();
-        }
-        
+        const types = await DonationTypeService.getActiveTypesByParish(parishId);
         setDonationTypes(types);
+        
+        console.log('✅ Types de dons chargés:', types.length, 'pour paroisse:', parishId);
       } catch (err) {
-        console.error('Erreur lors du chargement des types de dons:', err);
+        console.error('❌ Erreur lors du chargement des types de dons:', err);
         setError('Impossible de charger les types de dons');
       } finally {
         setLoading(false);
@@ -29,26 +30,23 @@ export const useDonationTypes = (diocese?: string) => {
     };
 
     loadDonationTypes();
-  }, [diocese]);
+  }, [parishId]);
 
   return {
     donationTypes,
     loading,
     error,
     refetch: () => {
+      if (!parishId) return;
+      
       setLoading(true);
       const loadDonationTypes = async () => {
         try {
           setError(null);
-          let types: DonationType[];
-          if (diocese) {
-            types = await DonationTypeService.getActiveTypesByDiocese(diocese);
-          } else {
-            types = await DonationTypeService.getActiveTypes();
-          }
+          const types = await DonationTypeService.getActiveTypesByParish(parishId);
           setDonationTypes(types);
         } catch (err) {
-          console.error('Erreur lors du rechargement des types de dons:', err);
+          console.error('❌ Erreur lors du rechargement des types de dons:', err);
           setError('Impossible de recharger les types de dons');
         } finally {
           setLoading(false);
@@ -59,12 +57,17 @@ export const useDonationTypes = (diocese?: string) => {
   };
 };
 
-export const useDonationTypesRealtime = (diocese?: string) => {
+export const useDonationTypesRealtime = (parishId?: string) => {
   const [donationTypes, setDonationTypes] = useState<DonationType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!parishId) {
+      setLoading(false);
+      return;
+    }
+
     let unsubscribe: (() => void) | undefined;
 
     const setupRealtimeListener = () => {
@@ -72,24 +75,16 @@ export const useDonationTypesRealtime = (diocese?: string) => {
         setLoading(true);
         setError(null);
 
-        if (diocese) {
-          unsubscribe = DonationTypeService.subscribeToActiveTypesByDiocese(
-            diocese,
-            (types) => {
-              setDonationTypes(types);
-              setLoading(false);
-            }
-          );
-        } else {
-          unsubscribe = DonationTypeService.subscribeToActiveTypes(
-            (types) => {
-              setDonationTypes(types);
-              setLoading(false);
-            }
-          );
-        }
+        unsubscribe = DonationTypeService.subscribeToActiveTypesByParish(
+          parishId,
+          (types) => {
+            setDonationTypes(types);
+            setLoading(false);
+            console.log('🔄 Types de dons mis à jour en temps réel:', types.length);
+          }
+        );
       } catch (err) {
-        console.error('Erreur lors de la configuration de l\'écoute en temps réel:', err);
+        console.error('❌ Erreur lors de la configuration de l\'écoute en temps réel:', err);
         setError('Impossible de configurer l\'écoute en temps réel');
         setLoading(false);
       }
@@ -102,7 +97,7 @@ export const useDonationTypesRealtime = (diocese?: string) => {
         unsubscribe();
       }
     };
-  }, [diocese]);
+  }, [parishId]);
 
   return {
     donationTypes,

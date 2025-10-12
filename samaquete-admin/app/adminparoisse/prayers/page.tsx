@@ -22,6 +22,7 @@ import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { PrayerTimeService } from "@/lib/parish-services"
 import { AdminNotificationService } from "@/lib/notification-service"
+import { UserProfileService } from "@/lib/user-profile-service"
 
 interface PrayerTime {
   id?: string;
@@ -98,7 +99,24 @@ export default function PrayersPage() {
         parishId
       }
 
-      await PrayerTimeService.create(prayerData)
+      const createdPrayer = await PrayerTimeService.create(prayerData)
+      
+      // Enregistrer l'activité
+      try {
+        await UserProfileService.logCreate(
+          userRole?.id || '',
+          'prayer_time',
+          prayerData.name,
+          createdPrayer.id,
+          {
+            before: null,
+            after: prayerData,
+            fields: ['name', 'time', 'days', 'description']
+          }
+        )
+      } catch (logError) {
+        console.warn('Erreur journalisation:', logError)
+      }
       
       // Envoyer une notification à tous les utilisateurs de la paroisse
       await AdminNotificationService.notifyPrayerTimeUpdate(
@@ -133,7 +151,26 @@ export default function PrayersPage() {
 
   const handleSaveEdit = async (id: string, updatedPrayer: Partial<PrayerTime>) => {
     try {
+      const originalPrayer = prayerTimes.find(p => p.id === id)
+      
       await PrayerTimeService.update(id, updatedPrayer)
+      
+      // Enregistrer l'activité
+      try {
+        await UserProfileService.logUpdate(
+          userRole?.id || '',
+          'prayer_time',
+          updatedPrayer.name || originalPrayer?.name || 'Heure de prière',
+          id,
+          {
+            before: originalPrayer,
+            after: { ...originalPrayer, ...updatedPrayer },
+            fields: Object.keys(updatedPrayer)
+          }
+        )
+      } catch (logError) {
+        console.warn('Erreur journalisation:', logError)
+      }
       
       // Envoyer une notification de modification
       if (updatedPrayer.name && updatedPrayer.time) {
@@ -167,6 +204,18 @@ export default function PrayersPage() {
       const prayer = prayerTimes.find(p => p.id === id)
       
       await PrayerTimeService.delete(id)
+      
+      // Enregistrer l'activité
+      try {
+        await UserProfileService.logDelete(
+          userRole?.id || '',
+          'prayer_time',
+          prayer?.name || 'Heure de prière',
+          id
+        )
+      } catch (logError) {
+        console.warn('Erreur journalisation:', logError)
+      }
       
       // Envoyer une notification de suppression
       if (prayer) {

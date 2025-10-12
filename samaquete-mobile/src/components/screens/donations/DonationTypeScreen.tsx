@@ -3,18 +3,21 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput } fro
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice, formatAmount } from '../../../../lib/numberFormat';
+import { useParishes } from '../../../../hooks/useParishes';
 
 interface DonationTypeScreenProps {
   setCurrentScreen: (screen: string) => void;
   setSelectedAmount: (amount: string) => void;
   setSelectedDonationType: (type: string) => void;
   selectionContext: string;
-  selectedParish: string;
 }
 
-export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount, selectionContext, selectedParish }: DonationTypeScreenProps) {
+export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount, selectionContext }: DonationTypeScreenProps) {
   const [customAmount, setCustomAmount] = useState('');
   const [selectedAmount, setSelectedAmountLocal] = useState('');
+  
+  // Utiliser le hook useParishes pour obtenir la paroisse sélectionnée
+  const { selectedParish } = useParishes();
 
   // Tarifs spécifiques par église et type de don
   const parishPricing = {
@@ -73,7 +76,7 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
   };
 
   const donationType = getDonationType();
-  const currentPricing = parishPricing[selectedParish as keyof typeof parishPricing] || parishPricing["Cathédrale du Souvenir Africain"];
+  const currentPricing = parishPricing[selectedParish?.name as keyof typeof parishPricing] || parishPricing["Cathédrale du Souvenir Africain"];
   const amounts = currentPricing[donationType as keyof typeof currentPricing] || [];
   const currentDonation = donationInfo[donationType as keyof typeof donationInfo];
 
@@ -111,7 +114,7 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
           <Text style={styles.headerTitle}>{currentDonation?.title}</Text>
           <View style={styles.parishInfo}>
             <Ionicons name="location" size={16} color="#ffffff" />
-            <Text style={styles.parishName}>{selectedParish}</Text>
+            <Text style={styles.parishName}>{selectedParish?.name || 'Paroisse'}</Text>
           </View>
         </View>
       </LinearGradient>

@@ -7,15 +7,14 @@ import { useParishes } from '../../../hooks/useParishes';
 
 interface ParishSelectionScreenProps {
   setCurrentScreen: (screen: string) => void;
-  setSelectedParish: (parish: string) => void;
 }
 
-export default function ParishSelectionScreen({ setCurrentScreen, setSelectedParish }: ParishSelectionScreenProps) {
+export default function ParishSelectionScreen({ setCurrentScreen }: ParishSelectionScreenProps) {
   const { colors } = useTheme();
-  const { parishes, loading, error } = useParishes();
+  const { parishes, loading, error, setSelectedParish } = useParishes();
 
-  const handleParishSelection = (parishName: string) => {
-    setSelectedParish(parishName);
+  const handleParishSelection = (parish: any) => {
+    setSelectedParish(parish);
     setCurrentScreen('donations');
   };
 
@@ -61,7 +60,7 @@ export default function ParishSelectionScreen({ setCurrentScreen, setSelectedPar
             <TouchableOpacity
               key={parish.id || index}
               style={[styles.parishCard, { backgroundColor: colors.card }]}
-              onPress={() => handleParishSelection(parish.name)}
+                  onPress={() => handleParishSelection(parish)}
             >
               <View style={styles.parishIcon}>
                 <Ionicons name={'business' as any} size={24} color="#92400E" />

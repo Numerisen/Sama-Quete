@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Bell, User, LogOut, Settings, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
 import { useToast } from "@/hooks/use-toast"
+import { NotificationBell } from "./notification-bell"
 
 export default function AdminParoisseHeader({ openSidebar }: { openSidebar: () => void }) {
   const searchParams = useSearchParams()
@@ -22,7 +24,6 @@ export default function AdminParoisseHeader({ openSidebar }: { openSidebar: () =
   const router = useRouter()
   const { logout, userRole } = useAuth()
   const { toast } = useToast()
-  const [notifications] = useState(3) // Simulé
 
   const handleLogout = async () => {
     try {
@@ -63,7 +64,7 @@ export default function AdminParoisseHeader({ openSidebar }: { openSidebar: () =
                 Administration Paroisse
               </h1>
               <p className="text-sm text-gray-600 truncate max-w-md">
-                {userRole?.parishName || paroisse}
+                {paroisse}
               </p>
             </div>
           </div>
@@ -71,43 +72,7 @@ export default function AdminParoisseHeader({ openSidebar }: { openSidebar: () =
           {/* Actions de droite */}
           <div className="flex items-center gap-3">
             {/* Notifications */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="relative">
-                  <Bell className="w-5 h-5" />
-                  {notifications > 0 && (
-                    <Badge 
-                      variant="destructive" 
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                    >
-                      {notifications}
-                    </Badge>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">Nouveau don reçu</p>
-                    <p className="text-xs text-gray-500">Il y a 2 heures</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">Activité programmée</p>
-                    <p className="text-xs text-gray-500">Demain à 18h</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">Nouveau fidèle inscrit</p>
-                    <p className="text-xs text-gray-500">Il y a 1 jour</p>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <NotificationBell />
 
             {/* Menu utilisateur */}
             <DropdownMenu>
@@ -117,7 +82,7 @@ export default function AdminParoisseHeader({ openSidebar }: { openSidebar: () =
                     <User className="w-4 h-4 text-green-600" />
                   </div>
                   <span className="hidden sm:block text-sm font-medium">
-                    {userRole?.name || 'Admin Paroisse'}
+                    {userRole?.displayName || 'Admin Paroisse'}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
@@ -126,13 +91,17 @@ export default function AdminParoisseHeader({ openSidebar }: { openSidebar: () =
                   {userRole?.email || 'Mon compte'}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="w-4 h-4 mr-2" />
-                  Profil
+                <DropdownMenuItem asChild>
+                  <Link href={`/adminparoisse/settings?paroisse=${encodeURIComponent(paroisse)}&tab=profile`}>
+                    <User className="w-4 h-4 mr-2" />
+                    Profil
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="w-4 h-4 mr-2" />
-                  Paramètres
+                <DropdownMenuItem asChild>
+                  <Link href={`/adminparoisse/settings?paroisse=${encodeURIComponent(paroisse)}`}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Paramètres
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-red-600" onClick={handleLogout}>

@@ -27,7 +27,7 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
       date: '2024-01-18',
       type: 'Denier du culte',
       amount: 10000,
-      church: 'Paroisse Notre-Dame',
+      church: 'Paroisse Sainte-Anne',
       status: 'completed',
       paymentMethod: 'Carte bancaire'
     },

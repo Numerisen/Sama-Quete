@@ -95,6 +95,44 @@ export class AdminNotificationService {
   }
 
   /**
+   * Créer une notification pour une actualité publiée ou modifiée
+   */
+  static async notifyNewsUpdate(
+    parishId: string,
+    newsTitle: string,
+    newsExcerpt: string,
+    isNew: boolean = true
+  ): Promise<void> {
+    await this.create({
+      parishId,
+      type: 'news',
+      title: isNew ? '📰 Nouvelle actualité publiée' : '📝 Actualité mise à jour',
+      message: `${newsTitle}: ${newsExcerpt}`,
+      icon: 'newspaper',
+      priority: isNew ? 'high' : 'normal',
+      read: false
+    })
+  }
+
+  /**
+   * Créer une notification pour une actualité supprimée
+   */
+  static async notifyNewsDeleted(
+    parishId: string,
+    newsTitle: string
+  ): Promise<void> {
+    await this.create({
+      parishId,
+      type: 'news',
+      title: '🗑️ Actualité supprimée',
+      message: `L'actualité "${newsTitle}" a été supprimée`,
+      icon: 'newspaper',
+      priority: 'low',
+      read: false
+    })
+  }
+
+  /**
    * Créer une notification pour une nouvelle activité
    */
   static async notifyActivity(

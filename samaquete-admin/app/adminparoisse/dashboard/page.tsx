@@ -42,12 +42,14 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
+import { ActivityStats } from "@/components/admin/activity-stats"
 import { 
   PrayerTimeService, 
   ParishDonationService, 
   ParishActivityService, 
   ParishNewsService, 
-  ParishUserService 
+  ParishUserService,
+  ParishDonationTypeService
 } from "@/lib/parish-services"
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement, ArcElement)
@@ -79,6 +81,7 @@ interface ParoisseStats {
   totalActivities: number;
   upcomingActivities: number;
   prayerTimes: number;
+  donationTypes: number;
   recentDonations: any[];
   recentNews: any[];
   recentFideles: any[];
@@ -109,6 +112,7 @@ export default function ParoisseDashboardPage() {
     totalActivities: 0,
     upcomingActivities: 0,
     prayerTimes: 0,
+    donationTypes: 0,
     recentDonations: [],
     recentNews: [],
     recentFideles: [],
@@ -124,12 +128,13 @@ export default function ParoisseDashboardPage() {
       setLoading(true);
       
       // Charger toutes les données en parallèle depuis Firestore
-      const [prayerTimes, donations, activities, news, users] = await Promise.all([
+      const [prayerTimes, donations, activities, news, users, donationTypes] = await Promise.all([
         PrayerTimeService.getAll(parishId),
         ParishDonationService.getAll(parishId),
         ParishActivityService.getAll(parishId),
         ParishNewsService.getAll(parishId),
-        ParishUserService.getAll(parishId)
+        ParishUserService.getAll(parishId),
+        ParishDonationTypeService.getAll(parishId)
       ]);
 
       // Calculer les statistiques
@@ -201,6 +206,7 @@ export default function ParoisseDashboardPage() {
         totalActivities: activities.length,
         upcomingActivities,
         prayerTimes: prayerTimes.filter(p => p.active).length,
+        donationTypes: donationTypes.length,
         recentDonations: recentDonations.map(d => ({
           fullname: d.fullname,
           amount: d.amount,
@@ -344,11 +350,11 @@ export default function ParoisseDashboardPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-100 text-sm font-medium">Fidèles</p>
-                    <p className="text-3xl font-bold">{stats.totalFideles}</p>
-                    <p className="text-blue-100 text-sm mt-1">{stats.activeFideles} actifs</p>
+                    <p className="text-blue-100 text-sm font-medium">Types de dons</p>
+                    <p className="text-3xl font-bold">{stats.donationTypes || 0}</p>
+                    <p className="text-blue-100 text-sm mt-1">Configurés</p>
                   </div>
-                  <Users className="w-12 h-12 text-blue-200" />
+                  <Heart className="w-12 h-12 text-blue-200" />
                 </div>
               </CardContent>
             </Card>
@@ -363,11 +369,11 @@ export default function ParoisseDashboardPage() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-purple-100 text-sm font-medium">Activités</p>
-                    <p className="text-3xl font-bold">{stats.totalActivities}</p>
-                    <p className="text-purple-100 text-sm mt-1">{stats.upcomingActivities} à venir</p>
+                    <p className="text-purple-100 text-sm font-medium">Actualités</p>
+                    <p className="text-3xl font-bold">{stats.publishedNews + stats.draftNews}</p>
+                    <p className="text-purple-100 text-sm mt-1">{stats.publishedNews} publiées</p>
                   </div>
-                  <Activity className="w-12 h-12 text-purple-200" />
+                  <Newspaper className="w-12 h-12 text-purple-200" />
                 </div>
               </CardContent>
             </Card>
@@ -558,23 +564,29 @@ export default function ParoisseDashboardPage() {
           <Card className="border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-blue-500" />
-                Activités à venir
+                <Newspaper className="w-5 h-5 text-purple-500" />
+                Actualités récentes
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {stats.recentActivities.map((activity, index) => (
+                {stats.recentNews.map((news, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-900">{activity.title}</p>
-                      <p className="text-sm text-gray-600">{formatDate(activity.date)} à {activity.time}</p>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 line-clamp-1">{news.title}</p>
+                      <p className="text-sm text-gray-600">{news.category}</p>
                     </div>
-                    <Badge variant="default">
-                      À venir
+                    <Badge variant={news.published ? "default" : "secondary"}>
+                      {news.published ? "Publiée" : "Brouillon"}
                     </Badge>
                   </div>
                 ))}
+                {stats.recentNews.length === 0 && (
+                  <div className="text-center py-4 text-gray-500">
+                    <Newspaper className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                    <p>Aucune actualité récente</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -589,44 +601,51 @@ export default function ParoisseDashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <Link href="/adminparoisse/prayers">
-                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
-                  <Clock className="w-6 h-6" />
-                  <span className="text-sm">Heures de prières</span>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <Link href={`/adminparoisse/prayers?paroisse=${encodeURIComponent(paroisse)}`}>
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2 hover:bg-green-50 hover:border-green-300">
+                  <Clock className="w-6 h-6 text-green-600" />
+                  <span className="text-sm font-medium">Heures de prières</span>
                 </Button>
               </Link>
-              <Link href="/adminparoisse/donations">
-                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
-                  <DollarSign className="w-6 h-6" />
-                  <span className="text-sm">Dons</span>
+              <Link href={`/adminparoisse/donation-types?paroisse=${encodeURIComponent(paroisse)}`}>
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2 hover:bg-blue-50 hover:border-blue-300">
+                  <Heart className="w-6 h-6 text-blue-600" />
+                  <span className="text-sm font-medium">Types de dons</span>
                 </Button>
               </Link>
-              <Link href="/adminparoisse/activities">
-                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
-                  <Activity className="w-6 h-6" />
-                  <span className="text-sm">Activités</span>
+              <Link href={`/adminparoisse/donations?paroisse=${encodeURIComponent(paroisse)}`}>
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2 hover:bg-yellow-50 hover:border-yellow-300">
+                  <DollarSign className="w-6 h-6 text-yellow-600" />
+                  <span className="text-sm font-medium">Historique dons</span>
                 </Button>
               </Link>
-              <Link href="/adminparoisse/users">
-                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
-                  <Users className="w-6 h-6" />
-                  <span className="text-sm">Fidèles</span>
+              <Link href={`/adminparoisse/news?paroisse=${encodeURIComponent(paroisse)}`}>
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2 hover:bg-purple-50 hover:border-purple-300">
+                  <Newspaper className="w-6 h-6 text-purple-600" />
+                  <span className="text-sm font-medium">Actualités</span>
                 </Button>
               </Link>
-              <Link href="/adminparoisse/news">
-                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
-                  <Newspaper className="w-6 h-6" />
-                  <span className="text-sm">Actualités</span>
-                </Button>
-              </Link>
-              <Link href="/adminparoisse/settings">
-                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2">
-                  <Settings className="w-6 h-6" />
-                  <span className="text-sm">Paramètres</span>
+              <Link href={`/adminparoisse/settings?paroisse=${encodeURIComponent(paroisse)}`}>
+                <Button variant="outline" className="w-full h-20 flex flex-col items-center gap-2 hover:bg-gray-50 hover:border-gray-300">
+                  <Settings className="w-6 h-6 text-gray-600" />
+                  <span className="text-sm font-medium">Paramètres</span>
                 </Button>
               </Link>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Statistiques d'activités */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5 text-indigo-500" />
+              Statistiques d'activités
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActivityStats />
           </CardContent>
         </Card>
       </div>

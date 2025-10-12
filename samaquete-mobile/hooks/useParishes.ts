@@ -50,7 +50,8 @@ export function useParishes(): UseParishesReturn {
       }
       
       // Si aucune paroisse n'est sélectionnée et qu'il y a des paroisses, sélectionner la première
-      if (!selectedParish && parishesData.length > 0) {
+      // SEULEMENT si aucune paroisse n'était déjà sauvegardée
+      if (!savedChurch && !selectedParish && parishesData.length > 0) {
         const firstParish = parishesData[0]
         setSelectedParish(firstParish)
         // Sauvegarder automatiquement la première paroisse
