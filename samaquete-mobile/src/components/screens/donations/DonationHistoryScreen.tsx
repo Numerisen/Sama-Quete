@@ -139,8 +139,8 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
           
           <View style={styles.headerContent}>
             <Ionicons name="trending-up" size={32} color="#ffffff" style={styles.headerIcon} />
-            <Text style={styles.headerTitle}>Historique des dons</Text>
-            <Text style={styles.headerSubtitle}>Vos contributions</Text>
+            <Text style={styles.headerTitle}>Mes Contributions</Text>
+            <Text style={styles.headerSubtitle}>Historique de vos dons</Text>
           </View>
         </LinearGradient>
 
@@ -149,7 +149,7 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
           <View style={styles.summaryCard}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryValue}>{formatNumber(totalDonations)}</Text>
-              <Text style={styles.summaryLabel}>Total donné</Text>
+              <Text style={styles.summaryLabel}>Total contribué</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>

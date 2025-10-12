@@ -189,7 +189,7 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
                 <Ionicons name="trending-up" size={20} color="#ffffff" />
               </View>
               <Text style={styles.statValue}>{formatNumber(125000)}</Text>
-              <Text style={styles.statLabel}>FCFA donnés</Text>
+              <Text style={styles.statLabel}>Mes Contributions</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.statCard}
@@ -199,7 +199,7 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
                 <Ionicons name="calendar" size={20} color="#ffffff" />
               </View>
               <Text style={styles.statValue}>12</Text>
-              <Text style={styles.statLabel}>Heures de prière</Text>
+              <Text style={styles.statLabel}>Horaires de prière</Text>
             </TouchableOpacity>
             <View style={styles.statCard}>
               <View style={styles.statIcon}>

@@ -25,7 +25,7 @@ export default function HistoryScreen({ setCurrentScreen }: HistoryScreenProps) 
       </LinearGradient>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Historique des dons</Text>
+        <Text style={styles.title}>Mes Contributions</Text>
         <Text style={styles.subtitle}>Cette fonctionnalité sera bientôt disponible</Text>
         
         <TouchableOpacity

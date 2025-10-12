@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, Switch, Alert, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../lib/ThemeContext';
 import { useParishes } from '../../../../hooks/useParishes';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../../../lib/firebase';
 
 interface SettingsScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -15,12 +17,12 @@ interface SettingsScreenProps {
 export default function SettingsScreen({ setCurrentScreen, userProfile, setUserProfile, setIsAuthenticated }: SettingsScreenProps) {
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
-  const [pushNotifications, setPushNotifications] = useState(true);
   const [biometricAuth, setBiometricAuth] = useState(false);
   const [showChurchModal, setShowChurchModal] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   // Utiliser le hook des paroisses pour gérer l'église actuelle
-  const { parishes, loading, selectedParish, setSelectedParish } = useParishes();
+  const { parishes, loading: parishesLoading, selectedParish, setSelectedParish } = useParishes();
   
   const [editedProfile, setEditedProfile] = useState({
     firstName: userProfile?.firstName || 'Jean',
@@ -30,10 +32,58 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
     parish: userProfile?.parish || 'Paroisse Sainte-Anne'
   });
 
-  const handleSaveProfile = () => {
-    setUserProfile(editedProfile);
-    setIsEditing(false);
-    Alert.alert('Succès', 'Profil mis à jour avec succès');
+  // Charger le profil depuis Firestore
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      setLoading(true);
+      // Pour l'instant, on utilise un ID utilisateur fictif
+      // Dans une vraie app, vous récupéreriez l'ID depuis l'auth
+      const userId = 'user_123'; // Remplacer par l'ID utilisateur réel
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setEditedProfile({
+          firstName: userData.firstName || 'Jean',
+          lastName: userData.lastName || 'Baptiste',
+          phone: userData.phone || '+221 77 123 45 67',
+          email: userData.email || 'jean.baptiste@example.com',
+          parish: userData.parish || 'Paroisse Sainte-Anne'
+        });
+        setUserProfile(userData);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement du profil:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      setLoading(true);
+      const userId = 'user_123'; // Remplacer par l'ID utilisateur réel
+      
+      // Sauvegarder dans Firestore
+      await setDoc(doc(db, 'users', userId), {
+        ...editedProfile,
+        updatedAt: new Date(),
+        parishId: selectedParish?.id || null
+      }, { merge: true });
+      
+      setUserProfile(editedProfile);
+      setIsEditing(false);
+      Alert.alert('Succès', 'Profil mis à jour avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      Alert.alert('Erreur', 'Impossible de sauvegarder le profil');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -47,17 +97,32 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
     );
   };
 
-  const handleChurchSelection = (parish: any) => {
-    setSelectedParish(parish);
-    setShowChurchModal(false);
-    Alert.alert('Succès', `Église changée pour ${parish.name}`);
+  const handleChurchSelection = async (parish: any) => {
+    try {
+      setSelectedParish(parish);
+      setShowChurchModal(false);
+      
+      // Mettre à jour le profil avec la nouvelle paroisse
+      const updatedProfile = {
+        ...editedProfile,
+        parish: parish.name
+      };
+      setEditedProfile(updatedProfile);
+      
+      // Sauvegarder dans Firestore
+      const userId = 'user_123';
+      await setDoc(doc(db, 'users', userId), {
+        ...updatedProfile,
+        parishId: parish.id,
+        updatedAt: new Date()
+      }, { merge: true });
+      
+      Alert.alert('Succès', `Église changée pour ${parish.name}`);
+    } catch (error) {
+      console.error('Erreur lors du changement d\'église:', error);
+      Alert.alert('Erreur', 'Impossible de changer d\'église');
+    }
   };
-
-  const recentActivities = [
-    { id: 1, title: 'Lecture spirituelle', icon: 'book-outline', time: 'Aujourd\'hui' },
-    { id: 2, title: 'Prière du matin', icon: 'star-outline', time: 'Aujourd\'hui' },
-    { id: 3, title: 'Méditation', icon: 'chatbubble-outline', time: 'Hier' }
-  ];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -129,7 +194,9 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
                   <Text style={[styles.userPhone, { color: colors.textSecondary }]}>{editedProfile.phone}</Text>
                   <View style={styles.parishInfo}>
                     <Ionicons name="location-outline" size={16} color={colors.textSecondary} />
-                    <Text style={[styles.parishName, { color: colors.textSecondary }]}>{editedProfile.parish}</Text>
+                    <Text style={[styles.parishName, { color: colors.textSecondary }]}>
+                      {selectedParish?.name || editedProfile.parish}
+                    </Text>
                   </View>
                 </>
               )}
@@ -137,8 +204,13 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
+              disabled={loading}
             >
-              <Ionicons name={isEditing ? "checkmark" : "pencil"} size={20} color="#ffffff" />
+              {loading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Ionicons name={isEditing ? "checkmark" : "pencil"} size={20} color="#ffffff" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -159,6 +231,11 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
               <Text style={[styles.preferenceDescription, { color: colors.textSecondary }]}>
                 {selectedParish?.name || 'Aucune église sélectionnée'}
               </Text>
+              {selectedParish?.city && (
+                <Text style={[styles.preferenceSubDescription, { color: colors.textSecondary }]}>
+                  {selectedParish.city} • {selectedParish.dioceseName}
+                </Text>
+              )}
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
           </View>
@@ -185,20 +262,6 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
           </View>
         </View>
 
-        <View style={[styles.preferenceCard, { backgroundColor: colors.card }, pushNotifications && styles.activePreferenceCard]}>
-          <View style={styles.preferenceItem}>
-            <View style={[styles.preferenceIcon, { backgroundColor: colors.border }]}>
-              <Ionicons name="notifications-outline" size={24} color={colors.textSecondary} />
-            </View>
-            <View style={styles.preferenceContent}>
-              <Text style={[styles.preferenceTitle, { color: colors.text }]}>Notifications push</Text>
-              <Text style={[styles.preferenceDescription, { color: colors.textSecondary }]}>Recevez des alertes en temps réel</Text>
-            </View>
-            <View style={styles.checkmarkContainer}>
-              <Ionicons name="checkmark-circle" size={24} color={colors.accent} />
-            </View>
-          </View>
-        </View>
 
         <View style={[styles.preferenceCard, { backgroundColor: colors.card }]}>
           <View style={styles.preferenceItem}>
@@ -218,25 +281,6 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
           </View>
         </View>
 
-        {/* Activité récente */}
-        <View style={styles.activityHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Activité récente</Text>
-          <TouchableOpacity>
-            <Text style={[styles.seeAllText, { color: colors.accent }]}>Voir tout</Text>
-          </TouchableOpacity>
-        </View>
-
-        {recentActivities.map((activity) => (
-          <View key={activity.id} style={[styles.activityCard, { backgroundColor: colors.card }]}>
-            <View style={styles.activityIcon}>
-              <Ionicons name={activity.icon as any} size={24} color="#ffffff" />
-            </View>
-            <View style={styles.activityContent}>
-              <Text style={[styles.activityTitle, { color: colors.text }]}>{activity.title}</Text>
-              <Text style={[styles.activityTime, { color: colors.textSecondary }]}>{activity.time}</Text>
-            </View>
-          </View>
-        ))}
 
         {/* Bouton de déconnexion */}
         <TouchableOpacity style={[styles.logoutButton, { backgroundColor: colors.card }]} onPress={handleLogout}>
@@ -466,6 +510,11 @@ const styles = StyleSheet.create({
   },
   preferenceDescription: {
     fontSize: 14,
+  },
+  preferenceSubDescription: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginTop: 2,
   },
   checkmarkContainer: {
     padding: 4,
