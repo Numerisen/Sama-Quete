@@ -18,7 +18,7 @@ export default function AdminDioceseLayout({
     <ProtectedRoute requiredRole="diocese">
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
         <AdminDioceseSidebar />
-        <div className="lg:pl-72">
+        <div className="lg:pl-72 transition-all duration-300">
           <AdminDioceseHeader openSidebar={() => setSidebarOpen(true)} />
           <main className="py-8 px-4 lg:px-8">
             {children}

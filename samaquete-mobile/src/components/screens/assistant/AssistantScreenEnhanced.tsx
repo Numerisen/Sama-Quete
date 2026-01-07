@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   TextInput,
   Alert,
@@ -16,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../lib/ThemeContext';
 import { assistantService, AssistantResponse } from '../../../../lib/assistantService';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Message {
   id: string;

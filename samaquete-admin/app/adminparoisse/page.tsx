@@ -13,11 +13,12 @@ export default function AdminParoissePage() {
   }, [router, paroisse])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-emerald-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       <div className="flex items-center gap-3">
-        <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         <span className="text-lg text-gray-600">Redirection vers le tableau de bord...</span>
       </div>
     </div>
   )
 }
+

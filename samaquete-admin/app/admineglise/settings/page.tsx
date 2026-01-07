@@ -50,7 +50,7 @@ interface PasswordData {
 
 export default function SettingsPage() {
   const searchParams = useSearchParams()
-  const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
+  const eglise = searchParams.get('eglise') || 'Église Saint Jean Bosco'
   const tabParam = searchParams.get('tab')
   const { userRole, user } = useAuth()
   const { toast } = useToast()
@@ -106,14 +106,14 @@ export default function SettingsPage() {
       } else {
         const defaultProfile: UserProfile = {
           id: user.uid,
-          name: userRole?.displayName || 'Admin Paroisse',
-          email: userRole?.email || 'admin.paroisse@test.com',
+          name: userRole?.displayName || 'Admin Église',
+          email: userRole?.email || 'admin.eglise@test.com',
           phone: '+221 77 123 45 67',
-          bio: 'Administrateur de la paroisse',
+          bio: 'Administrateur de la eglise',
           avatar: '/placeholder-user.jpg',
           role: userRole?.role || 'parish_admin',
           parishId: userRole?.parishId,
-          parishName: paroisse,
+          parishName: eglise,
           preferences: {
             language: 'fr',
             timezone: 'Africa/Dakar',
@@ -126,11 +126,11 @@ export default function SettingsPage() {
         setUserProfile(defaultProfile)
       }
 
-      // Traiter les paramètres de paroisse
+      // Traiter les paramètres de eglise
       if (parishSettings) {
         setSettings(parishSettings)
       } else {
-        const defaultSettings = ParishSettingsService.getDefaultSettings(userRole.parishId, paroisse)
+        const defaultSettings = ParishSettingsService.getDefaultSettings(userRole.parishId, eglise)
         setSettings(defaultSettings as ParishSettings)
       }
 
@@ -204,11 +204,11 @@ export default function SettingsPage() {
     setLoading(true)
     try {
       await ParishSettingsService.saveSettings(userRole.parishId, settings)
-      await UserProfileService.logActivity(user.uid, 'settings_update', 'Paramètres de la paroisse mis à jour')
+      await UserProfileService.logActivity(user.uid, 'settings_update', 'Paramètres de la eglise mis à jour')
       
       toast({
         title: "Paramètres sauvegardés",
-        description: "Les paramètres de la paroisse ont été mis à jour"
+        description: "Les paramètres de la eglise ont été mis à jour"
       })
     } catch (error) {
       toast({
@@ -330,7 +330,7 @@ export default function SettingsPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Paramètres</h1>
             <p className="text-gray-600 mt-1">
-              Configuration de la paroisse et des préférences
+              Configuration de la eglise et des préférences
             </p>
           </div>
           <div className="flex gap-3">
@@ -546,13 +546,13 @@ export default function SettingsPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Church className="w-5 h-5 text-green-600" />
-                      Informations de la paroisse
+                      Informations de la eglise
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="name">Nom de la paroisse</Label>
+                        <Label htmlFor="name">Nom de la eglise</Label>
                         <Input
                           id="name"
                           value={settings.name}

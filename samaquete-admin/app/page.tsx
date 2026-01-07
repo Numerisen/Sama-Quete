@@ -27,9 +27,16 @@ export default function HomePage() {
         } else if (userRole.role === 'diocese_admin') {
           router.push('/admindiocese/dashboard')
         } else if (userRole.role === 'parish_admin') {
-          // Rediriger vers l'interface paroisse avec le nom de la paroisse
-          const parishName = userRole.parishId || 'Paroisse Saint Jean Bosco'
-          router.push(`/adminparoisse/dashboard?paroisse=${encodeURIComponent(parishName)}`)
+          // Vérifier si c'est un admin paroisse (gère les églises) ou admin église
+          // Si l'utilisateur a un parishId, c'est un admin paroisse
+          if (userRole.parishId || userRole.parish) {
+            const paroisseName = userRole.parish || userRole.parishId || 'Paroisse Saint Jean Bosco'
+            router.push(`/adminparoisse/dashboard?paroisse=${encodeURIComponent(paroisseName)}`)
+          } else {
+            // Sinon, c'est un admin église
+            const egliseName = userRole.parishId || 'Église Saint Jean Bosco'
+            router.push(`/admineglise/dashboard?eglise=${encodeURIComponent(egliseName)}`)
+          }
         }
       }
     }

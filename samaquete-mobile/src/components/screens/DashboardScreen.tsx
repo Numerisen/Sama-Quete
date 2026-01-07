@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useParishes } from '../../../hooks/useParishes';
 import { formatNumber } from '../../../lib/numberFormat';
 import { Parish } from '../../../lib/parish-service';
@@ -201,13 +202,6 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
               <Text style={styles.statValue}>12</Text>
               <Text style={styles.statLabel}>Horaires de prière</Text>
             </TouchableOpacity>
-            <View style={styles.statCard}>
-              <View style={styles.statIcon}>
-                <Ionicons name="star" size={20} color="#ffffff" />
-              </View>
-              <Text style={styles.statValue}>4.9</Text>
-              <Text style={styles.statLabel}>Engagement</Text>
-            </View>
           </View>
         </LinearGradient>
 

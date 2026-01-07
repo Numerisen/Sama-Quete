@@ -249,9 +249,17 @@ def ask_llm_optimized(question: str, context: str = "general") -> Dict:
             "error": str(e)
         }
 
+def extract_paragraph_improved(tag):
+    """Extraction améliorée des paragraphes avec gestion des sauts de ligne"""
+    from html import unescape
+    raw_html = str(tag)
+    raw_html = raw_html.replace('<br>', '\n').replace('<br/>', '\n').replace('<br />', '\n')
+    clean_text = BeautifulSoup(raw_html, "html.parser").get_text()
+    return unescape(clean_text.strip())
+
 @app.route('/api/text-of-the-day')
 def text_of_the_day():
-    """Endpoint existant pour les textes du jour"""
+    """Endpoint amélioré pour les textes du jour avec scraper optimisé"""
     tz = request.args.get('tz', 'Europe/Paris')
     try:
         user_tz = pytz.timezone(tz)
@@ -260,38 +268,55 @@ def text_of_the_day():
     now = datetime.now(user_tz)
     date_str = now.strftime('%Y-%m-%d')
     url = f'https://www.aelf.org/{date_str}/romain/messe'
-    resp = requests.get(url)
-    if resp.status_code != 200:
-        return jsonify({'error': 'Page not found'}), 404
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    # Extraction du titre
-    title_tag = soup.select_one('#middle-col > div:nth-of-type(1) > p > strong')
-    title = title_tag.get_text(strip=True) if title_tag else None
-    # Extraction des lectures
-    lectures = []
-    for block in soup.select('div.lecture'):
-        titre = block.select_one('h4')
-        titre = titre.get_text(strip=True) if titre else None
-        reference = block.select_one('h5')
-        reference = reference.get_text(strip=True) if reference else None
-        paragraphs = [p.get_text(strip=True) for p in block.select('p, p strong')]
-        contenu = ' '.join([p for p in paragraphs if p])
-        contenu = clean_text(contenu)
-        lectures.append({
-            'type': titre,
-            'reference': reference,
-            'contenu': contenu
-        })
-    data = {
-        'date': date_str,
-        'title': title,
-        'lectures': lectures
-    }
-    return app.response_class(
-        response=json.dumps(data, ensure_ascii=False),
-        status=200,
-        mimetype='application/json'
-    )
+    
+    try:
+        resp = requests.get(url, timeout=10)
+        if resp.status_code != 200:
+            return jsonify({'error': 'Page not found'}), 404
+        
+        soup = BeautifulSoup(resp.content, 'html.parser')
+        result = {
+            'date': date_str,
+            'title': None,
+            'lectures': []
+        }
+
+        # Extraction améliorée du titre
+        title_tag = soup.select_one('#middle-col > div:nth-of-type(1) > p > strong')
+        if title_tag:
+            title = title_tag.get_text().replace('\xa0', ' ').replace('\n', ' ').strip()
+            result['title'] = re.sub(r"\s+", " ", title)
+
+        # Extraction améliorée des lectures avec meilleure gestion des paragraphes
+        for block in soup.select('div.lecture'):
+            titre = block.select_one('h4')
+            reference = block.select_one('h5')
+            titre_text = titre.get_text(strip=True) if titre else None
+            reference_text = reference.get_text(strip=True) if reference else None
+
+            contenu = ""
+            for p in block.select('p'):
+                texte = extract_paragraph_improved(p)
+                if texte:
+                    contenu += texte + "\n\n"
+
+            result['lectures'].append({
+                'type': titre_text,
+                'reference': reference_text,
+                'contenu': contenu.strip()
+            })
+
+        return app.response_class(
+            response=json.dumps(result, ensure_ascii=False),
+            status=200,
+            mimetype='application/json'
+        )
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Timeout lors de la récupération des données'}), 504
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f'Erreur de connexion: {str(e)}'}), 503
+    except Exception as e:
+        return jsonify({'error': f'Erreur lors du traitement: {str(e)}'}), 500
 
 @app.route('/api/assistant/query', methods=['POST'])
 def assistant_query():

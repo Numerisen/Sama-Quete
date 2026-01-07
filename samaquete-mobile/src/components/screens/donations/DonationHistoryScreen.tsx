@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatNumber } from '../../../../lib/numberFormat';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface DonationHistoryScreenProps {
   setCurrentScreen: (screen: string) => void;

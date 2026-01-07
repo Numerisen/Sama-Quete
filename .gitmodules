@@ -1,0 +1,3 @@
+[submodule "payment-api"]
+	path = payment-api
+	url = https://github.com/Numerisen/attaqwa-paiement.git

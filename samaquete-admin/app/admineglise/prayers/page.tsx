@@ -36,11 +36,11 @@ interface PrayerTime {
 
 export default function PrayersPage() {
   const searchParams = useSearchParams()
-  const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
+  const eglise = searchParams.get('eglise') || 'Église Saint Jean Bosco'
   const { userRole } = useAuth()
   const { toast } = useToast()
   
-  const parishId = userRole?.parishId || 'paroisse-saint-jean-bosco'
+  const parishId = userRole?.parishId || 'eglise-saint-jean-bosco'
 
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([])
   const [loading, setLoading] = useState(true)
@@ -118,7 +118,7 @@ export default function PrayersPage() {
         console.warn('Erreur journalisation:', logError)
       }
       
-      // Envoyer une notification à tous les utilisateurs de la paroisse
+      // Envoyer une notification à tous les utilisateurs de la eglise
       await AdminNotificationService.notifyPrayerTimeUpdate(
         parishId,
         prayerData.name,
@@ -278,7 +278,7 @@ export default function PrayersPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Heures de prières</h1>
             <p className="text-gray-600 mt-1">
-              {paroisse} • Gestion des horaires de prières et messes
+              {eglise} • Gestion des horaires de prières et messes
             </p>
           </div>
           <Button 
@@ -477,7 +477,7 @@ export default function PrayersPage() {
               <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune heure de prière configurée</h3>
               <p className="text-gray-600 mb-4">
-                Commencez par ajouter les heures de prières et messes de votre paroisse.
+                Commencez par ajouter les heures de prières et messes de votre eglise.
               </p>
               <Button onClick={() => setIsAdding(true)} className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />

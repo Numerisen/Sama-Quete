@@ -1,11 +1,13 @@
 /**
  * Service pour l'intégration de l'API des textes liturgiques externes
  * Gère la récupération, le cache et la synchronisation des textes
+ * Utilise l'API Flask en priorité, avec fallback vers le scraper direct
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { collection, addDoc, updateDoc, doc, getDocs, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
+import { textOfDayScraper } from './textOfDayScraper';
 
 // Configuration de l'API
 const LITURGY_API_CONFIG = {
@@ -403,32 +405,90 @@ class LiturgyApiService {
 
   /**
    * Récupère le texte du jour avec fallback intelligent
+   * Utilise l'API Flask en priorité, avec fallback vers le scraper direct si Flask est indisponible
+   * @param useDirectScraper Si true, utilise uniquement le scraper direct (ignore Flask). Si false, Flask en priorité puis scraper en fallback.
    */
-  async getTodayLiturgy(): Promise<CachedLiturgyData | null> {
+  async getTodayLiturgy(useDirectScraper: boolean = false): Promise<CachedLiturgyData | null> {
     try {
-      // 1. Essayer de récupérer depuis l'API
-      if (this.isOnline) {
+      // Si useDirectScraper est true, utiliser uniquement le scraper direct
+      if (useDirectScraper) {
         try {
-          const apiData = await this.fetchTodayLiturgy();
-          if (apiData) {
+          console.log('Utilisation du scraper direct amélioré...');
+          const scrapedData = await textOfDayScraper.scrapeTodayLiturgy();
+          
+          if (scrapedData) {
             // Sauvegarder dans le cache
-            await this.saveToCache(apiData, LITURGY_API_CONFIG.CACHE.TODAY_KEY);
+            await this.saveToCache(scrapedData, LITURGY_API_CONFIG.CACHE.TODAY_KEY);
             
             // Synchroniser avec Firestore
-            await this.syncToFirestore(apiData);
+            await this.syncToFirestore(scrapedData);
             
             return {
-              ...apiData,
+              ...scrapedData,
               cachedAt: Date.now(),
-              source: 'api'
+              source: 'api' // Marqué comme 'api' pour compatibilité
             };
           }
-        } catch (apiError) {
-          console.warn('API indisponible, utilisation du cache...');
+        } catch (scraperError) {
+          console.warn('Scraper direct indisponible, utilisation du cache...', scraperError);
+          // Continue vers le fallback cache
+        }
+      } else {
+        // 1. PRIORITÉ: Essayer de récupérer depuis l'API Flask
+        let flaskFailed = false;
+        if (this.isOnline) {
+          try {
+            console.log('Utilisation de l\'API Flask...');
+            const apiData = await this.fetchTodayLiturgy();
+            if (apiData) {
+              // Sauvegarder dans le cache
+              await this.saveToCache(apiData, LITURGY_API_CONFIG.CACHE.TODAY_KEY);
+              
+              // Synchroniser avec Firestore
+              await this.syncToFirestore(apiData);
+              
+              return {
+                ...apiData,
+                cachedAt: Date.now(),
+                source: 'api'
+              };
+            }
+          } catch (apiError) {
+            console.warn('API Flask indisponible, fallback vers scraper direct...', apiError);
+            flaskFailed = true;
+            this.isOnline = false;
+          }
+        } else {
+          flaskFailed = true;
+        }
+
+        // 2. FALLBACK: Utiliser le scraper direct amélioré si Flask est indisponible
+        if (flaskFailed) {
+          try {
+            console.log('Utilisation du scraper direct amélioré en fallback...');
+            const scrapedData = await textOfDayScraper.scrapeTodayLiturgy();
+            
+            if (scrapedData) {
+              // Sauvegarder dans le cache
+              await this.saveToCache(scrapedData, LITURGY_API_CONFIG.CACHE.TODAY_KEY);
+              
+              // Synchroniser avec Firestore
+              await this.syncToFirestore(scrapedData);
+              
+              return {
+                ...scrapedData,
+                cachedAt: Date.now(),
+                source: 'api' // Marqué comme 'api' pour compatibilité
+              };
+            }
+          } catch (scraperError) {
+            console.warn('Scraper direct indisponible, utilisation du cache...', scraperError);
+            // Continue vers le fallback cache
+          }
         }
       }
 
-      // 2. Fallback vers le cache local
+      // 3. Fallback vers le cache local
       const cachedData = await this.getFromCache(LITURGY_API_CONFIG.CACHE.TODAY_KEY);
       if (cachedData) {
         return {
@@ -437,7 +497,7 @@ class LiturgyApiService {
         };
       }
 
-      // 3. Fallback vers Firestore
+      // 4. Fallback vers Firestore
       const today = new Date().toISOString().split('T')[0];
       const liturgyRef = collection(db, 'liturgy');
       const q = query(liturgyRef, where('date', '==', today));

@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { useLiturgyApi } from '../../../../hooks/useLiturgyApi';
 import { liturgyConfigManager } from '../../../../lib/liturgyConfig';
+import { FormattedLiturgyText } from '../../ui/FormattedLiturgyText';
 
 interface LiturgyApiScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -204,30 +205,56 @@ export default function LiturgyApiScreen({ setCurrentScreen }: LiturgyApiScreenP
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Première Lecture</Text>
-            <Text style={styles.sectionText}>{todayLiturgy.firstReading}</Text>
+            {todayLiturgy.firstReadingRef && (
+              <Text style={styles.sectionReference}>{todayLiturgy.firstReadingRef}</Text>
+            )}
+            <FormattedLiturgyText 
+              text={todayLiturgy.firstReading} 
+              style={styles.sectionText}
+            />
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Psaume</Text>
-            <Text style={styles.sectionText}>{todayLiturgy.psalm}</Text>
+            {todayLiturgy.psalmRef && (
+              <Text style={styles.sectionReference}>{todayLiturgy.psalmRef}</Text>
+            )}
+            <FormattedLiturgyText 
+              text={todayLiturgy.psalm} 
+              style={styles.sectionText}
+            />
           </View>
 
           {todayLiturgy.secondReading && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Deuxième Lecture</Text>
-              <Text style={styles.sectionText}>{todayLiturgy.secondReading}</Text>
+              {todayLiturgy.secondReadingRef && (
+                <Text style={styles.sectionReference}>{todayLiturgy.secondReadingRef}</Text>
+              )}
+              <FormattedLiturgyText 
+                text={todayLiturgy.secondReading} 
+                style={styles.sectionText}
+              />
             </View>
           )}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Évangile</Text>
-            <Text style={styles.sectionText}>{todayLiturgy.gospel}</Text>
+            {todayLiturgy.gospelRef && (
+              <Text style={styles.sectionReference}>{todayLiturgy.gospelRef}</Text>
+            )}
+            <FormattedLiturgyText 
+              text={todayLiturgy.gospel} 
+              style={styles.sectionText}
+            />
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Réflexion</Text>
-            <Text style={styles.sectionText}>{todayLiturgy.reflection}</Text>
-          </View>
+          {todayLiturgy.reflection && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Réflexion</Text>
+              <Text style={styles.sectionText}>{todayLiturgy.reflection}</Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -438,10 +465,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: '#333',
   },
+  sectionReference: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    color: '#666',
+    marginBottom: 8,
+  },
   sectionText: {
     fontSize: 14,
-    lineHeight: 20,
-    color: '#666',
+    lineHeight: 22,
+    color: '#1f2937',
   },
   noDataContainer: {
     alignItems: 'center',

@@ -4,11 +4,25 @@ import { PrayerTime } from '../hooks/usePrayerTimes';
 
 // Configuration des notifications
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async () => {
+    const baseBehavior = {
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    };
+
+    if (Platform.OS === 'ios') {
+      return {
+        ...baseBehavior,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      };
+    }
+
+    return {
+      ...baseBehavior,
+      shouldShowAlert: true,
+    };
+  },
 });
 
 export interface NotificationData {

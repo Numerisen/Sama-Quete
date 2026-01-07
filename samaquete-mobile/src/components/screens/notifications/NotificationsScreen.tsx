@@ -1,11 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Switch, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatNumber } from '../../../../lib/numberFormat';
 import { useTheme } from '../../../../lib/ThemeContext';
 import { useNotifications } from '../../../../hooks/useNotifications';
 import { ChurchStorageService } from '../../../../lib/church-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const DEFAULT_NOTIFICATION_SETTINGS = {
+  actualites: true,
+  textesLiturgiques: true,
+  lecturesDuJour: true,
+  prieresSemaine: true,
+  dons: false,
+  evenements: true,
+} as const;
+
+type NotificationSettings = typeof DEFAULT_NOTIFICATION_SETTINGS;
+
+type NotificationTypeOption = {
+  key: keyof NotificationSettings;
+  icon: string;
+  title: string;
+  description: string;
+  color: string;
+  enabled: boolean;
+};
 
 interface NotificationsScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -26,13 +47,8 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
     markAllAsRead
   } = useNotifications(parishId);
 
-  const [notificationSettings, setNotificationSettings] = useState({
-    actualites: true,
-    textesLiturgiques: true,
-    lecturesDuJour: true,
-    prieresSemaine: true,
-    dons: false,
-    evenements: true,
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
+    ...DEFAULT_NOTIFICATION_SETTINGS,
   });
 
   // Charger la paroisse sélectionnée
@@ -56,7 +72,7 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
     }
   };
 
-  const toggleNotification = (key: string) => {
+  const toggleNotification = (key: keyof NotificationSettings) => {
     setNotificationSettings(prev => ({
       ...prev,
       [key]: !prev[key]
@@ -112,7 +128,7 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
     return notifDate.toLocaleDateString('fr-FR');
   };
 
-  const notificationTypes = [
+  const notificationTypes: NotificationTypeOption[] = [
     {
       key: 'actualites',
       icon: 'newspaper',

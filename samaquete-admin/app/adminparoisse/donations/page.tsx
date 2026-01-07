@@ -1,376 +1,263 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { 
-  DollarSign, 
-  Plus, 
-  Search, 
-  Filter,
-  Download,
-  Eye,
-  Edit,
-  Trash2,
-  Calendar,
-  User,
-  TrendingUp,
-  BarChart3
-} from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Button } from "@/components/ui/button"
+import { DollarSign, User, Calendar, TrendingUp, RefreshCw } from "lucide-react"
+import { motion } from "framer-motion"
 import { useSearchParams } from "next/navigation"
-import Link from "next/link"
+import { Pagination } from "@/components/ui/pagination"
+import { useToast } from "@/hooks/use-toast"
+import { DonationService, ParishService } from "@/lib/firestore-services"
 
-interface Donation {
-  id: string;
-  fullname: string;
-  amount: number;
-  date: string;
-  type: string;
-  description?: string;
-  phone?: string;
-  email?: string;
-  status: "confirmed" | "pending" | "cancelled";
-}
-
-export default function ParoisseDonationsPage() {
+export default function AdminParoisseDonationsPage() {
   const searchParams = useSearchParams()
   const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
   const { toast } = useToast()
+  
+  const [donations, setDonations] = useState<any[]>([])
+  const [parishes, setParishes] = useState<any[]>([])
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [typeFilter, setTypeFilter] = useState("all")
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  const [donations, setDonations] = useState<Donation[]>([
-    {
-      id: "1",
-      fullname: "Marie Diop",
-      amount: 5000,
-      date: "2024-01-15",
-      type: "Offrande",
-      description: "Don pour les pauvres",
-      phone: "+221 77 123 45 67",
-      status: "confirmed"
-    },
-    {
-      id: "2",
-      fullname: "Jean Ndiaye",
-      amount: 10000,
-      date: "2024-01-14",
-      type: "Dîme",
-      phone: "+221 78 234 56 78",
-      status: "confirmed"
-    },
-    {
-      id: "3",
-      fullname: "Fatou Sarr",
-      amount: 2500,
-      date: "2024-01-13",
-      type: "Offrande",
-      description: "Don pour la construction",
-      status: "pending"
-    },
-    {
-      id: "4",
-      fullname: "Amadou Ba",
-      amount: 15000,
-      date: "2024-01-12",
-      type: "Dîme",
-      phone: "+221 76 345 67 89",
-      status: "confirmed"
-    },
-    {
-      id: "5",
-      fullname: "Aïcha Fall",
-      amount: 7500,
-      date: "2024-01-11",
-      type: "Offrande",
-      description: "Don pour les activités",
-      status: "confirmed"
+  // Charger les dons et paroisses depuis Firestore
+  const loadDonations = async () => {
+    try {
+      setLoading(true)
+      const [firestoreDonations, firestoreParishes] = await Promise.all([
+        DonationService.getAll(),
+        ParishService.getAll()
+      ])
+      const paroisseDonations = firestoreDonations.filter(d => d.paroisse === paroisse || d.parish === paroisse)
+      const paroisseParishes = firestoreParishes.filter(p => p.paroisse === paroisse || p.name === paroisse)
+      setDonations(paroisseDonations)
+      setParishes(paroisseParishes)
+    } catch (error) {
+      console.error('Erreur lors du chargement des dons:', error)
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les dons depuis Firebase",
+        variant: "destructive"
+      })
+      setDonations([])
+    } finally {
+      setLoading(false)
     }
-  ])
+  }
 
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterType, setFilterType] = useState("all")
-  const [filterStatus, setFilterStatus] = useState("all")
+  useEffect(() => {
+    loadDonations()
+  }, [paroisse])
 
-  const donationTypes = ["Offrande", "Dîme", "Construction", "Activités", "Pauvres", "Autre"]
-  const statusOptions = ["confirmed", "pending", "cancelled"]
-
-  const filteredDonations = donations.filter(donation => {
-    const matchesSearch = donation.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         donation.type.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesType = filterType === "all" || donation.type === filterType
-    const matchesStatus = filterStatus === "all" || donation.status === filterStatus
-    
-    return matchesSearch && matchesType && matchesStatus
+  // Filtres et recherche
+  const filteredDonations = donations.filter(d => {
+    const matchSearch = d.donorName?.toLowerCase().includes(search.toLowerCase()) || 
+                       d.parish?.toLowerCase().includes(search.toLowerCase()) ||
+                       d.description?.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = statusFilter === "all" || d.status === statusFilter
+    const matchType = typeFilter === "all" || d.type === typeFilter
+    return matchSearch && matchStatus && matchType
   })
 
-  const totalAmount = donations.reduce((sum, d) => sum + d.amount, 0)
-  const confirmedAmount = donations.filter(d => d.status === "confirmed").reduce((sum, d) => sum + d.amount, 0)
-  const pendingAmount = donations.filter(d => d.status === "pending").reduce((sum, d) => sum + d.amount, 0)
-  const todayDonations = donations.filter(d => d.date === new Date().toISOString().split('T')[0]).length
+  // Pagination
+  const totalPages = Math.ceil(filteredDonations.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedDonations = filteredDonations.slice(startIndex, endIndex)
 
-  const formatAmount = (amount: number) => {
-    return amount.toLocaleString("fr-FR").replace(/\s/g, " ")
-  }
+  // Réinitialiser la page courante quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, statusFilter, typeFilter, donations])
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    })
-  }
+  // Calcul des statistiques
+  const totalAmount = filteredDonations.reduce((sum, d) => sum + (d.amount || 0), 0)
+  const receivedAmount = filteredDonations.filter(d => d.status === "Reçu").reduce((sum, d) => sum + (d.amount || 0), 0)
+  const pendingAmount = filteredDonations.filter(d => d.status === "En attente").reduce((sum, d) => sum + (d.amount || 0), 0)
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "confirmed":
-        return <Badge variant="default" className="bg-green-100 text-green-800">Confirmé</Badge>
-      case "pending":
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">En attente</Badge>
-      case "cancelled":
-        return <Badge variant="destructive">Annulé</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
-  }
 
-  const handleDeleteDonation = (id: string) => {
-    setDonations(donations.filter(d => d.id !== id))
-    toast({
-      title: "Succès",
-      description: "Don supprimé avec succès"
-    })
-  }
+  const statuses = ["Reçu", "En attente", "Annulé"]
+  const types = ["Offrande", "Dîme", "Don", "Collecte", "Autre"]
 
-  const handleStatusChange = (id: string, newStatus: string) => {
-    setDonations(donations.map(d => 
-      d.id === id ? { ...d, status: newStatus as any } : d
-    ))
-    toast({
-      title: "Succès",
-      description: "Statut du don mis à jour"
-    })
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-100">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+          <span className="text-lg text-gray-600">Chargement des dons...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* En-tête */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dons de la paroisse</h1>
-            <p className="text-gray-600 mt-1">
-              {paroisse} • Gestion des dons et offrandes
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link href="/adminparoisse/donations/create">
-              <Button className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Nouveau don
-              </Button>
-            </Link>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Exporter
-            </Button>
-          </div>
-        </div>
-
-        {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total collecté</p>
-                  <p className="text-2xl font-bold text-green-600">{formatAmount(totalAmount)} FCFA</p>
-                </div>
-                <DollarSign className="w-8 h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Confirmés</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatAmount(confirmedAmount)} FCFA</p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">En attente</p>
-                  <p className="text-2xl font-bold text-yellow-600">{formatAmount(pendingAmount)} FCFA</p>
-                </div>
-                <Calendar className="w-8 h-8 text-yellow-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Dons aujourd'hui</p>
-                  <p className="text-2xl font-bold text-purple-600">{todayDonations}</p>
-                </div>
-                <BarChart3 className="w-8 h-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filtres et recherche */}
-        <Card className="border-0 shadow-lg mb-6">
+    <div className="max-w-6xl mx-auto">
+      {/* Statistiques */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card className="bg-white/80 border-0 shadow-xl">
           <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <Label htmlFor="search">Rechercher</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    id="search"
-                    placeholder="Nom, type de don..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
+            <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="type-filter">Type de don</Label>
-                <select
-                  id="type-filter"
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="all">Tous les types</option>
-                  {donationTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
+                <p className="text-sm font-medium text-gray-600">Total collecté</p>
+                <p className="text-2xl font-bold text-black">{totalAmount.toLocaleString()} FCFA</p>
               </div>
-              <div>
-                <Label htmlFor="status-filter">Statut</Label>
-                <select
-                  id="status-filter"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="all">Tous les statuts</option>
-                  <option value="confirmed">Confirmé</option>
-                  <option value="pending">En attente</option>
-                  <option value="cancelled">Annulé</option>
-                </select>
+              <div className="p-3 bg-green-100 rounded-full">
+                <DollarSign className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Liste des dons */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-green-500" />
-              Liste des dons ({filteredDonations.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredDonations.map((donation) => (
-                <div key={donation.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{donation.fullname}</h3>
-                      {getStatusBadge(donation.status)}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="w-4 h-4" />
-                        {formatAmount(donation.amount)} FCFA
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {formatDate(donation.date)}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Filter className="w-4 h-4" />
-                        {donation.type}
-                      </div>
-                      {donation.phone && (
-                        <div className="flex items-center gap-1">
-                          <User className="w-4 h-4" />
-                          {donation.phone}
-                        </div>
-                      )}
-                    </div>
-                    {donation.description && (
-                      <p className="text-sm text-gray-500 mt-1">{donation.description}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {donation.status === "pending" && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleStatusChange(donation.id, "confirmed")}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Confirmer
-                      </Button>
-                    )}
-                    <Button variant="outline" size="sm">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteDonation(donation.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {filteredDonations.length === 0 && (
-              <div className="text-center py-12">
-                <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucun don trouvé</h3>
-                <p className="text-gray-600 mb-4">
-                  {searchTerm || filterType !== "all" || filterStatus !== "all" 
-                    ? "Aucun don ne correspond à vos critères de recherche."
-                    : "Aucun don n'a encore été enregistré pour cette paroisse."
-                  }
-                </p>
-                {!searchTerm && filterType === "all" && filterStatus === "all" && (
-                  <Link href="/adminparoisse/donations/create">
-                    <Button className="flex items-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      Enregistrer le premier don
-                    </Button>
-                  </Link>
-                )}
+        <Card className="bg-white/80 border-0 shadow-xl">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Reçu</p>
+                <p className="text-2xl font-bold text-black">{receivedAmount.toLocaleString()} FCFA</p>
               </div>
-            )}
+              <div className="p-3 bg-blue-100 rounded-full">
+                <TrendingUp className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/80 border-0 shadow-xl">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">En attente</p>
+                <p className="text-2xl font-bold text-black">{pendingAmount.toLocaleString()} FCFA</p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-full">
+                <Calendar className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Liste des dons */}
+      <Card className="shadow-xl bg-white/80 border-0 rounded-2xl">
+        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <CardTitle className="text-3xl font-bold text-black mb-1">
+              Dons - {paroisse}
+            </CardTitle>
+            <p className="text-black/80 text-sm">
+              Consultez les dons reçus dans votre diocèse.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Input
+              placeholder="Rechercher..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="h-10 w-40 bg-white/90 border-blue-200"
+            />
+            <select 
+              value={statusFilter} 
+              onChange={e => setStatusFilter(e.target.value)} 
+              className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
+            >
+              <option value="all">Tous les statuts</option>
+              {statuses.map(status => <option key={status} value={status}>{status}</option>)}
+            </select>
+            <select 
+              value={typeFilter} 
+              onChange={e => setTypeFilter(e.target.value)} 
+              className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
+            >
+              <option value="all">Tous les types</option>
+              {types.map(type => <option key={type} value={type}>{type}</option>)}
+            </select>
+            <Button
+              onClick={loadDonations}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Actualiser
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-xl">
+            <table className="w-full text-left min-w-[800px]">
+              <thead>
+                <tr className="text-black/80 text-sm bg-blue-50">
+                  <th className="py-3 px-4 text-black">Donateur</th>
+                  <th className="py-3 px-4 text-black">Type</th>
+                  <th className="py-3 px-4 text-black">Montant</th>
+                  <th className="py-3 px-4 text-black">Paroisse</th>
+                  <th className="py-3 px-4 text-black">Statut</th>
+                  <th className="py-3 px-4 text-black">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedDonations.map((donation, i) => (
+                  <motion.tr
+                    key={donation.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + i * 0.05 }}
+                    className="border-b last:border-0 hover:bg-blue-50/40"
+                  >
+                    <td className="py-2 px-4 font-semibold text-black">{donation.donorName || 'N/A'}</td>
+                    <td className="py-2 px-4 text-black">{donation.type || 'N/A'}</td>
+                    <td className="py-2 px-4 text-black font-semibold">{(donation.amount || 0).toLocaleString()} FCFA</td>
+                    <td className="py-2 px-4 text-black">{donation.parish || 'N/A'}</td>
+                    <td className="py-2 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        donation.status === 'Reçu' ? 'bg-green-100 text-green-800' :
+                        donation.status === 'En attente' ? 'bg-orange-100 text-orange-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {donation.status || 'N/A'}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 text-black">{donation.date || 'N/A'}</td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+            {paginatedDonations.length === 0 && (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <DollarSign className="w-12 h-12 text-green-500" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucune donation trouvée</h3>
+                <p className="text-gray-600 mb-6">
+                  {donations.length === 0 
+                    ? `Aucune donation n'est enregistrée dans Firestore pour le diocèse ${paroisse}.`
+                    : "Aucune donation ne correspond à vos critères de recherche."
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {filteredDonations.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredDonations.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newItemsPerPage) => {
+            setItemsPerPage(newItemsPerPage)
+            setCurrentPage(1)
+          }}
+        />
+      )}
+
     </div>
   )
 }

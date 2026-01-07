@@ -107,9 +107,7 @@ export class UserProfileService {
       await updatePassword(user, newPassword)
       
       // Enregistrer l'activité
-      await this.logActivity(user.uid, 'password_change', 'Mot de passe modifié', {
-        timestamp: new Date().toISOString()
-      })
+      await this.logActivity(user.uid, 'password_change', 'Mot de passe modifié')
     } catch (error) {
       console.error('Erreur lors du changement de mot de passe:', error)
       throw error
@@ -131,23 +129,41 @@ export class UserProfileService {
     }
   ): Promise<void> {
     try {
-      const activityData: Omit<ActivityLog, 'id'> = {
+      // Construire l'objet de données en excluant explicitement les valeurs undefined
+      const activityData: Record<string, any> = {
         userId,
         action,
         description,
-        entityType: details?.entityType,
-        entityId: details?.entityId,
-        entityName: details?.entityName,
         timestamp: serverTimestamp(),
-        ipAddress: details?.ipAddress,
-        userAgent: details?.userAgent,
-        changes: details?.changes
+      }
+      
+      // N'inclure que les champs définis et non-undefined (Firebase n'accepte pas undefined)
+      if (details) {
+        if (details.entityType !== undefined && details.entityType !== null) {
+          activityData.entityType = details.entityType
+        }
+        if (details.entityId !== undefined && details.entityId !== null) {
+          activityData.entityId = details.entityId
+        }
+        if (details.entityName !== undefined && details.entityName !== null) {
+          activityData.entityName = details.entityName
+        }
+        if (details.ipAddress !== undefined && details.ipAddress !== null && details.ipAddress !== '') {
+          activityData.ipAddress = details.ipAddress
+        }
+        if (details.userAgent !== undefined && details.userAgent !== null && details.userAgent !== '') {
+          activityData.userAgent = details.userAgent
+        }
+        if (details.changes !== undefined && details.changes !== null) {
+          activityData.changes = details.changes
+        }
       }
       
       const docRef = doc(collection(db, this.activityCollection))
       await setDoc(docRef, activityData)
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement de l\'activité:', error)
+      throw error // Re-lancer l'erreur pour que le code appelant puisse la gérer
     }
   }
 

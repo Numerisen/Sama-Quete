@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useLiturgyApi } from '../../../../hooks/useLiturgyApi';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { FormattedLiturgyText } from '../../ui/FormattedLiturgyText';
 
 interface LiturgyScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -93,19 +95,23 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
             <Text style={styles.headerTitle}>Textes liturgiques</Text>
             <Text style={styles.headerSubtitle}>Lectures du jour</Text>
             
-            {/* Indicateurs de statut */}
+            {/* Indicateurs de statut 
+            
             <View style={styles.statusContainer}>
               <View style={[styles.statusIndicator, { backgroundColor: isOnline ? '#10b981' : '#ef4444' }]} />
+
               <Text style={styles.statusText}>
                 {isOnline ? 'En ligne' : 'Hors ligne'}
               </Text>
-              {/*todayLiturgy && (
+              todayLiturgy && (
                 <Text style={styles.sourceText}>
                   Source: {todayLiturgy.source}
                 </Text>
-              )}*/}
+
             </View>
-          </View>
+         
+              )}*/}
+            </View>  
 
           {/* Carte de date avec backdrop-blur */}
           {todayReadings && (
@@ -164,18 +170,31 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
             </View>
           )}
 
-          {/* Section lectures d'aujourd'hui - Affichage fluide */}
+          {/* Section lectures d'aujourd'hui - Affichage exactement comme aelf.org */}
           {todayReadings ? (
             <View style={styles.liturgyContainer}>
               <Text style={styles.mainTitle}>LECTURES DE LA MESSE</Text>
               
               {todayReadings.readings.map((reading, index) => (
                 <View key={index} style={styles.readingSection}>
+                  {/* Titre de la lecture en rouge (comme sur aelf.org) */}
                   <Text style={styles.readingTitle}>{reading.title.toUpperCase()}</Text>
-                  <Text style={styles.readingReference}>{reading.reference}</Text>
-                  <Text style={styles.readingText}>
-                    {reading.excerpt}
-                  </Text>
+                  
+                  {/* Référence biblique en italique */}
+                  {reading.reference && (
+                    <Text style={styles.readingReference}>{reading.reference}</Text>
+                  )}
+                  
+                  {/* Texte formaté avec citations, responsories, acclamations en gras */}
+                  <FormattedLiturgyText 
+                    text={reading.excerpt} 
+                    style={styles.readingText}
+                  />
+                  
+                  {/* Séparateur entre les lectures */}
+                  {index < todayReadings.readings.length - 1 && (
+                    <View style={styles.separator} />
+                  )}
                 </View>
               ))}
             </View>
@@ -323,15 +342,21 @@ const styles = StyleSheet.create({
   readingTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#dc2626', // Rouge comme sur l'image
+    color: '#dc2626', // Rouge exactement comme sur aelf.org
     marginBottom: 8,
     letterSpacing: 0.5,
   },
   readingReference: {
     fontSize: 14,
     color: '#374151',
-    marginBottom: 4,
+    marginBottom: 12,
     fontStyle: 'italic',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginTop: 24,
+    marginBottom: 8,
   },
   readingSource: {
     fontSize: 14,

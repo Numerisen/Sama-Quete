@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatNumber } from '../../../../lib/numberFormat';
 import { useTheme } from '../../../../lib/ThemeContext';
 import { useParishes } from '../../../../hooks/useParishes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface PaymentScreenProps {
   setCurrentScreen: (screen: string) => void;

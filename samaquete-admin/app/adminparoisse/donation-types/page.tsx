@@ -1,69 +1,48 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import {
-  DollarSign,
-  Plus,
-  Edit,
-  Trash2,
-  Save,
-  X,
-  Eye,
-  EyeOff,
-  RefreshCw,
-  Heart,
-  Gift,
-  Church,
-  Users,
-  Flame
-} from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Plus, Edit, Trash2, RefreshCw, DollarSign, Settings } from "lucide-react"
+import { motion } from "framer-motion"
 import { useSearchParams } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
-import { ParishDonationTypeService, DonationType } from "@/lib/parish-services"
+import { Pagination } from "@/components/ui/pagination"
+import { useToast } from "@/hooks/use-toast"
+import { DonationTypeService, DonationTypeItem } from "@/lib/firestore-services"
 
-const iconOptions = [
-  { value: 'heart', label: 'Cœur', icon: Heart },
-  { value: 'gift', label: 'Cadeau', icon: Gift },
-  { value: 'church', label: 'Église', icon: Church },
-  { value: 'users', label: 'Communauté', icon: Users },
-  { value: 'flame', label: 'Bougie/Cierge', icon: Flame },
-]
-
-export default function DonationTypesPage() {
+export default function AdminParoisseDonationTypesPage() {
   const searchParams = useSearchParams()
   const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
-  const { userRole } = useAuth()
   const { toast } = useToast()
-
-  const parishId = userRole?.parishId || 'paroisse-saint-jean-bosco'
-
-  const [donationTypes, setDonationTypes] = useState<DonationType[]>([])
+  
+  const [donationTypes, setDonationTypes] = useState<DonationTypeItem[]>([])
+  const [search, setSearch] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
   const [loading, setLoading] = useState(true)
-  const [isAdding, setIsAdding] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [newType, setNewType] = useState<Partial<DonationType>>({
-    name: "",
-    description: "",
-    icon: "heart",
-    defaultAmounts: [1000, 5000, 10000, 25000],
-    active: true,
-    order: 0
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingType, setEditingType] = useState<DonationTypeItem | null>(null)
+
+  // État du formulaire
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    suggestedAmount: 0,
+    isActive: true
   })
 
-  useEffect(() => {
-    loadDonationTypes()
-  }, [parishId])
-
+  // Charger les types de dons depuis Firestore
   const loadDonationTypes = async () => {
     try {
       setLoading(true)
-      const types = await ParishDonationTypeService.getAll(parishId)
+      // Charger tous les types et filtrer par paroisse
+      const allTypes = await DonationTypeService.getAll()
+      const types = allTypes.filter(t => t.paroisse === paroisse || t.diocese === paroisse)
       setDonationTypes(types)
     } catch (error) {
       console.error('Erreur lors du chargement des types de dons:', error)
@@ -77,55 +56,33 @@ export default function DonationTypesPage() {
     }
   }
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'XOF',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
-
+  // Ajouter un nouveau type de don
   const handleAddType = async () => {
-    if (!newType.name || !newType.description || newType.defaultAmounts?.length !== 4) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs et définir 4 montants par défaut",
-        variant: "destructive"
-      })
-      return
-    }
-
     try {
-      const typeData = {
-        name: newType.name!,
-        description: newType.description!,
-        icon: newType.icon || "heart",
-        defaultAmounts: newType.defaultAmounts!,
-        active: newType.active ?? true,
-        order: newType.order || 0,
-        parishId
+      if (!formData.name.trim()) {
+        toast({
+          title: "Erreur",
+          description: "Le nom du type de don est requis",
+          variant: "destructive"
+        })
+        return
       }
 
-      await ParishDonationTypeService.create(typeData)
-      await loadDonationTypes()
-
-      setNewType({ 
-        name: "", 
-        description: "", 
-        icon: "heart", 
-        defaultAmounts: [1000, 5000, 10000, 25000], 
-        active: true,
-        order: 0 
+      await DonationTypeService.create({
+        ...formData,
+        paroisse: paroisse
       })
-      setIsAdding(false)
-
+      
       toast({
         title: "Succès",
         description: "Type de don ajouté avec succès"
       })
+      
+      resetForm()
+      setIsAddDialogOpen(false)
+      loadDonationTypes()
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du type de don:', error)
+      console.error('Erreur lors de l\'ajout:', error)
       toast({
         title: "Erreur",
         description: "Impossible d'ajouter le type de don",
@@ -134,57 +91,47 @@ export default function DonationTypesPage() {
     }
   }
 
-  const handleEditType = (id: string) => {
-    const typeToEdit = donationTypes.find(type => type.id === id)
-    if (typeToEdit) {
-      setNewType(typeToEdit)
-      setEditingId(id)
-    }
-  }
+  // Modifier un type de don
+  const handleEditType = async () => {
+    if (!editingType?.id) return
 
-  const handleSaveEdit = async (id: string, updatedType: Partial<DonationType>) => {
     try {
-      await ParishDonationTypeService.update(id, updatedType)
-      await loadDonationTypes()
-      setEditingId(null)
-      setNewType({ 
-        name: "", 
-        description: "", 
-        icon: "heart", 
-        defaultAmounts: [1000, 5000, 10000, 25000], 
-        active: true,
-        order: 0 
-      })
-
+      await DonationTypeService.update(editingType.id, formData)
+      
       toast({
         title: "Succès",
-        description: "Type de don mis à jour avec succès"
+        description: "Type de don modifié avec succès"
       })
+      
+      resetForm()
+      setIsEditDialogOpen(false)
+      setEditingType(null)
+      loadDonationTypes()
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du type de don:', error)
+      console.error('Erreur lors de la modification:', error)
       toast({
         title: "Erreur",
-        description: "Impossible de mettre à jour le type de don",
+        description: "Impossible de modifier le type de don",
         variant: "destructive"
       })
     }
   }
 
+  // Supprimer un type de don
   const handleDeleteType = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce type de don ?')) {
-      return
-    }
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce type de don ?')) return
 
     try {
-      await ParishDonationTypeService.delete(id)
-      await loadDonationTypes()
-
+      await DonationTypeService.delete(id)
+      
       toast({
         title: "Succès",
         description: "Type de don supprimé avec succès"
       })
+      
+      loadDonationTypes()
     } catch (error) {
-      console.error('Erreur lors de la suppression du type de don:', error)
+      console.error('Erreur lors de la suppression:', error)
       toast({
         title: "Erreur",
         description: "Impossible de supprimer le type de don",
@@ -193,246 +140,401 @@ export default function DonationTypesPage() {
     }
   }
 
-  const toggleTypeActive = async (id: string) => {
-    try {
-      const type = donationTypes.find(t => t.id === id)
-      if (type) {
-        await ParishDonationTypeService.update(id, { active: !type.active })
-        await loadDonationTypes()
-      }
-    } catch (error) {
-      console.error('Erreur lors du changement de statut:', error)
-      toast({
-        title: "Erreur",
-        description: "Impossible de changer le statut du type de don",
-        variant: "destructive"
-      })
-    }
+  // Réinitialiser le formulaire
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      suggestedAmount: 0,
+      isActive: true
+    })
   }
 
-  const handleAmountChange = (index: number, value: string) => {
-    const amounts = [...(newType.defaultAmounts || [1000, 5000, 10000, 25000])]
-    amounts[index] = parseInt(value) || 0
-    setNewType({ ...newType, defaultAmounts: amounts })
+  // Ouvrir le dialogue d'édition
+  const openEditDialog = (type: DonationTypeItem) => {
+    setEditingType(type)
+    setFormData({
+      name: type.name,
+      description: type.description || '',
+      suggestedAmount: type.suggestedAmount || 0,
+      isActive: type.isActive
+    })
+    setIsEditDialogOpen(true)
   }
 
-  const getIconComponent = (iconName: string) => {
-    const icon = iconOptions.find(opt => opt.value === iconName)
-    return icon ? icon.icon : Heart
-  }
+  // Filtrer les types de dons
+  const filteredTypes = donationTypes.filter(type =>
+    type.name.toLowerCase().includes(search.toLowerCase()) ||
+    (type.description && type.description.toLowerCase().includes(search.toLowerCase()))
+  )
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTypes.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedTypes = filteredTypes.slice(startIndex, startIndex + itemsPerPage)
+
+  useEffect(() => {
+    loadDonationTypes()
+  }, [paroisse])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <RefreshCw className="w-8 h-8 animate-spin text-green-600" />
-        <p className="ml-3 text-lg text-gray-700">Chargement des types de dons...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-100">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+          <span className="text-lg text-gray-600">Chargement des types de dons...</span>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
-      <Card className="bg-white shadow-lg rounded-xl">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-2xl font-bold text-gray-800">Types de dons</CardTitle>
-            <p className="text-sm text-gray-600 mt-1">
-              Configurez les types de dons et les montants par défaut pour votre paroisse
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* En-tête */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Types de Dons
+              </h1>
+              <p className="text-gray-600">
+                Gérez les types de dons disponibles pour {paroisse}
+              </p>
+            </div>
+            <Button
+              onClick={() => setIsAddDialogOpen(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Ajouter un Type
+            </Button>
           </div>
-          <Button onClick={() => setIsAdding(true)} className="bg-green-600 hover:bg-green-700 text-white">
-            <Plus className="w-5 h-5 mr-2" />
-            Nouveau type de don
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {(isAdding || editingId) && (
-            <div className="mb-8 p-6 border border-gray-200 rounded-lg bg-gray-50">
-              <h3 className="text-xl font-semibold mb-4 text-gray-700">
-                {editingId ? "Modifier le type de don" : "Ajouter un nouveau type de don"}
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <Label htmlFor="name" className="text-gray-700">Nom du type de don</Label>
-                  <Input
-                    id="name"
-                    value={newType.name}
-                    onChange={(e) => setNewType({ ...newType, name: e.target.value })}
-                    placeholder="Ex: Don pour la rénovation"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="icon" className="text-gray-700">Icône</Label>
-                  <select
-                    id="icon"
-                    value={newType.icon}
-                    onChange={(e) => setNewType({ ...newType, icon: e.target.value })}
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                  >
-                    {iconOptions.map(option => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
+        </motion.div>
+
+        {/* Statistiques */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <DollarSign className="w-8 h-8 text-green-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Types</p>
+                  <p className="text-2xl font-bold text-gray-900">{donationTypes.length}</p>
                 </div>
               </div>
-
-              <div className="mb-4">
-                <Label htmlFor="description" className="text-gray-700">Description</Label>
-                <Textarea
-                  id="description"
-                  value={newType.description}
-                  onChange={(e) => setNewType({ ...newType, description: e.target.value })}
-                  placeholder="Description du type de don"
-                  className="mt-1"
-                  rows={3}
-                />
-              </div>
-
-              <div className="mb-4">
-                <Label className="text-gray-700 mb-3 block">Montants par défaut (4 montants en FCFA)</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[0, 1, 2, 3].map((index) => (
-                    <div key={index}>
-                      <Label htmlFor={`amount-${index}`} className="text-sm text-gray-600">
-                        Montant {index + 1}
-                      </Label>
-                      <Input
-                        id={`amount-${index}`}
-                        type="number"
-                        value={newType.defaultAmounts?.[index] || 0}
-                        onChange={(e) => handleAmountChange(index, e.target.value)}
-                        placeholder="1000"
-                        className="mt-1"
-                      />
-                    </div>
-                  ))}
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Settings className="w-8 h-8 text-blue-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Types Actifs</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {donationTypes.filter(t => t.isActive).length}
+                  </p>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Les utilisateurs pourront aussi saisir un montant personnalisé
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <RefreshCw className="w-8 h-8 text-blue-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Dernière MAJ</p>
+                  <p className="text-sm text-gray-500">Maintenant</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Barre de recherche */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-6"
+        >
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Rechercher un type de don..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <Button
+              onClick={loadDonationTypes}
+              variant="outline"
+              className="px-4"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* Liste des types de dons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          {paginatedTypes.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Aucun type de don trouvé
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {search ? "Aucun type de don ne correspond à votre recherche." : "Commencez par ajouter votre premier type de don."}
                 </p>
-              </div>
-
-              <div className="mb-4">
-                <Label htmlFor="order" className="text-gray-700">Ordre d'affichage</Label>
-                <Input
-                  id="order"
-                  type="number"
-                  value={newType.order || 0}
-                  onChange={(e) => setNewType({ ...newType, order: parseInt(e.target.value) || 0 })}
-                  placeholder="0"
-                  className="mt-1 w-32"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setIsAdding(false)
-                    setEditingId(null)
-                    setNewType({ 
-                      name: "", 
-                      description: "", 
-                      icon: "heart", 
-                      defaultAmounts: [1000, 5000, 10000, 25000], 
-                      active: true,
-                      order: 0 
-                    })
-                  }} 
-                  className="text-gray-600"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Annuler
-                </Button>
-                <Button 
-                  onClick={editingId ? () => handleSaveEdit(editingId, newType) : handleAddType} 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {editingId ? "Sauvegarder" : "Ajouter"}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {donationTypes.length === 0 ? (
-            <div className="text-center py-12">
-              <DollarSign className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500 text-lg">Aucun type de don configuré</p>
-              <p className="text-gray-400 text-sm mt-2">Commencez par ajouter votre premier type de don</p>
-            </div>
+                {!search && (
+                  <Button
+                    onClick={() => setIsAddDialogOpen(true)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Ajouter le premier type
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {donationTypes.map(type => {
-                const IconComponent = getIconComponent(type.icon || 'heart')
-                return (
-                  <Card key={type.id} className="bg-white shadow-md rounded-lg overflow-hidden border-l-4 border-green-500">
+            <div className="grid gap-4">
+              {paginatedTypes.map((type, index) => (
+                <motion.div
+                  key={type.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Card className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                            <IconComponent className="w-6 h-6 text-green-600" />
-                          </div>
-                          <div>
-                            <h4 className="text-lg font-semibold text-gray-800">{type.name}</h4>
-                            <Badge variant={type.active ? "default" : "secondary"} className="text-xs mt-1">
-                              {type.active ? "Actif" : "Inactif"}
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {type.name}
+                            </h3>
+                            <Badge variant={type.isActive ? "default" : "secondary"}>
+                              {type.isActive ? "Actif" : "Inactif"}
                             </Badge>
                           </div>
+                          
+                          {type.description && (
+                            <p className="text-gray-600 mb-2">{type.description}</p>
+                          )}
+                          
+                          {type.suggestedAmount && type.suggestedAmount > 0 && (
+                            <p className="text-sm text-green-600 font-medium">
+                              Montant suggéré: {type.suggestedAmount.toLocaleString()} FCFA
+                            </p>
+                          )}
                         </div>
-                      </div>
-
-                      <p className="text-sm text-gray-600 mb-4">{type.description}</p>
-
-                      <div className="mb-4">
-                        <Label className="text-sm text-gray-700 mb-2 block">Montants par défaut :</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {type.defaultAmounts.map((amount, index) => (
-                            <Badge key={index} variant="outline" className="justify-center py-2 text-sm">
-                              {formatAmount(amount)}
-                            </Badge>
-                          ))}
+                        
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openEditDialog(type)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteType(type.id!)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
-                      </div>
-
-                      <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => toggleTypeActive(type.id!)} 
-                          className="text-gray-600"
-                        >
-                          {type.active ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-                          {type.active ? "Désactiver" : "Activer"}
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleEditType(type.id!)} 
-                          className="text-blue-600"
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Modifier
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
-                          onClick={() => handleDeleteType(type.id!)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Supprimer
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>
-                )
-              })}
+                </motion.div>
+              ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </motion.div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-8"
+          >
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </motion.div>
+        )}
+
+        {/* Dialogue d'ajout */}
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Ajouter un Type de Don</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Nom du type *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Quête dominicale"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Description du type de don..."
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="suggestedAmount">Montant suggéré (FCFA)</Label>
+                <Input
+                  id="suggestedAmount"
+                  type="number"
+                  value={formData.suggestedAmount}
+                  onChange={(e) => setFormData({ ...formData, suggestedAmount: Number(e.target.value) })}
+                  placeholder="0"
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="isActive">Type actif</Label>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleAddType}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  Ajouter
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    resetForm()
+                    setIsAddDialogOpen(false)
+                  }}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialogue d'édition */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Modifier le Type de Don</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-name">Nom du type *</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Quête dominicale"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Description du type de don..."
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-suggestedAmount">Montant suggéré (FCFA)</Label>
+                <Input
+                  id="edit-suggestedAmount"
+                  type="number"
+                  value={formData.suggestedAmount}
+                  onChange={(e) => setFormData({ ...formData, suggestedAmount: Number(e.target.value) })}
+                  placeholder="0"
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="edit-isActive"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="edit-isActive">Type actif</Label>
+              </div>
+              
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={handleEditType}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  Modifier
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    resetForm()
+                    setIsEditDialogOpen(false)
+                    setEditingType(null)
+                  }}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   )
 }

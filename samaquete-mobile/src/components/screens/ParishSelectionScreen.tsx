@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../lib/ThemeContext';
 import { useParishes } from '../../../hooks/useParishes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface ParishSelectionScreenProps {
   setCurrentScreen: (screen: string) => void;

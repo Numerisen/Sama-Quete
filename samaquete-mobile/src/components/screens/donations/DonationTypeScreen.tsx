@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice, formatAmount } from '../../../../lib/numberFormat';
 import { useParishes } from '../../../../hooks/useParishes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface DonationTypeScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -95,7 +96,7 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
   const handleContinue = () => {
     if (finalAmount) {
       setSelectedAmount(finalAmount);
-      setCurrentScreen('auth'); // Rediriger vers la page de connexion
+      setCurrentScreen('payment'); // Aller directement au paiement
     }
   };
 

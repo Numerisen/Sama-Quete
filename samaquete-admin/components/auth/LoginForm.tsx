@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/auth-context'
-import { Church, Loader2, Shield, Home } from 'lucide-react'
+import { Church, Loader2, Shield, Home, Building2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -15,7 +15,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [loginType, setLoginType] = useState<'admin' | 'diocese' | 'paroisse'>('admin')
+  const [loginType, setLoginType] = useState<'admin' | 'diocese' | 'paroisse' | 'eglise'>('admin')
   
   const { signIn } = useAuth()
   const router = useRouter()
@@ -53,14 +53,14 @@ export default function LoginForm() {
         
         <CardContent>
           {/* Sélecteur de type de connexion */}
-          <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
+          <div className="grid grid-cols-2 gap-2 mb-6">
             <button
               type="button"
               onClick={() => setLoginType('admin')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs ${
+              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs bg-gray-100 ${
                 loginType === 'admin'
-                  ? 'bg-white text-amber-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-amber-100 text-amber-600 shadow-sm border-2 border-amber-300'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
               }`}
             >
               <Shield className="w-4 h-4" />
@@ -69,10 +69,10 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setLoginType('diocese')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs ${
+              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs bg-gray-100 ${
                 loginType === 'diocese'
-                  ? 'bg-white text-amber-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-amber-100 text-amber-600 shadow-sm border-2 border-amber-300'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
               }`}
             >
               <Church className="w-4 h-4" />
@@ -81,14 +81,26 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setLoginType('paroisse')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs ${
+              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs bg-gray-100 ${
                 loginType === 'paroisse'
-                  ? 'bg-white text-green-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-green-100 text-green-600 shadow-sm border-2 border-green-300'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
               }`}
             >
               <Home className="w-4 h-4" />
               Admin Paroisse
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginType('eglise')}
+              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs bg-gray-100 ${
+                loginType === 'eglise'
+                  ? 'bg-emerald-100 text-emerald-600 shadow-sm border-2 border-emerald-300'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              Admin Église
             </button>
           </div>
 
@@ -100,7 +112,12 @@ export default function LoginForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@admin.com"
+                placeholder={
+                  loginType === 'admin' ? 'admin@admin.com' :
+                  loginType === 'diocese' ? 'diocese@diocese.com' :
+                  loginType === 'paroisse' ? 'admin.paroisse@test.com' :
+                  'admin.eglise@test.com'
+                }
                 required
               />
             </div>
@@ -143,8 +160,9 @@ export default function LoginForm() {
             <p>Comptes de test :</p>
             <div className="mt-2 space-y-1">
               <p><strong>Super Admin:</strong> admin@admin.com</p>
-              <p><strong>Admin Diocèse:</strong> diocese@admin.com</p>
+              <p><strong>Admin Diocèse:</strong> diocese@diocese.com</p>
               <p><strong>Admin Paroisse:</strong> admin.paroisse@test.com</p>
+              <p><strong>Admin Église:</strong> admin.eglise@test.com</p>
             </div>
           </div>
         </CardContent>

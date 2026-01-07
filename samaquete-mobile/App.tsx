@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from './lib/ThemeContext';
+import { useAuth } from './hooks/useAuth';
 
 // Import des écrans
 import SplashScreenComponent from './src/components/screens/SplashScreen';
@@ -31,14 +32,36 @@ export default function App() {
   const [selectedDonationType, setSelectedDonationType] = useState('');
   const [selectedAmount, setSelectedAmount] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectionContext, setSelectionContext] = useState('');
-  const [userProfile, setUserProfile] = useState({
+  
+  // Utiliser le hook useAuth pour gérer l'authentification
+  const { user, profile, signOut } = useAuth();
+  const isAuthenticated = !!user && !!profile;
+  
+  // Profil utilisateur basé sur les données Firebase
+  const baseUserProfile = profile ? {
+    name: `${profile.firstName} ${profile.lastName}`,
+    phone: profile.phone,
+    totalDonations: profile.totalDonations || 0,
+    prayerDays: 12, // Valeur par défaut
+    email: profile.email,
+    username: profile.username,
+    country: profile.country
+  } : {
     name: '',
     phone: '',
     totalDonations: 0,
     prayerDays: 12,
-  });
+    email: '',
+    username: '',
+    country: ''
+  };
+
+  const [userProfile, setUserProfile] = useState(baseUserProfile);
+
+  useEffect(() => {
+    setUserProfile(baseUserProfile);
+  }, [profile]);
 
   const [loaded, error] = useFonts({
     // Ajouter des polices personnalisées ici si nécessaire
@@ -57,9 +80,27 @@ export default function App() {
     }
   }, [currentScreen]);
 
+  // L'authentification est maintenant gérée par les écrans individuels
+
   if (!loaded && !error) {
     return null;
   }
+
+  const handleSetUserProfile = (updatedProfile: any) => {
+    setUserProfile(updatedProfile);
+  };
+
+  const handleSetIsAuthenticated = async (auth: boolean) => {
+    if (!auth) {
+      try {
+        await signOut();
+      } catch (error) {
+        console.warn('Erreur lors de la déconnexion:', error);
+      } finally {
+        setCurrentScreen('auth');
+      }
+    }
+  };
 
   const screenProps = {
     setCurrentScreen,
@@ -70,11 +111,11 @@ export default function App() {
     selectedPaymentMethod,
     setSelectedPaymentMethod,
     userProfile,
-    setUserProfile,
+    setUserProfile: handleSetUserProfile,
     isAuthenticated,
-    setIsAuthenticated,
     selectionContext,
     setSelectionContext,
+    setIsAuthenticated: handleSetIsAuthenticated,
   };
 
   const renderScreen = () => {

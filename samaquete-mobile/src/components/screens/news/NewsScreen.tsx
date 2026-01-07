@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Image, RefreshControl, ActivityIndicator, Modal } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, RefreshControl, ActivityIndicator, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../lib/ThemeContext';
 import { useNews } from '../../../../hooks/useNews';
 import { useParishes } from '../../../../hooks/useParishes';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface NewsScreenProps {
   setCurrentScreen: (screen: string) => void;

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Modal, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice } from '../../../../lib/numberFormat';
 import { useParishes } from '../../../../hooks/useParishes';
 import { useDonationTypesRealtime } from '../../../../hooks/useDonationTypes';
 import { ChurchStorageService } from '../../../../lib/church-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface DonationsScreenProps {
   setCurrentScreen: (screen: string) => void;

@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 
-interface ParoisseActivity {
+interface ÉgliseActivity {
   id: string;
   title: string;
   description: string;
@@ -39,12 +39,12 @@ interface ParoisseActivity {
   contact?: string;
 }
 
-export default function ParoisseActivitiesPage() {
+export default function ÉgliseActivitiesPage() {
   const searchParams = useSearchParams()
-  const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
+  const eglise = searchParams.get('eglise') || 'Église Saint Jean Bosco'
   const { toast } = useToast()
 
-  const [activities, setActivities] = useState<ParoisseActivity[]>([
+  const [activities, setActivities] = useState<ÉgliseActivity[]>([
     {
       id: "1",
       title: "Messe dominicale",
@@ -199,13 +199,13 @@ export default function ParoisseActivitiesPage() {
         {/* En-tête */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Activités de la paroisse</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Activités de la eglise</h1>
             <p className="text-gray-600 mt-1">
-              {paroisse} • Gestion des activités et événements
+              {eglise} • Gestion des activités et événements
             </p>
           </div>
           <div className="flex gap-3">
-            <Link href="/adminparoisse/activities/create">
+            <Link href="/admineglise/activities/create">
               <Button className="flex items-center gap-2">
                 <Plus className="w-4 h-4" />
                 Nouvelle activité
@@ -407,11 +407,11 @@ export default function ParoisseActivitiesPage() {
                 <p className="text-gray-600 mb-4">
                   {searchTerm || filterType !== "all" || filterStatus !== "all" 
                     ? "Aucune activité ne correspond à vos critères de recherche."
-                    : "Aucune activité n'a encore été programmée pour cette paroisse."
+                    : "Aucune activité n'a encore été programmée pour cette eglise."
                   }
                 </p>
                 {!searchTerm && filterType === "all" && filterStatus === "all" && (
-                  <Link href="/adminparoisse/activities/create">
+                  <Link href="/admineglise/activities/create">
                     <Button className="flex items-center gap-2">
                       <Plus className="w-4 h-4" />
                       Programmer la première activité
