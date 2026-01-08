@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { initializeApp } from 'firebase/app';
-import { getAuth, initializeAuth } from 'firebase/auth';
+import { getAuth, initializeAuth, type Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Configuration Firebase - même projet que l'admin
@@ -18,7 +18,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialiser les services Firebase
-let auth;
+let auth: Auth;
 
 if (Platform.OS === 'web') {
   auth = getAuth(app);

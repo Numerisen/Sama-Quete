@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from './lib/ThemeContext';
 import { useAuth } from './hooks/useAuth';
+import { paymentService } from './lib/payment-service';
 
 // Import des écrans
 import SplashScreenComponent from './src/components/screens/SplashScreen';
@@ -79,6 +80,75 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [currentScreen]);
+
+  // Gérer les deep links pour le retour de paiement
+  useEffect(() => {
+    // Écouter les deep links au démarrage de l'app
+    const handleInitialURL = async () => {
+      const initialUrl = await Linking.getInitialURL();
+      if (initialUrl && initialUrl.includes('payment/return')) {
+        handlePaymentReturn(initialUrl);
+      }
+    };
+
+    // Écouter les deep links pendant l'exécution de l'app
+    const subscription = Linking.addEventListener('url', (event) => {
+      if (event.url && event.url.includes('payment/return')) {
+        handlePaymentReturn(event.url);
+      }
+    });
+
+    handleInitialURL();
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  /**
+   * Gérer le retour de paiement depuis PayDunya
+   */
+  const handlePaymentReturn = async (url: string) => {
+    try {
+      const status = await paymentService.handlePaymentReturn(url);
+      
+      if (status) {
+        if (status.status === 'COMPLETED') {
+          Alert.alert(
+            '✅ Paiement réussi',
+            `Votre don de ${status.amount ? `${status.amount} ${status.currency || 'XOF'}` : ''} a été confirmé avec succès.`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  setCurrentScreen('donation-history');
+                }
+              }
+            ]
+          );
+        } else if (status.status === 'PENDING') {
+          Alert.alert(
+            '⏳ Paiement en cours',
+            'Votre paiement est en cours de traitement. Vous recevrez une notification une fois confirmé.',
+            [{ text: 'OK', onPress: () => setCurrentScreen('donation-history') }]
+          );
+        } else {
+          Alert.alert(
+            '❌ Paiement échoué',
+            'Le paiement n\'a pas pu être confirmé. Veuillez réessayer.',
+            [{ text: 'OK' }]
+          );
+        }
+      }
+    } catch (error: any) {
+      console.error('Erreur lors du traitement du retour de paiement:', error);
+      Alert.alert(
+        'Erreur',
+        'Une erreur est survenue lors de la vérification du paiement.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
 
   // L'authentification est maintenant gérée par les écrans individuels
 

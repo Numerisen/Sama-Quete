@@ -1,4 +1,5 @@
 "use client"
+export const dynamic = "force-dynamic"
 import { useState, useEffect } from "react"
 import AdminParoisseAdminSidebar from "@/components/admin/sidebar-paroisse-admin"
 import AdminParoisseAdminHeader from "@/components/admin/header-paroisse-admin"

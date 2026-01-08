@@ -1,4 +1,5 @@
 "use client"
+export const dynamic = "force-dynamic"
 import { useState, useEffect } from "react"
 import AdminDioceseSidebar from "@/components/admin/sidebar-diocese"
 import AdminDioceseHeader from "@/components/admin/header-diocese"

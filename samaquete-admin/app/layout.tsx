@@ -1,40 +1,37 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { ThemeProvider } from '@/components/ui/theme-provider'
-import ThemeToggle from '@/components/ui/theme-toggle'
-import { ToastProvider } from '@/components/ui/toast-provider'
-import { AuthProvider } from '@/lib/auth-context'
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+import { AuthProvider } from "@/lib/auth-context"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: 'SamaQuete Admin',
-  description: 'Administration SamaQuete',
+  title: "Sama-Quete Admin",
+  description: "Plateforme d'administration pour Sama-Quete",
 }
+
+// Désactiver le prérendu statique globalement
+export const dynamic = 'force-dynamic'
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="fr">
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
         >
           <AuthProvider>
-            <ToastProvider />
-            <div className="relative min-h-screen">
-              {children}
-              <div className="fixed bottom-4 right-4 z-50">
-                <ThemeToggle />
-              </div>
-            </div>
+            {children}
+            <Toaster />
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatNumber } from '../../../../lib/numberFormat';
 import { useTheme } from '../../../../lib/ThemeContext';
 import { useParishes } from '../../../../hooks/useParishes';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { paymentService } from '../../../../lib/payment-service';
+import { Linking } from 'react-native';
 
 interface PaymentScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -16,6 +18,7 @@ interface PaymentScreenProps {
 export default function PaymentScreen({ setCurrentScreen, selectedDonationType, selectedAmount }: PaymentScreenProps) {
   const { colors } = useTheme();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('carte');
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Utiliser le hook useParishes pour obtenir la paroisse sélectionnée
   const { selectedParish } = useParishes();
@@ -47,17 +50,82 @@ export default function PaymentScreen({ setCurrentScreen, selectedDonationType, 
     }
   ];
 
-  const handlePayment = () => {
-    // Logique de paiement ici
-    console.log('Paiement effectué:', {
-      method: selectedPaymentMethod,
-      parish: selectedParish?.name || 'Paroisse',
-      type: selectedDonationType,
-      amount: selectedAmount
-    });
-    
-    // Retour au dashboard après paiement
-    setCurrentScreen('dashboard');
+  /**
+   * Convertir le type de don en format attendu par l'API
+   */
+  const getDonationType = (): 'quete' | 'denier' | 'cierge' | 'messe' => {
+    const type = selectedDonationType.toLowerCase();
+    if (type.includes('quete')) return 'quete';
+    if (type.includes('denier')) return 'denier';
+    if (type.includes('cierge')) return 'cierge';
+    if (type.includes('messe')) return 'messe';
+    return 'quete'; // Par défaut
+  };
+
+  /**
+   * Convertir le montant en nombre
+   */
+  const getAmount = (): number => {
+    const amountStr = selectedAmount.replace(/[^\d]/g, '');
+    return parseInt(amountStr, 10) || 0;
+  };
+
+  const handlePayment = async () => {
+    if (isProcessing) return;
+
+    const amount = getAmount();
+    if (amount < 100) {
+      Alert.alert('Montant invalide', 'Le montant minimum est de 100 FCFA');
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const donationType = getDonationType();
+      const description = `Don ${selectedDonationType} - ${selectedParish?.name || 'Paroisse'}`;
+
+      // Créer le checkout de paiement via payment-api
+      const checkout = await paymentService.createDonationCheckout(
+        donationType,
+        amount,
+        description,
+        selectedParish?.id
+      );
+
+      console.log('✅ Checkout créé:', checkout);
+
+      // Ouvrir l'URL de paiement PayDunya
+      if (checkout.checkout_url) {
+        await paymentService.openCheckout(checkout.checkout_url);
+        
+        // Afficher un message informatif
+        Alert.alert(
+          'Paiement en cours',
+          'Vous allez être redirigé vers la page de paiement PayDunya. Après le paiement, vous serez redirigé automatiquement vers l\'application.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Retourner au dashboard - le deep link gérera le retour
+                setCurrentScreen('dashboard');
+              }
+            }
+          ]
+        );
+      } else {
+        throw new Error('URL de paiement non disponible');
+      }
+    } catch (error: any) {
+      console.error('❌ Erreur lors du paiement:', error);
+      Alert.alert(
+        'Erreur de paiement',
+        error.message || 'Une erreur est survenue lors de la création du paiement. Veuillez réessayer.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -163,9 +231,22 @@ export default function PaymentScreen({ setCurrentScreen, selectedDonationType, 
       >
         <Text style={styles.confirmTitle}>Confirmer le don</Text>
         
-        <TouchableOpacity style={styles.payButton} onPress={handlePayment}>
-          <Text style={styles.payButtonText}>Payer {formatNumber(selectedAmount.replace(/[^\d]/g, ''))} FCFA</Text>
-          <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+        <TouchableOpacity 
+          style={[styles.payButton, isProcessing && styles.payButtonDisabled]} 
+          onPress={handlePayment}
+          disabled={isProcessing}
+        >
+          {isProcessing ? (
+            <>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.payButtonText, { marginLeft: 8 }]}>Traitement...</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.payButtonText}>Payer {formatNumber(selectedAmount.replace(/[^\d]/g, ''))} FCFA</Text>
+              <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+            </>
+          )}
         </TouchableOpacity>
         
         <Text style={styles.securityText}>
@@ -337,6 +418,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     minWidth: 200,
+  },
+  payButtonDisabled: {
+    opacity: 0.6,
   },
   payButtonText: {
     fontSize: 16,
