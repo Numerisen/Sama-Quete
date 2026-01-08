@@ -45,8 +45,8 @@ export default function SplashScreen({ setCurrentScreen }: SplashScreenProps) {
           </View>
         </View>
 
-        <Text style={styles.title}>SamaQuête</Text>
-        <Text style={styles.subtitle}>Votre compagnon spirituel</Text>
+        <Text style={styles.title}>Jàngu Bi</Text>
+        <Text style={styles.subtitle}>L'Église, partout avec toi.</Text>
 
         <View style={styles.loadingContainer}>
           {[0, 1, 2].map((i) => (

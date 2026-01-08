@@ -2,7 +2,7 @@
  * Service d'intégration pour l'API de paiement PayDunya (Mobile)
  * 
  * Cette couche d'adaptation isole le submodule payment-api et fournit
- * une interface unifiée pour les paiements dans l'app mobile Sama-Quete.
+ * une interface unifiée pour les paiements dans l'app mobile Jàngu Bi.
  * 
  * IMPORTANT: Ne jamais modifier directement le submodule payment-api.
  * Toute adaptation doit être faite dans cette couche.
@@ -256,12 +256,12 @@ export class PaymentService {
    * Gérer le retour de paiement via deep link
    * 
    * Cette méthode doit être appelée lors de la réception d'un deep link
-   * après un paiement (ex: samaquete://payment/success?token=...)
+   * après un paiement (ex: jangui-bi://payment/success?token=...)
    */
   async handlePaymentReturn(url: string): Promise<PaymentStatus | null> {
     try {
       // Parser l'URL manuellement pour extraire le token
-      // Supporte les formats: samaquete://payment/success?token=xxx ou http://...
+      // Supporte les formats: jangui-bi://payment/success?token=xxx ou http://...
       const tokenMatch = url.match(/[?&]token=([^&]+)/);
       const token = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
       
@@ -320,10 +320,10 @@ export class PaymentService {
   }
 
   /**
-   * Adapter un plan de paiement PayDunya pour les dons Sama-Quete
+   * Adapter un plan de paiement PayDunya pour les dons Jàngu Bi
    */
   static mapDonationTypeToPlan(donationType: 'quete' | 'denier' | 'cierge' | 'messe', amount: number): string | null {
-    // Adaptation selon les besoins de Sama-Quete
+    // Adaptation selon les besoins de Jàngu Bi
     // Pour l'instant, l'API supporte BOOK_PART_2 et BOOK_PART_3
     if (donationType === 'messe' && amount >= 10000) {
       return 'BOOK_PART_2';

@@ -27,7 +27,7 @@ export default function AdminSidebar() {
         {!collapsed && (
           <>
             <img src="/placeholder-logo.png" className="w-10 h-10" alt="Logo" />
-            <span className="font-bold text-xl tracking-wide">Sama Quete Super Admin</span>
+            <span className="font-bold text-xl tracking-wide">Jàngu Bi Super Admin</span>
           </>
         )}
         {collapsed && (
@@ -58,7 +58,7 @@ export default function AdminSidebar() {
         ))}
       </nav>
       {!collapsed && (
-        <div className="mt-auto p-4 text-xs text-center text-white/60">© {new Date().getFullYear()} Sama Quete</div>
+        <div className="mt-auto p-4 text-xs text-center text-white/60">© {new Date().getFullYear()} Jàngu Bi</div>
       )}
     </aside>
   )

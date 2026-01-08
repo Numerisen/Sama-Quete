@@ -185,7 +185,7 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
               </View>
               <View style={styles.profileInfo}>
                 <Text style={styles.welcomeText}>Paix du Christ!</Text>
-                <Text style={styles.userName}>Bienvenue dans SamaQuête</Text>
+                <Text style={styles.userName}>Bienvenue dans Jàngu Bi</Text>
               </View>
             </View>
             <View style={styles.headerActions}>

@@ -8,8 +8,8 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sama-Quete Admin",
-  description: "Plateforme d'administration pour Sama-Quete",
+  title: "Jàngu Bi Admin",
+  description: "Plateforme d'administration pour Jàngu Bi - l'Église, partout avec toi",
 }
 
 // Désactiver le prérendu statique globalement

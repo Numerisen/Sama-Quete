@@ -2,7 +2,7 @@
  * Service d'intégration pour l'API de paiement PayDunya
  * 
  * Cette couche d'adaptation isole le submodule payment-api et fournit
- * une interface unifiée pour les paiements dans Sama-Quete.
+ * une interface unifiée pour les paiements dans Jàngu Bi.
  * 
  * IMPORTANT: Ne jamais modifier directement le submodule payment-api.
  * Toute adaptation doit être faite dans cette couche.
@@ -152,15 +152,15 @@ export class PaymentService {
   }
 
   /**
-   * Adapter un plan de paiement PayDunya pour les dons Sama-Quete
+   * Adapter un plan de paiement PayDunya pour les dons Jàngu Bi
    * 
-   * Cette méthode permet de mapper les types de dons Sama-Quete
+   * Cette méthode permet de mapper les types de dons Jàngu Bi
    * vers les plans supportés par l'API de paiement.
    */
   static mapDonationTypeToPlan(donationType: 'quete' | 'denier' | 'cierge' | 'messe', amount: number): string | null {
     // Pour l'instant, l'API payment-api supporte BOOK_PART_2 et BOOK_PART_3
     // Cette méthode peut être étendue pour supporter d'autres plans
-    // selon les besoins de Sama-Quete
+    // selon les besoins de Jàngu Bi
     
     // Exemple d'adaptation (à adapter selon vos besoins réels)
     if (donationType === 'messe' && amount >= 10000) {

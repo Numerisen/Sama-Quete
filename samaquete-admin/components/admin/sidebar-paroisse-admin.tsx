@@ -56,7 +56,7 @@ export default function AdminParoisseAdminSidebar() {
           <>
             <img src="/placeholder-logo.png" className="w-10 h-10" alt="Logo" />
             <div className="flex flex-col">
-              <span className="font-bold text-lg tracking-wide">Sama Quete</span>
+              <span className="font-bold text-lg tracking-wide">Jàngu Bi</span>
               <span className="text-xs text-white/70">Admin Paroisse</span>
             </div>
           </>
@@ -106,7 +106,7 @@ export default function AdminParoisseAdminSidebar() {
       
       {!collapsed && (
         <div className="mt-auto p-4 text-xs text-center text-white/60">
-          © {new Date().getFullYear()} Sama Quete
+          © {new Date().getFullYear()} Jàngu Bi
         </div>
       )}
     </aside>

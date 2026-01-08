@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "SamaQuête",
+    "name": "Jàngu Bi",
     "slug": "samaquete-rn",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -28,14 +28,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "samaquete",
+    "scheme": "jangui-bi",
     "plugins": [
       "expo-font",
       "expo-splash-screen"
     ],
-    "description": "Application mobile pour la communauté catholique du Sénégal - Votre compagnon spirituel numérique",
-    "keywords": ["senegal", "catholique", "eglise", "don", "spirituel", "mobile", "react-native"],
-    "author": "SamaQuête Team",
+    "description": "Jàngu Bi : l'Église, partout avec toi - Application mobile pour la communauté catholique du Sénégal",
+    "keywords": ["senegal", "catholique", "eglise", "don", "spirituel", "mobile", "react-native", "jangui bi"],
+    "author": "Jàngu Bi Team",
     "homepage": "https://samaquete.vercel.app"
   }
 }

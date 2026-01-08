@@ -43,10 +43,10 @@ export default function LoginForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src="/placeholder-logo.png" alt="SamaQuete" className="w-16 h-16" />
+            <img src="/placeholder-logo.png" alt="Jàngu Bi" className="w-16 h-16" />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">
-            Connexion SamaQuete
+            Connexion Jàngu Bi
           </CardTitle>
           <p className="text-gray-600">Accès à l'interface d'administration</p>
         </CardHeader>
