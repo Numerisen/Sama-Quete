@@ -7,7 +7,9 @@ import { useTheme } from '../../../../lib/ThemeContext';
 import { useParishes } from '../../../../hooks/useParishes';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { paymentService } from '../../../../lib/payment-service';
+import { AnonymousStorage } from '../../../../lib/anonymous-storage';
 import { Linking } from 'react-native';
+import { useAuth } from '../../../../hooks/useAuth';
 
 interface PaymentScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -22,6 +24,10 @@ export default function PaymentScreen({ setCurrentScreen, selectedDonationType, 
   
   // Utiliser le hook useParishes pour obtenir la paroisse sélectionnée
   const { selectedParish } = useParishes();
+  
+  // Vérifier si l'utilisateur est authentifié
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
 
   const paymentMethods = [
     {
@@ -85,16 +91,37 @@ export default function PaymentScreen({ setCurrentScreen, selectedDonationType, 
       const donationType = getDonationType();
       const description = `Don ${selectedDonationType} - ${selectedParish?.name || 'Paroisse'}`;
 
-      // Créer le checkout de paiement via payment-api
+      // Obtenir ou créer l'UID anonyme si non authentifié
+      let anonymousUid: string | undefined;
+      if (!isAuthenticated) {
+        anonymousUid = await AnonymousStorage.getOrCreateAnonymousUid();
+        console.log('📝 UID anonyme utilisé:', anonymousUid);
+      }
+
+      // Créer le checkout de paiement via payment-api (passer l'UID anonyme)
       const checkout = await paymentService.createDonationCheckout(
         donationType,
         amount,
         description,
-        selectedParish?.id
+        selectedParish?.id,
+        anonymousUid // Passer l'UID anonyme pour réutiliser le même
       );
 
       console.log('✅ Checkout créé:', checkout);
-
+      
+      // Si l'utilisateur n'est pas authentifié, stocker l'UID anonyme retourné par l'API
+      // ou utiliser celui qu'on a créé localement
+      if (!isAuthenticated) {
+        const returnedUid = (checkout as any).uid;
+        if (returnedUid && returnedUid.startsWith('anonymous_')) {
+          await AnonymousStorage.setAnonymousUid(returnedUid);
+          console.log('📝 UID anonyme stocké depuis la réponse:', returnedUid);
+        } else if (anonymousUid) {
+          await AnonymousStorage.setAnonymousUid(anonymousUid);
+          console.log('📝 UID anonyme stocké localement:', anonymousUid);
+        }
+      }
+    
       // Ouvrir l'URL de paiement PayDunya
       if (checkout.checkout_url) {
         await paymentService.openCheckout(checkout.checkout_url);
@@ -108,7 +135,7 @@ export default function PaymentScreen({ setCurrentScreen, selectedDonationType, 
               text: 'OK',
               onPress: () => {
                 // Retourner au dashboard - le deep link gérera le retour
-                setCurrentScreen('dashboard');
+    setCurrentScreen('dashboard');
               }
             }
           ]
@@ -243,8 +270,8 @@ export default function PaymentScreen({ setCurrentScreen, selectedDonationType, 
             </>
           ) : (
             <>
-              <Text style={styles.payButtonText}>Payer {formatNumber(selectedAmount.replace(/[^\d]/g, ''))} FCFA</Text>
-              <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+          <Text style={styles.payButtonText}>Payer {formatNumber(selectedAmount.replace(/[^\d]/g, ''))} FCFA</Text>
+          <Ionicons name="arrow-forward" size={20} color={colors.primary} />
             </>
           )}
         </TouchableOpacity>

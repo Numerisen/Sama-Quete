@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatNumber } from '../../../../lib/numberFormat';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { paymentService, DonationHistoryItem } from '../../../../lib/payment-service';
+import { AnonymousStorage } from '../../../../lib/anonymous-storage';
+import { useAuth } from '../../../../hooks/useAuth';
 
 interface DonationHistoryScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -11,72 +14,67 @@ interface DonationHistoryScreenProps {
 
 export default function DonationHistoryScreen({ setCurrentScreen }: DonationHistoryScreenProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [donationHistory, setDonationHistory] = useState<DonationHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
 
-  // Données simulées des dons
-  const donationHistory = [
-    {
-      id: '1',
-      date: '2024-01-20',
-      type: 'Quête dominicale',
-      amount: 5000,
-      church: 'Paroisse Saint-Pierre',
-      status: 'completed',
-      paymentMethod: 'Mobile Money'
-    },
-    {
-      id: '2',
-      date: '2024-01-18',
-      type: 'Denier du culte',
-      amount: 10000,
-      church: 'Paroisse Sainte-Anne',
-      status: 'completed',
-      paymentMethod: 'Carte bancaire'
-    },
-    {
-      id: '3',
-      date: '2024-01-15',
-      type: 'Cierge pascal',
-      amount: 2500,
-      church: 'Paroisse Saint-Pierre',
-      status: 'completed',
-      paymentMethod: 'Mobile Money'
-    },
-    {
-      id: '4',
-      date: '2024-01-12',
-      type: 'Quête spéciale',
-      amount: 15000,
-      church: 'Paroisse Saint-Joseph',
-      status: 'completed',
-      paymentMethod: 'Virement bancaire'
-    },
-    {
-      id: '5',
-      date: '2024-01-10',
-      type: 'Denier du culte',
-      amount: 7500,
-      church: 'Paroisse Saint-Pierre',
-      status: 'completed',
-      paymentMethod: 'Mobile Money'
-    },
-    {
-      id: '6',
-      date: '2024-01-08',
-      type: 'Quête dominicale',
-      amount: 3000,
-      church: 'Paroisse Sainte-Marie',
-      status: 'completed',
-      paymentMethod: 'Espèces'
+  // Charger l'historique des contributions
+  const loadDonationHistory = async () => {
+    try {
+      setLoading(true);
+      
+      // Obtenir l'UID anonyme si non authentifié
+      let anonymousUid: string | undefined;
+      if (!isAuthenticated) {
+        anonymousUid = await AnonymousStorage.getOrCreateAnonymousUid();
+      }
+      
+      // Récupérer l'historique depuis l'API
+      const history = await paymentService.getDonationHistory(anonymousUid);
+      
+      setDonationHistory(history.donations);
+      setTotalAmount(history.statistics.totalAmount);
+      setTotalCount(history.statistics.totalCount);
+    } catch (error: any) {
+      console.error('Erreur lors du chargement de l\'historique:', error);
+      Alert.alert(
+        'Erreur',
+        error.message || 'Impossible de charger l\'historique des contributions',
+        [{ text: 'OK' }]
+      );
+      // En cas d'erreur, garder une liste vide
+      setDonationHistory([]);
+      setTotalAmount(0);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  ];
+  };
 
-  // Types de dons disponibles pour le filtre
+  // Charger au montage du composant
+  useEffect(() => {
+    loadDonationHistory();
+  }, [isAuthenticated]);
+
+  // Fonction de rafraîchissement
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadDonationHistory();
+  };
+
+  // Types de dons disponibles pour le filtre (basés sur les vrais types)
   const donationTypes = [
     { id: 'all', name: 'Tous', icon: 'grid' },
     { id: 'Quête dominicale', name: 'Quête dominicale', icon: 'heart' },
     { id: 'Denier du culte', name: 'Denier du culte', icon: 'cash' },
     { id: 'Cierge pascal', name: 'Cierge pascal', icon: 'flame' },
-    { id: 'Quête spéciale', name: 'Quête spéciale', icon: 'gift' },
+    { id: 'Messe', name: 'Messe', icon: 'book' },
   ];
 
   // Filtrer les dons selon le filtre sélectionné
@@ -84,8 +82,11 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
     ? donationHistory 
     : donationHistory.filter(donation => donation.type === selectedFilter);
 
-  const totalDonations = filteredDonations.reduce((sum, donation) => sum + donation.amount, 0);
-  const totalDonationsCount = filteredDonations.length;
+  // Calculer le total des dons filtrés (pending + completed)
+  const filteredTotal = filteredDonations
+    .filter(d => d.status === 'completed' || d.status === 'pending')
+    .reduce((sum, donation) => sum + donation.amount, 0);
+  const filteredCount = filteredDonations.length;
 
   const getDonationTypeIcon = (type: string) => {
     switch (type) {
@@ -95,8 +96,8 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
         return 'cash';
       case 'Cierge pascal':
         return 'flame';
-      case 'Quête spéciale':
-        return 'gift';
+      case 'Messe':
+        return 'book';
       default:
         return 'card';
     }
@@ -110,10 +111,41 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
         return '#3b82f6';
       case 'Cierge pascal':
         return '#f59e0b';
-      case 'Quête spéciale':
+      case 'Messe':
         return '#10b981';
       default:
         return '#8b5cf6';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'paid':
+      case 'completed':
+        return 'Terminé';
+      case 'pending':
+        return 'En attente';
+      case 'failed':
+        return 'Échoué';
+      case 'canceled':
+        return 'Annulé';
+      default:
+        return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'paid':
+      case 'completed':
+        return '#10b981';
+      case 'pending':
+        return '#f59e0b';
+      case 'failed':
+      case 'canceled':
+        return '#ef4444';
+      default:
+        return '#6b7280';
     }
   };
 
@@ -128,7 +160,13 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Header avec gradient bleu */}
         <LinearGradient colors={['#3b82f6', '#2563eb']} style={styles.header}>
           <TouchableOpacity
@@ -147,17 +185,26 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
 
         <View style={styles.content}>
           {/* Statistiques résumées */}
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text style={styles.loadingText}>Chargement de l'historique...</Text>
+            </View>
+          ) : (
+            <>
           <View style={styles.summaryCard}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{formatNumber(totalDonations)}</Text>
+                  <Text style={styles.summaryValue}>{formatNumber(selectedFilter === 'all' ? totalAmount : filteredTotal)}</Text>
               <Text style={styles.summaryLabel}>Total contribué</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{totalDonationsCount}</Text>
+                  <Text style={styles.summaryValue}>{selectedFilter === 'all' ? totalCount : filteredCount}</Text>
               <Text style={styles.summaryLabel}>Dons effectués</Text>
             </View>
           </View>
+            </>
+          )}
 
           {/* Filtres */}
           <View style={styles.filtersContainer}>
@@ -195,8 +242,24 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
           {/* Liste des dons */}
           <Text style={styles.sectionTitle}>Détail des dons</Text>
           
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text style={styles.loadingText}>Chargement...</Text>
+            </View>
+          ) : filteredDonations.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="receipt-outline" size={64} color="#cbd5e1" />
+              <Text style={styles.emptyText}>Aucune contribution pour le moment</Text>
+              <Text style={styles.emptySubtext}>
+                {selectedFilter === 'all' 
+                  ? 'Vos contributions apparaîtront ici après vos dons'
+                  : 'Aucune contribution de ce type'}
+              </Text>
+            </View>
+          ) : (
           <View style={styles.donationsList}>
-            {filteredDonations.map((donation, index) => (
+              {filteredDonations.map((donation) => (
               <View key={donation.id} style={styles.donationCard}>
                 <View style={styles.donationHeader}>
                   <View style={styles.donationTypeContainer}>
@@ -205,10 +268,10 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
                     </View>
                     <View style={styles.donationInfo}>
                       <Text style={styles.donationType}>{donation.type}</Text>
-                      <Text style={styles.donationChurch}>{donation.church}</Text>
+                        <Text style={styles.donationChurch}>PayDunya</Text>
+                      </View>
                     </View>
-                  </View>
-                  <Text style={styles.donationAmount}>{formatNumber(donation.amount)} FCFA</Text>
+                    <Text style={styles.donationAmount}>{formatNumber(donation.amount)} {donation.currency || 'FCFA'}</Text>
                 </View>
                 
                 <View style={styles.donationDetails}>
@@ -218,16 +281,29 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
                   </View>
                   <View style={styles.detailRow}>
                     <Ionicons name="card" size={14} color="#6b7280" />
-                    <Text style={styles.detailText}>{donation.paymentMethod}</Text>
+                      <Text style={styles.detailText}>{donation.provider || 'PayDunya'}</Text>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Ionicons name="checkmark-circle" size={14} color="#10b981" />
-                    <Text style={[styles.detailText, { color: '#10b981' }]}>Terminé</Text>
-                  </View>
+                    <View style={styles.detailRow}>
+                      <Ionicons 
+                        name={
+                          donation.status === 'completed' 
+                            ? 'checkmark-circle' 
+                            : donation.status === 'pending'
+                            ? 'time'
+                            : 'close-circle'
+                        } 
+                        size={14} 
+                        color={getStatusColor(donation.status)} 
+                      />
+                      <Text style={[styles.detailText, { color: getStatusColor(donation.status) }]}>
+                        {getStatusText(donation.status)}
+                      </Text>
+                    </View>
                 </View>
               </View>
             ))}
           </View>
+          )}
 
           {/* Message d'encouragement */}
           <View style={styles.encouragementCard}>
@@ -455,5 +531,33 @@ const styles = StyleSheet.create({
     color: '#dc2626', // text-red-600
     textAlign: 'center',
     lineHeight: 20,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
   },
 });

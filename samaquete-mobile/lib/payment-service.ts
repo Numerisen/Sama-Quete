@@ -23,6 +23,7 @@ export interface PaymentCheckoutResponse {
   paymentId: number;
   token: string;
   checkout_url: string;
+  uid?: string; // UID (authentifié ou anonyme) retourné par l'API
 }
 
 export interface PaymentStatus {
@@ -43,6 +44,33 @@ export interface Entitlement {
 export interface EntitlementsResponse {
   userId: string;
   resources: Entitlement[];
+}
+
+export interface DonationHistoryItem {
+  id: string;
+  paymentId: number;
+  type: string;
+  donationType: string; // Type brut (quete, denier, etc.)
+  amount: number;
+  currency: string;
+  status: string;
+  date: string;
+  createdAt?: string;
+  updatedAt?: string;
+  provider?: string;
+  providerToken?: string;
+}
+
+export interface DonationHistoryResponse {
+  donations: DonationHistoryItem[];
+  statistics: {
+    totalAmount: number;
+    totalCount: number;
+    completedCount: number;
+    pendingCount: number;
+    failedCount: number;
+  };
+  uid: string;
 }
 
 /**
@@ -147,10 +175,17 @@ export class PaymentService {
     donationType: 'quete' | 'denier' | 'cierge' | 'messe',
     amount: number,
     description?: string,
-    parishId?: string
+    parishId?: string,
+    anonymousUid?: string
   ): Promise<PaymentCheckoutResponse & { donationType: string; amount: number }> {
     try {
       const headers = await this.getAuthHeader();
+      
+      // Ajouter l'UID anonyme dans le header si fourni et si pas authentifié
+      if (anonymousUid && !headers['Authorization']) {
+        headers['x-anonymous-uid'] = anonymousUid;
+      }
+      
       const response = await fetch(`${this.baseUrl}/api/paydunya/donation/checkout`, {
         method: 'POST',
         headers,
@@ -159,6 +194,7 @@ export class PaymentService {
           amount,
           description,
           parishId,
+          anonymousUid, // Aussi dans le body pour compatibilité
         }),
       });
 
@@ -238,6 +274,48 @@ export class PaymentService {
     } catch (error) {
       console.error('Erreur lors du traitement du retour de paiement:', error);
       return null;
+    }
+  }
+
+  /**
+   * Récupérer l'historique des contributions
+   * 
+   * Fonctionne avec ou sans authentification :
+   * - Si authentifié : utilise le token Firebase
+   * - Si anonyme : utilise l'UID anonyme fourni
+   * 
+   * @param anonymousUid - UID anonyme (optionnel, pour les utilisateurs non authentifiés)
+   * @returns Historique des contributions avec statistiques
+   */
+  async getDonationHistory(anonymousUid?: string): Promise<DonationHistoryResponse> {
+    try {
+      const headers = await this.getAuthHeader();
+      
+      // Ajouter l'UID anonyme dans le header si fourni et si pas authentifié
+      if (anonymousUid && !headers['Authorization']) {
+        headers['x-anonymous-uid'] = anonymousUid;
+      }
+      
+      // Construire l'URL avec query param si nécessaire (fallback)
+      let url = `${this.baseUrl}/api/donations/history`;
+      if (anonymousUid && !headers['Authorization']) {
+        url += `?anonymousUid=${encodeURIComponent(anonymousUid)}`;
+      }
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || `Erreur HTTP: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'historique:', error);
+      throw error;
     }
   }
 

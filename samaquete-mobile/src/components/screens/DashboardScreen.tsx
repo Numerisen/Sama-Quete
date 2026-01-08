@@ -7,6 +7,9 @@ import { useParishes } from '../../../hooks/useParishes';
 import { formatNumber } from '../../../lib/numberFormat';
 import { Parish } from '../../../lib/parish-service';
 import { useTheme } from '../../../lib/ThemeContext';
+import { paymentService } from '../../../lib/payment-service';
+import { AnonymousStorage } from '../../../lib/anonymous-storage';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface DashboardScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -21,6 +24,8 @@ interface DashboardScreenProps {
 export default function DashboardScreen({ setCurrentScreen, userProfile }: DashboardScreenProps) {
   const { colors, isDarkMode } = useTheme();
   const [showChurchModal, setShowChurchModal] = useState(false);
+  const [totalContributions, setTotalContributions] = useState(0);
+  const [loadingContributions, setLoadingContributions] = useState(true);
   
   // Utiliser les données Firebase
   const { 
@@ -33,6 +38,44 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
   } = useParishes();
   
   const [currentChurch, setCurrentChurch] = useState('Chargement...');
+  
+  // Vérifier si l'utilisateur est authentifié
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
+  
+  // Charger le total des contributions
+  useEffect(() => {
+    const loadContributions = async () => {
+      try {
+        setLoadingContributions(true);
+        
+        // Obtenir l'UID anonyme si non authentifié
+        let anonymousUid: string | undefined;
+        if (!isAuthenticated) {
+          anonymousUid = await AnonymousStorage.getAnonymousUid();
+        }
+        
+        // Si pas d'UID anonyme et pas authentifié, pas de contributions
+        if (!isAuthenticated && !anonymousUid) {
+          setTotalContributions(0);
+          setLoadingContributions(false);
+          return;
+        }
+        
+        // Récupérer l'historique depuis l'API
+        const history = await paymentService.getDonationHistory(anonymousUid);
+        setTotalContributions(history.statistics.totalAmount);
+      } catch (error) {
+        console.error('Erreur lors du chargement des contributions:', error);
+        // En cas d'erreur, garder 0 ou utiliser userProfile.totalDonations comme fallback
+        setTotalContributions(userProfile.totalDonations || 0);
+      } finally {
+        setLoadingContributions(false);
+      }
+    };
+    
+    loadContributions();
+  }, [isAuthenticated, userProfile.totalDonations]);
 
   // Utiliser les paroisses de Firebase
   const availableParishes = parishes.map(parish => ({
@@ -189,7 +232,11 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
               <View style={styles.statIcon}>
                 <Ionicons name="trending-up" size={20} color="#ffffff" />
               </View>
-              <Text style={styles.statValue}>{formatNumber(125000)}</Text>
+              {loadingContributions ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.statValue}>{formatNumber(totalContributions)}</Text>
+              )}
               <Text style={styles.statLabel}>Mes Contributions</Text>
             </TouchableOpacity>
             <TouchableOpacity 
