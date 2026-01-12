@@ -28,7 +28,7 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
     // Configurer l'URL de l'API (local par défaut)
     // Vous pouvez changer cette URL selon votre configuration
     // setApiUrl('http://127.0.0.1:5000'); // Local
-    setApiUrl('https://4da4d63456b0.ngrok-free.app'); // ngrok - Remplacez par votre nouvelle URL
+    setApiUrl('https://16ebbdd7cdcb.ngrok-free.app'); // ngrok - Remplacez par votre nouvelle URL
                       
     // Pour tester l'interface sans API, commentez la ligne ci-dessus
     // L'app utilisera les données de fallback

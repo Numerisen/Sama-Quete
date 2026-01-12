@@ -40,6 +40,11 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
 
   // Message de bienvenue initial
   useEffect(() => {
+    // Configurer l'URL de l'API assistant (ngrok ou production)
+    const apiUrl = process.env.EXPO_PUBLIC_ASSISTANT_API_URL || 'https://16ebbdd7cdcb.ngrok-free.app';
+    assistantService.setBaseUrl(apiUrl);
+    console.log('🔗 Assistant API URL configurée:', apiUrl);
+    
     const welcomeMessage: Message = {
       id: 'welcome',
       text: "Paix du Christ ! Je suis votre assistant spirituel. Comment puis-je vous aider dans votre cheminement de foi aujourd'hui ?",

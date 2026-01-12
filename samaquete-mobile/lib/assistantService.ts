@@ -3,7 +3,8 @@
  * Gère la communication avec l'API backend RAG
  */
 
-const API_BASE_URL = 'http://localhost:8000'; // API RAG locale
+// URL de l'API - utilise ngrok en développement, URL de production en production
+const API_BASE_URL = process.env.EXPO_PUBLIC_ASSISTANT_API_URL || 'https://16ebbdd7cdcb.ngrok-free.app'; // ngrok ou production
 
 export interface AssistantResponse {
   answer: string;
@@ -139,12 +140,22 @@ class AssistantService {
       });
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la récupération du texte du jour');
+        // Ne pas logger d'erreur pour 404 - c'est normal si l'API n'est pas disponible
+        if (response.status === 404) {
+          throw new Error('API endpoint non disponible - utilisation du fallback');
+        }
+        throw new Error(`Erreur API: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Erreur lors de la récupération du texte du jour:', error);
+      // Logger seulement si ce n'est pas une erreur 404 attendue (fallback normal)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (!errorMessage.includes('404') && !errorMessage.includes('non disponible')) {
+        console.error('Erreur lors de la récupération du texte du jour:', error);
+      } else {
+        console.log('API Flask non disponible, utilisation du fallback (normal)');
+      }
       throw error;
     }
   }

@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "numerisen-quete"
+      "bundleIdentifier": "numerisen.quete"
     },
     "android": {
       "adaptiveIcon": {

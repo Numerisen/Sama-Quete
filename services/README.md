@@ -43,3 +43,4 @@ Les services sont intégrés via :
 - `samaquete-admin/lib/payment-service.ts` - Service client pour l'admin
 - `samaquete-mobile/lib/payment-service.ts` - Service client pour le mobile
 
+

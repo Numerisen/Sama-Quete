@@ -13,7 +13,7 @@ import { textOfDayScraper } from './textOfDayScraper';
 const LITURGY_API_CONFIG = {
   // URL de base - changez selon votre configuration
   // BASE_URL: 'http://localhost:5000', // Local
-  BASE_URL: 'https://4da4d63456b0.ngrok-free.app', // ngrok
+  BASE_URL: 'https://16ebbdd7cdcb.ngrok-free.app', // ngrok
   // BASE_URL: 'https://votre-api-deployee.com', // Production
   
   // Endpoints
@@ -248,7 +248,11 @@ class LiturgyApiService {
       this.isOnline = true;
       return processedData;
     } catch (error) {
-      console.error('Erreur lors de la récupération du texte du jour:', error);
+      // Ne pas logger d'erreur pour 404 - c'est normal si l'API n'est pas disponible
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (!errorMessage.includes('404') && !errorMessage.includes('non trouvé')) {
+        console.error('Erreur lors de la récupération du texte du jour:', error);
+      }
       this.isOnline = false;
       throw {
         code: 'API_ERROR' as const,
@@ -454,7 +458,13 @@ class LiturgyApiService {
               };
             }
           } catch (apiError) {
-            console.warn('API Flask indisponible, fallback vers scraper direct...', apiError);
+            // Logger seulement si ce n'est pas une erreur 404 attendue
+            const errorMessage = apiError instanceof Error ? apiError.message : String(apiError);
+            if (!errorMessage.includes('404') && !errorMessage.includes('non trouvé')) {
+              console.warn('API Flask indisponible, fallback vers scraper direct...', apiError);
+            } else {
+              console.log('API Flask non disponible, utilisation du scraper direct (fallback normal)');
+            }
             flaskFailed = true;
             this.isOnline = false;
           }
