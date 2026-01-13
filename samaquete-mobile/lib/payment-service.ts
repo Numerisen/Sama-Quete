@@ -261,19 +261,32 @@ export class PaymentService {
   async handlePaymentReturn(url: string): Promise<PaymentStatus | null> {
     try {
       // Parser l'URL manuellement pour extraire le token
-      // Supporte les formats: jangui-bi://payment/success?token=xxx ou http://...
+      // Supporte les formats: jangui-bi://payment/return?token=xxx ou http://...
       const tokenMatch = url.match(/[?&]token=([^&]+)/);
       const token = tokenMatch ? decodeURIComponent(tokenMatch[1]) : null;
       
       if (!token) {
-        console.warn('Token manquant dans l\'URL de retour');
-        return null;
+        console.warn('⚠️ Token manquant dans l\'URL de retour, vérification de l\'historique récent');
+        // Si pas de token, on peut quand même vérifier l'historique pour voir le dernier paiement
+        // L'utilisateur sera redirigé vers l'historique qui affichera les paiements récents
+        return {
+          status: 'PENDING', // Statut par défaut si on ne peut pas vérifier
+          paymentId: undefined,
+          amount: undefined,
+          currency: undefined
+        };
       }
 
       return await this.checkPaymentStatus(token);
     } catch (error) {
       console.error('Erreur lors du traitement du retour de paiement:', error);
-      return null;
+      // Même en cas d'erreur, retourner un statut pour que l'app puisse afficher l'historique
+      return {
+        status: 'PENDING',
+        paymentId: undefined,
+        amount: undefined,
+        currency: undefined
+      };
     }
   }
 

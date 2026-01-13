@@ -268,7 +268,6 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
                     </View>
                     <View style={styles.donationInfo}>
                       <Text style={styles.donationType}>{donation.type}</Text>
-                        <Text style={styles.donationChurch}>PayDunya</Text>
                       </View>
                     </View>
                     <Text style={styles.donationAmount}>{formatNumber(donation.amount)} {donation.currency || 'FCFA'}</Text>

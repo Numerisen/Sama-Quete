@@ -23,7 +23,7 @@
       },
       "env": {
         "EXPO_PUBLIC_PAYMENT_API_URL": "https://payment-api-pink.vercel.app",
-        "EXPO_PUBLIC_ASSISTANT_API_URL": "https://16ebbdd7cdcb.ngrok-free.app"
+        "EXPO_PUBLIC_ASSISTANT_API_URL": "https://6bc93741367f.ngrok-free.app"
       }
     },
     "production": {
@@ -36,7 +36,7 @@
       },
       "env": {
         "EXPO_PUBLIC_PAYMENT_API_URL": "https://payment-api-pink.vercel.app",
-        "EXPO_PUBLIC_ASSISTANT_API_URL": "https://16ebbdd7cdcb.ngrok-free.app"
+        "EXPO_PUBLIC_ASSISTANT_API_URL": "https://6bc93741367f.ngrok-free.app"
       }
     }
   },

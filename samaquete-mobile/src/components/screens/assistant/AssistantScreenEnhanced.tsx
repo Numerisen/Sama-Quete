@@ -37,17 +37,20 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const scrollViewRef = React.useRef<ScrollView>(null);
 
   // Message de bienvenue initial
   useEffect(() => {
-    // Configurer l'URL de l'API assistant (ngrok ou production)
-    const apiUrl = process.env.EXPO_PUBLIC_ASSISTANT_API_URL || 'https://16ebbdd7cdcb.ngrok-free.app';
+    // Configurer l'URL de l'API RAG FastAPI (ngrok ou production)
+    // Par défaut: http://localhost:8000 (RAG FastAPI)
+    // En production: URL ngrok ou URL de production du RAG
+    const apiUrl = process.env.EXPO_PUBLIC_ASSISTANT_API_URL || 'http://localhost:8000';
     assistantService.setBaseUrl(apiUrl);
-    console.log('🔗 Assistant API URL configurée:', apiUrl);
+    console.log('🔗 RAG FastAPI URL configurée:', apiUrl);
     
     const welcomeMessage: Message = {
       id: 'welcome',
-      text: "Paix du Christ ! Je suis votre assistant spirituel. Comment puis-je vous aider dans votre cheminement de foi aujourd'hui ?",
+      text: "Bonjour ! Je suis votre assistant spirituel. Comment puis-je vous aider dans votre cheminement de foi aujourd'hui ?",
       isUser: false,
       timestamp: new Date().toISOString(),
     };
@@ -59,6 +62,15 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
     // Vérifier la connexion
     checkConnection();
   }, []);
+
+  // Scroller automatiquement vers le bas quand de nouveaux messages arrivent
+  useEffect(() => {
+    if (scrollViewRef.current && messages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages.length]);
 
   const loadSuggestions = async () => {
     try {
@@ -88,12 +100,22 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
     }
   };
 
+  // Détecter si c'est une simple salutation
+  const isSimpleGreeting = (text: string): boolean => {
+    const greetings = ['bonjour', 'salut', 'bonsoir', 'bonne nuit', 'hello', 'hi', 'hey', 'coucou'];
+    const normalizedText = text.toLowerCase().trim();
+    return greetings.some(greeting => normalizedText === greeting || normalizedText.startsWith(greeting + ' '));
+  };
+
   const handleSendMessage = async () => {
     if (!message.trim() || isLoading) return;
 
+    // Stocker la question avant de vider le champ
+    const questionText = message.trim();
+    
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: message.trim(),
+      text: questionText,
       isUser: true,
       timestamp: new Date().toISOString(),
     };
@@ -103,33 +125,102 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
     setIsLoading(true);
 
     try {
-      const response: AssistantResponse = await assistantService.askQuestion(message.trim());
+      // Si c'est une simple salutation, répondre directement sans appeler le RAG
+      if (isSimpleGreeting(questionText)) {
+        const greetingResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          text: "Bonjour ! Je suis là pour vous aider dans votre cheminement de foi. Posez-moi une question sur la Bible, la foi chrétienne, ou tout autre sujet spirituel.",
+          isUser: false,
+          timestamp: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, greetingResponse]);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('📤 Envoi de la question depuis handleSendMessage:', questionText);
+      const response: AssistantResponse = await assistantService.askQuestion(questionText);
+      
+      console.log('✅ Réponse reçue dans handleSendMessage:', {
+        hasAnswer: !!response.answer,
+        answerLength: response.answer?.length || 0,
+        sourcesCount: response.sources?.length || 0
+      });
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.answer,
+        text: response.answer || 'Aucune réponse reçue',
         isUser: false,
         timestamp: response.timestamp,
-        confidence: response.confidence,
         sources: response.sources,
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      console.log('📝 Ajout du message assistant à l\'état:', {
+        id: assistantMessage.id,
+        textLength: assistantMessage.text.length,
+        textPreview: assistantMessage.text.substring(0, 50) + '...'
+      });
+
+      setMessages(prev => {
+        const newMessages = [...prev, assistantMessage];
+        console.log('📋 Total de messages après ajout:', newMessages.length);
+        return newMessages;
+      });
     } catch (error) {
-      console.error('Erreur lors de l\'envoi du message:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('❌ Erreur lors de l\'envoi du message:', {
+        error: errorMsg,
+        fullError: error,
+        apiUrl: assistantService.getBaseUrl()
+      });
+      
+      // Message d'erreur user-friendly (déjà nettoyé par assistantService en production)
+      // En développement, on peut afficher plus de détails
+      const isProdMode = !__DEV__ || (!assistantService.getBaseUrl().includes('localhost') && !assistantService.getBaseUrl().includes('ngrok'));
+      
+      let userErrorMessage = "Désolé, je ne peux pas répondre pour le moment. Veuillez réessayer.";
+      
+      // En production, le message est déjà nettoyé par assistantService
+      // En développement, on peut être plus spécifique
+      if (!isProdMode) {
+        if (errorMsg.includes('ERR_NGROK') || errorMsg.includes('offline') || errorMsg.includes('ngrok')) {
+          userErrorMessage = "Le tunnel ngrok n'est pas actif. Veuillez redémarrer ngrok ou utiliser une autre URL.";
+        } else if (errorMsg.includes('503') || errorMsg.includes('temporairement indisponible')) {
+          userErrorMessage = "Le service est temporairement surchargé. Veuillez réessayer dans quelques instants.";
+        } else if (errorMsg.includes('429') || errorMsg.includes('Trop de requêtes')) {
+          userErrorMessage = "Trop de requêtes. Veuillez patienter un moment avant de réessayer.";
+        } else if (errorMsg.includes('Network') || errorMsg.includes('fetch')) {
+          userErrorMessage = "Erreur de connexion réseau. Vérifiez votre connexion internet.";
+        } else if (errorMsg.includes('404')) {
+          userErrorMessage = "L'API RAG n'est pas accessible. Vérifiez la configuration.";
+        } else if (errorMsg.includes('500')) {
+          userErrorMessage = "Erreur interne du serveur. Veuillez réessayer plus tard.";
+        } else if (errorMsg) {
+          // Limiter la longueur et nettoyer
+          userErrorMessage = errorMsg.length > 150 ? errorMsg.substring(0, 150) + '...' : errorMsg;
+        }
+      } else {
+        // En production, utiliser directement le message (déjà nettoyé)
+        userErrorMessage = errorMsg || userErrorMessage;
+      }
       
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "Désolé, je ne peux pas répondre pour le moment. Veuillez vérifier votre connexion ou réessayer plus tard.",
+        text: userErrorMessage,
         isUser: false,
         timestamp: new Date().toISOString(),
       };
 
       setMessages(prev => [...prev, errorMessage]);
       
+      // En production, ne pas afficher l'URL de l'API dans l'alerte
+      const alertMessage = isProdMode 
+        ? userErrorMessage 
+        : `${userErrorMessage}\n\nURL API: ${assistantService.getBaseUrl()}`;
+      
       Alert.alert(
-        'Erreur',
-        'Impossible de contacter l\'assistant IA. Vérifiez votre connexion internet.',
+        'Erreur de connexion',
+        alertMessage,
         [{ text: 'OK' }]
       );
     } finally {
@@ -137,8 +228,76 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
     }
   };
 
-  const handleQuestionPress = (question: string) => {
+  const handleQuestionPress = async (question: string) => {
+    console.log('🔘 Question sélectionnée (Enhanced):', question);
+    // Mettre la question dans le champ ET l'envoyer automatiquement
     setMessage(question);
+    
+    // Attendre un court instant pour que le state se mette à jour, puis envoyer
+    setTimeout(async () => {
+      // Créer le message utilisateur
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        text: question,
+        isUser: true,
+        timestamp: new Date().toISOString(),
+      };
+
+      setMessages(prev => [...prev, userMessage]);
+      setMessage('');
+      setIsLoading(true);
+
+      try {
+        // Si c'est une simple salutation, répondre directement sans appeler le RAG
+        if (isSimpleGreeting(question)) {
+          const greetingResponse: Message = {
+            id: (Date.now() + 1).toString(),
+            text: "Bonjour ! Je suis là pour vous aider dans votre cheminement de foi. Posez-moi une question sur la Bible, la foi chrétienne, ou tout autre sujet spirituel.",
+            isUser: false,
+            timestamp: new Date().toISOString(),
+          };
+          setMessages(prev => [...prev, greetingResponse]);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log('📤 Envoi automatique de la question:', question);
+        const response: AssistantResponse = await assistantService.askQuestion(question);
+        
+        console.log('✅ Réponse reçue (auto-send):', {
+          hasAnswer: !!response.answer,
+          answerLength: response.answer?.length || 0,
+        });
+        
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: response.answer || 'Aucune réponse reçue',
+          isUser: false,
+          timestamp: response.timestamp,
+          sources: response.sources,
+        };
+
+        setMessages(prev => {
+          const newMessages = [...prev, assistantMessage];
+          console.log('📋 Total de messages (auto-send):', newMessages.length);
+          return newMessages;
+        });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error('❌ Erreur (auto-send):', errorMsg);
+        
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: `Erreur: ${errorMsg.substring(0, 100)}`,
+          isUser: false,
+          timestamp: new Date().toISOString(),
+        };
+
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 100);
   };
 
   const formatTime = (timestamp: string) => {
@@ -173,14 +332,6 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
         >
           {msg.text}
         </Text>
-        
-        {!msg.isUser && msg.confidence && (
-          <View style={styles.confidenceContainer}>
-            <Text style={[styles.confidenceText, { color: colors.textSecondary }]}>
-              Confiance: {Math.round(msg.confidence * 100)}%
-            </Text>
-          </View>
-        )}
         
         {!msg.isUser && msg.sources && msg.sources.length > 0 && (
           <View style={styles.sourcesContainer}>
@@ -220,113 +371,105 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
         
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>IA spirituelle</Text>
-          <View style={styles.statusContainer}>
-            <View
-              style={[
-                styles.statusDot,
-                { backgroundColor: isConnected ? '#10b981' : '#ef4444' },
-              ]}
-            />
-            <Text style={styles.statusText}>
-              {isConnected ? 'En ligne' : 'Hors ligne'}
-            </Text>
-          </View>
         </View>
       </LinearGradient>
 
-      {/* Messages */}
+      {/* Messages et Input avec KeyboardAvoidingView */}
       <KeyboardAvoidingView
         style={styles.chatContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <ScrollView
-          style={styles.messagesContainer}
-          showsVerticalScrollIndicator={false}
-          ref={(ref) => {
-            if (ref) {
-              setTimeout(() => ref.scrollToEnd({ animated: true }), 100);
-            }
-          }}
-        >
-          {messages.map(renderMessage)}
-          
-          {isLoading && (
-            <View style={[styles.messageContainer, styles.assistantMessage]}>
-              <View style={[styles.messageBubble, { backgroundColor: colors.card }]}>
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-                    L'assistant réfléchit...
-                  </Text>
+        <View style={styles.chatContent}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.messagesContainer}
+            contentContainerStyle={styles.messagesContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {messages.map(renderMessage)}
+            
+            {isLoading && (
+              <View style={[styles.messageContainer, styles.assistantMessage]}>
+                <View style={[styles.messageBubble, { backgroundColor: colors.card }]}>
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                    <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                      L'assistant réfléchit...
+                    </Text>
+                  </View>
                 </View>
               </View>
+            )}
+          </ScrollView>
+
+          {/* Suggestions */}
+          {suggestions.length > 0 && messages.length <= 1 && (
+            <View style={[styles.suggestionsContainer, { backgroundColor: colors.background }]}>
+              <Text style={[styles.suggestionsTitle, { color: colors.text }]}>
+                Questions fréquentes
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.suggestionsList}>
+                  {suggestions.map((suggestion, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.suggestionButton, { backgroundColor: colors.card }]}
+                      onPress={() => handleQuestionPress(suggestion)}
+                    >
+                      <Text style={[styles.suggestionText, { color: colors.text }]}>
+                        {suggestion}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
             </View>
           )}
-        </ScrollView>
 
-        {/* Suggestions */}
-        {suggestions.length > 0 && messages.length <= 1 && (
-          <View style={[styles.suggestionsContainer, { backgroundColor: colors.background }]}>
-            <Text style={[styles.suggestionsTitle, { color: colors.text }]}>
-              Questions fréquentes
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.suggestionsList}>
-                {suggestions.map((suggestion, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[styles.suggestionButton, { backgroundColor: colors.card }]}
-                    onPress={() => handleQuestionPress(suggestion)}
-                  >
-                    <Text style={[styles.suggestionText, { color: colors.text }]}>
-                      {suggestion}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+          {/* Input - Toujours visible en bas */}
+          <View style={[styles.inputContainer, { backgroundColor: colors.background }]}>
+            <TextInput
+              style={[
+                styles.messageInput,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  color: colors.text,
+                },
+              ]}
+              placeholder="Posez votre question sur la foi..."
+              placeholderTextColor={colors.textSecondary}
+              value={message}
+              onChangeText={setMessage}
+              multiline
+              maxLength={500}
+              editable={!isLoading}
+              returnKeyType="send"
+              blurOnSubmit={false}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor: message.trim() && !isLoading ? colors.primary : colors.border,
+                },
+              ]}
+              onPress={handleSendMessage}
+              disabled={!message.trim() || isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Ionicons
+                  name="paper-plane"
+                  size={20}
+                  color={message.trim() && !isLoading ? "#ffffff" : colors.textSecondary}
+                />
+              )}
+            </TouchableOpacity>
           </View>
-        )}
-
-        {/* Input */}
-        <View style={[styles.inputContainer, { backgroundColor: colors.background }]}>
-          <TextInput
-            style={[
-              styles.messageInput,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                color: colors.text,
-              },
-            ]}
-            placeholder="Posez votre question sur la foi..."
-            placeholderTextColor={colors.textSecondary}
-            value={message}
-            onChangeText={setMessage}
-            multiline
-            maxLength={500}
-            editable={!isLoading}
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              {
-                backgroundColor: message.trim() && !isLoading ? colors.primary : colors.border,
-              },
-            ]}
-            onPress={handleSendMessage}
-            disabled={!message.trim() || isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Ionicons
-                name="paper-plane"
-                size={20}
-                color={message.trim() && !isLoading ? "#ffffff" : colors.textSecondary}
-              />
-            )}
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -359,28 +502,19 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 8,
   },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statusText: {
-    fontSize: 14,
-    color: '#ffffff',
-    opacity: 0.9,
-  },
   chatContainer: {
+    flex: 1,
+  },
+  chatContent: {
     flex: 1,
   },
   messagesContainer: {
     flex: 1,
+  },
+  messagesContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 20,
   },
   messageContainer: {
     marginBottom: 16,
@@ -473,11 +607,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 20,
-    paddingBottom: 30,
+    padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 16,
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    minHeight: 70,
   },
   messageInput: {
     flex: 1,

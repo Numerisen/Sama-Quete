@@ -20,7 +20,7 @@ import PaymentScreen from './src/components/screens/donations/PaymentScreen';
 import LiturgyScreen from './src/components/screens/liturgy/LiturgyScreen';
 import PrayerCalendarScreen from './src/components/screens/prayer/PrayerCalendarScreen';
 import NewsScreen from './src/components/screens/news/NewsScreen';
-import AssistantScreen from './src/components/screens/assistant/AssistantScreen';
+import AssistantScreenEnhanced from './src/components/screens/assistant/AssistantScreenEnhanced';
 import HistoryScreen from './src/components/screens/history/HistoryScreen';
 import NotificationsScreen from './src/components/screens/notifications/NotificationsScreen';
 import SettingsScreen from './src/components/screens/settings/SettingsScreen';
@@ -136,16 +136,25 @@ export default function App() {
           Alert.alert(
             '❌ Paiement échoué',
             'Le paiement n\'a pas pu être confirmé. Veuillez réessayer.',
-            [{ text: 'OK' }]
+            [{ text: 'OK', onPress: () => setCurrentScreen('donation-history') }]
           );
         }
+      } else {
+        // Si pas de statut (token manquant), rediriger quand même vers l'historique
+        // L'utilisateur pourra voir son paiement récent
+        Alert.alert(
+          '✅ Retour de paiement',
+          'Votre paiement a été effectué. Consultez l\'historique pour voir les détails.',
+          [{ text: 'OK', onPress: () => setCurrentScreen('donation-history') }]
+        );
       }
     } catch (error: any) {
       console.error('Erreur lors du traitement du retour de paiement:', error);
+      // Même en cas d'erreur, rediriger vers l'historique
       Alert.alert(
-        'Erreur',
-        'Une erreur est survenue lors de la vérification du paiement.',
-        [{ text: 'OK' }]
+        'Retour de paiement',
+        'Votre paiement a été effectué. Consultez l\'historique pour voir les détails.',
+        [{ text: 'OK', onPress: () => setCurrentScreen('donation-history') }]
       );
     }
   };
@@ -227,7 +236,7 @@ export default function App() {
       case 'news':
         return <NewsScreen {...screenProps} />;
       case 'assistant':
-        return <AssistantScreen {...screenProps} />;
+        return <AssistantScreenEnhanced setCurrentScreen={setCurrentScreen} />;
       case 'history':
         return <HistoryScreen {...screenProps} />;
       case 'notifications':

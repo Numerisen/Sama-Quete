@@ -16,7 +16,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "numerisen.quete"
+      "bundleIdentifier": "numerisen.quete",
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["jangui-bi"]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
