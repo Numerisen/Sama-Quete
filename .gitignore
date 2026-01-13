@@ -23,12 +23,12 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local env files
-.env
-.env*.local
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# .env - COMMENTÉ pour permettre le commit (ATTENTION: vérifiez qu'il n'y a pas de secrets sensibles)
+# .env*.local
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
 
 # Vercel
 .vercel
@@ -73,8 +73,8 @@ samaquete-mobile/node_modules/
 # Payment API (submodule - ne pas ignorer le dossier, mais ignorer les builds)
 payment-api/.next/
 payment-api/node_modules/
-payment-api/.env
-payment-api/.env.local
+# payment-api/.env - COMMENTÉ pour permettre le commit
+# payment-api/.env.local
 
 # Docker
 .dockerignore

@@ -20,7 +20,9 @@
       "infoPlist": {
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["jangui-bi"]
+            "CFBundleURLSchemes": [
+              "jangui-bi"
+            ]
           }
         ]
       }
@@ -41,8 +43,11 @@
       "expo-splash-screen"
     ],
     "description": "Jàngu Bi : l'Église, partout avec toi - Application mobile pour la communauté catholique du Sénégal",
-    "keywords": ["senegal", "catholique", "eglise", "don", "spirituel", "mobile", "react-native", "jangui bi"],
-    "author": "Jàngu Bi Team",
-    "homepage": "https://samaquete.vercel.app"
+    "extra": {
+      "eas": {
+        "projectId": "84322a0c-9059-478b-9f22-175232da4ba3"
+      }
+    },
+    "owner": "sossane99"
   }
 }
