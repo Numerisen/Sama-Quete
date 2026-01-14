@@ -1,3 +1,7 @@
 [submodule "payment-api"]
 	path = payment-api
 	url = https://github.com/Numerisen/attaqwa-paiement.git
+
+[submodule "rag-system"]
+	path = rag-system
+	url = https://github.com/Numerisen/numerisenSamaQuetesRagAndTextOfTheDay.git
