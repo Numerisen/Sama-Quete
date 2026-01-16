@@ -3,8 +3,9 @@
  * Gère la communication avec l'API RAG FastAPI (Google Gemini + LlamaIndex)
  */
 
-// URL de l'API RAG FastAPI - utilise ngrok en développement, URL de production en production
-const API_BASE_URL = process.env.EXPO_PUBLIC_ASSISTANT_API_URL || 'http://localhost:8000'; // RAG FastAPI
+// URL de l'API RAG FastAPI - priorité à EXPO_PUBLIC_ASSISTANT_API_URL (Expo/.env/EAS),
+// sinon fallback sur l'URL Render (stable) plutôt que localhost (inaccessible sur téléphone).
+const API_BASE_URL = process.env.EXPO_PUBLIC_ASSISTANT_API_URL || 'https://sama-quete.onrender.com';
 
 // Détecter si on est en production
 const isProduction = process.env.NODE_ENV === 'production' || 
@@ -60,7 +61,6 @@ function sanitizeErrorMessage(error: string, isProd: boolean = isProduction): st
 export interface AssistantResponse {
   answer: string;
   sources: string[];
-  confidence: number;
   timestamp: string;
   bible_references?: string[]; // Références bibliques du RAG
   model?: string; // Modèle utilisé (ex: "Google Gemini 1.5 Flash")
@@ -90,6 +90,46 @@ class AssistantService {
     this.baseUrl = baseUrl;
   }
 
+  private async fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  async initRag(): Promise<boolean> {
+    try {
+      const res = await this.fetchWithTimeout(
+        `${this.baseUrl}/api/v1/chatbot/init`,
+        { method: 'POST', headers: this.getHeaders() },
+        120000
+      );
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    try {
+      const healthRes = await this.fetchWithTimeout(
+        `${this.baseUrl}/api/v1/chatbot/health`,
+        { method: 'GET', headers: this.getHeaders() },
+        15000
+      );
+      if (healthRes.ok) {
+        const health: any = await healthRes.json().catch(() => null);
+        if (health?.initialized && health?.query_engine_available) return;
+      }
+    } catch {
+      // ignore
+    }
+    await this.initRag();
+  }
+
   /**
    * Génère les headers avec le header ngrok si nécessaire
    */
@@ -112,15 +152,18 @@ class AssistantService {
    */
   async askQuestion(question: string, context: string = 'general'): Promise<AssistantResponse> {
     try {
+      // Render Free: initialisation paresseuse, peut prendre >30s
+      await this.ensureInitialized();
+
       // Le RAG FastAPI utilise /api/v1/chatbot/query et n'accepte que {question}
       console.log('📤 Envoi de la question au RAG:', {
         url: `${this.baseUrl}/api/v1/chatbot/query`,
         question: question.substring(0, 50) + '...'
       });
       
-      // Ajouter un timeout de 30 secondes pour éviter les attentes infinies
+      // Timeout plus long (init + chargement index) sur Render Free
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
       
       let response: Response;
       try {
@@ -147,7 +190,7 @@ class AssistantService {
             await new Promise(resolve => setTimeout(resolve, delay));
             
             const retryController = new AbortController();
-            const retryTimeoutId = setTimeout(() => retryController.abort(), 30000);
+            const retryTimeoutId = setTimeout(() => retryController.abort(), 120000);
             
             try {
               response = await fetch(`${this.baseUrl}/api/v1/chatbot/query`, {
