@@ -2,9 +2,10 @@ module.exports = {
   expo: {
     name: "Jàngu Bi",
     slug: "samaquete-rn",
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    // Utiliser l'icône "église" (on pointe sur l'adaptive icon existante)
+    icon: "./assets/adaptive-icon.png",
     userInterfaceStyle: "light",
     splash: {
       image: "./assets/splash.png",
