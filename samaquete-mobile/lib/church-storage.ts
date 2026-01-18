@@ -9,12 +9,18 @@ import { Parish } from './parish-service';
 const STORAGE_KEYS = {
   SELECTED_CHURCH: 'selected_church',
   CHURCH_SELECTION_DATE: 'church_selection_date',
+  PARISH_VISITS: 'parish_visit_stats',
 };
 
 export interface StoredChurchData {
   parish: Parish;
   selectedAt: string; // ISO date string
 }
+
+export type ParishVisitStatsMap = Record<
+  string,
+  { count: number; lastVisitAt: string }
+>;
 
 export class ChurchStorageService {
   /**
@@ -118,6 +124,39 @@ export class ChurchStorageService {
     } catch (error) {
       console.error('Erreur lors de la récupération de la date de sélection:', error);
       return null;
+    }
+  }
+
+  /**
+   * Incrémente le compteur de visites d'une paroisse (stockage local).
+   * Sert à alimenter "Paroisses les plus visitées" dans le dashboard.
+   */
+  static async incrementParishVisit(parish: Parish): Promise<void> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.PARISH_VISITS);
+      const map: ParishVisitStatsMap = raw ? JSON.parse(raw) : {};
+      const now = new Date().toISOString();
+      const prev = map[parish.id];
+      map[parish.id] = {
+        count: (prev?.count || 0) + 1,
+        lastVisitAt: now,
+      };
+      await AsyncStorage.setItem(STORAGE_KEYS.PARISH_VISITS, JSON.stringify(map));
+    } catch (error) {
+      console.warn('Erreur incrementParishVisit:', error);
+    }
+  }
+
+  /**
+   * Retourne les stats locales de visite des paroisses.
+   */
+  static async getParishVisitStats(): Promise<ParishVisitStatsMap> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.PARISH_VISITS);
+      return raw ? (JSON.parse(raw) as ParishVisitStatsMap) : {};
+    } catch (error) {
+      console.warn('Erreur getParishVisitStats:', error);
+      return {};
     }
   }
 }

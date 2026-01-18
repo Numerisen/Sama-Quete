@@ -77,7 +77,8 @@ export class NewsService {
    */
   static subscribeToNews(
     parishId: string,
-    callback: (news: ParishNews[]) => void
+    callback: (news: ParishNews[]) => void,
+    onError?: (error: unknown) => void
   ): Unsubscribe {
     const q = query(
       collection(db, 'parish_news'),
@@ -101,6 +102,7 @@ export class NewsService {
       callback(sortedNews)
     }, (error) => {
       console.error('Erreur lors de l\'écoute des actualités:', error)
+      onError?.(error)
       callback([])
     })
   }

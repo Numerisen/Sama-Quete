@@ -122,9 +122,15 @@ export default function PaymentScreen({ setCurrentScreen, selectedDonationType, 
         }
       }
     
-      // Ouvrir l'URL de paiement PayDunya
+      // Ouvrir l'URL de paiement PayDunya (et capturer le retour HTTPS /payment/return)
       if (checkout.checkout_url) {
-        await paymentService.openCheckout(checkout.checkout_url);
+        const returnUrl = await paymentService.openCheckout(checkout.checkout_url);
+        if (returnUrl) {
+          // On a capturé le retour PayDunya (HTTPS). On traite le statut et on va à l'historique.
+          await paymentService.handlePaymentReturn(returnUrl);
+          setCurrentScreen('donation-history');
+          return;
+        }
         
         // Afficher un message informatif
         Alert.alert(

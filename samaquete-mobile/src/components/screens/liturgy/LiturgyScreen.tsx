@@ -28,7 +28,7 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
     // Configurer l'URL de l'API (local par défaut)
     // Vous pouvez changer cette URL selon votre configuration
     // setApiUrl('http://127.0.0.1:5000'); // Local
-    setApiUrl('https://6bc93741367f.ngrok-free.app'); // ngrok - Remplacez par votre nouvelle URL
+    setApiUrl('https://sama-quete.onrender.com'); // ngrok - Remplacez par votre nouvelle URL
                       
     // Pour tester l'interface sans API, commentez la ligne ci-dessus
     // L'app utilisera les données de fallback
@@ -198,7 +198,7 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
                 </View>
               ))}
             </View>
-          ) : (
+          ) : loading ? null : (
             <View style={styles.noDataContainer}>
               <Text style={styles.noDataText}>Aucune donnée liturgique disponible</Text>
               <Text style={styles.noDataSubtext}>Vérifiez votre connexion à l'API</Text>

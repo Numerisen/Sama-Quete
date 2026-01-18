@@ -24,7 +24,7 @@
       },
       "env": {
         "EXPO_PUBLIC_PAYMENT_API_URL": "https://payment-api-pink.vercel.app",
-        "EXPO_PUBLIC_ASSISTANT_API_URL": "https://6bc93741367f.ngrok-free.app"
+        "EXPO_PUBLIC_ASSISTANT_API_URL": "https://sama-quete.onrender.com"
       }
     },
     "production": {
@@ -33,11 +33,11 @@
         "simulator": false
       },
       "android": { 
-        "buildType": "apk"
+        "buildType": "app-bundle"
       },
       "env": {
         "EXPO_PUBLIC_PAYMENT_API_URL": "https://payment-api-pink.vercel.app",
-        "EXPO_PUBLIC_ASSISTANT_API_URL": "https://6bc93741367f.ngrok-free.app"
+        "EXPO_PUBLIC_ASSISTANT_API_URL": "https://sama-quete.onrender.com"
       }
     }
   },

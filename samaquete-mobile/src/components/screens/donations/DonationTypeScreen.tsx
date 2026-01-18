@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice, formatAmount } from '../../../../lib/numberFormat';
 import { useParishes } from '../../../../hooks/useParishes';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../../../hooks/useAuth';
+import { AnonymousStorage } from '../../../../lib/anonymous-storage';
+import { paymentService } from '../../../../lib/payment-service';
 
 interface DonationTypeScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -16,9 +19,12 @@ interface DonationTypeScreenProps {
 export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount, selectionContext }: DonationTypeScreenProps) {
   const [customAmount, setCustomAmount] = useState('');
   const [selectedAmount, setSelectedAmountLocal] = useState('');
+  const [isPaying, setIsPaying] = useState(false);
   
   // Utiliser le hook useParishes pour obtenir la paroisse sélectionnée
   const { selectedParish } = useParishes();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
 
   // Tarifs spécifiques par église et type de don
   const parishPricing = {
@@ -93,10 +99,61 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
 
   const finalAmount = customAmount || selectedAmount;
 
-  const handleContinue = () => {
-    if (finalAmount) {
-      setSelectedAmount(finalAmount);
-      setCurrentScreen('payment'); // Aller directement au paiement
+  const handleContinue = async () => {
+    if (!finalAmount || isPaying) return;
+    const amount = parseInt(finalAmount.replace(/[^\d]/g, ''), 10) || 0;
+    if (amount < 100) {
+      Alert.alert('Montant invalide', 'Le montant minimum est de 100 FCFA');
+      return;
+    }
+
+    setSelectedAmount(finalAmount);
+    setIsPaying(true);
+    try {
+      const description = `Don ${currentDonation?.title || 'Don'} - ${selectedParish?.name || 'Paroisse'}`;
+
+      let anonymousUid: string | undefined;
+      if (!isAuthenticated) {
+        anonymousUid = await AnonymousStorage.getOrCreateAnonymousUid();
+      }
+
+      const checkout = await paymentService.createDonationCheckout(
+        donationType as any,
+        amount,
+        description,
+        selectedParish?.id,
+        anonymousUid
+      );
+
+      if (!isAuthenticated) {
+        const returnedUid = (checkout as any).uid;
+        if (returnedUid && returnedUid.startsWith('anonymous_')) {
+          await AnonymousStorage.setAnonymousUid(returnedUid);
+        } else if (anonymousUid) {
+          await AnonymousStorage.setAnonymousUid(anonymousUid);
+        }
+      }
+
+      if (!checkout.checkout_url) {
+        throw new Error('URL de paiement non disponible');
+      }
+
+      const returnUrl = await paymentService.openCheckout(checkout.checkout_url);
+      if (returnUrl) {
+        await paymentService.handlePaymentReturn(returnUrl);
+        setCurrentScreen('donation-history');
+        return;
+      }
+
+      Alert.alert(
+        'Paiement en cours',
+        'Vous allez être redirigé vers PayDunya. Après le paiement, revenez dans l’application pour consulter l’historique.',
+        [{ text: 'OK', onPress: () => setCurrentScreen('dashboard') }]
+      );
+    } catch (e: any) {
+      Alert.alert('Erreur de paiement', e?.message || 'Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setIsPaying(false);
     }
   };
 
@@ -173,9 +230,18 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
             {formatAmount(finalAmount)}
           </Text>
           
-          <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-            <Text style={styles.continueButtonText}>Continuer vers le paiement</Text>
-            <Ionicons name="chevron-forward" size={20} color="#d97706" />
+          <TouchableOpacity style={styles.continueButton} onPress={handleContinue} disabled={isPaying}>
+            {isPaying ? (
+              <>
+                <ActivityIndicator size="small" color="#d97706" />
+                <Text style={[styles.continueButtonText, { marginLeft: 10 }]}>Ouverture…</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.continueButtonText}>Payer sur PayDunya</Text>
+                <Ionicons name="chevron-forward" size={20} color="#d97706" />
+              </>
+            )}
           </TouchableOpacity>
         </LinearGradient>
       )}

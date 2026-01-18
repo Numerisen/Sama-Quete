@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -10,6 +10,7 @@ import { useTheme } from '../../../lib/ThemeContext';
 import { paymentService } from '../../../lib/payment-service';
 import { AnonymousStorage } from '../../../lib/anonymous-storage';
 import { useAuth } from '../../../hooks/useAuth';
+import { ParishVisitService, ParishVisitTotalsMap } from '../../../lib/parish-visit-service';
 
 interface DashboardScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -26,6 +27,7 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
   const [showChurchModal, setShowChurchModal] = useState(false);
   const [totalContributions, setTotalContributions] = useState(0);
   const [loadingContributions, setLoadingContributions] = useState(true);
+  const [visitTotals, setVisitTotals] = useState<ParishVisitTotalsMap>({});
   
   // Utiliser les données Firebase
   const { 
@@ -52,7 +54,8 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
         // Obtenir l'UID anonyme si non authentifié
         let anonymousUid: string | undefined;
         if (!isAuthenticated) {
-          anonymousUid = await AnonymousStorage.getAnonymousUid();
+          const uid = await AnonymousStorage.getAnonymousUid();
+          anonymousUid = uid ?? undefined;
         }
         
         // Si pas d'UID anonyme et pas authentifié, pas de contributions
@@ -84,6 +87,12 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
     location: parish.city || parish.location,
     diocese: parish.dioceseName
   }));
+
+  useEffect(() => {
+    // Stats globales (Firestore) pour "plus visitées" + affichage des 0 visite
+    const unsub = ParishVisitService.subscribeTotals(setVisitTotals);
+    return () => unsub();
+  }, []);
 
   const handleChurchSelection = (parish: Parish) => {
     setCurrentChurch(parish.name);
@@ -133,14 +142,34 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
     },
   ];
 
-  // Utiliser les paroisses disponibles avec des données simulées pour les visites
-  const mostVisitedParishes = availableParishes.slice(0, 3).map((parish, index) => ({
-    name: parish.name,
-    location: parish.location,
-    visits: 45 - (index * 10), // Simulation des visites
-    icon: 'business' as const,
-    lastVisit: index === 0 ? 'Aujourd\'hui' : index === 1 ? 'Hier' : 'Il y a 2 jours',
-  }));
+  const formatLastVisit = (iso?: string): string => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return "Aujourd'hui";
+    if (diffDays === 1) return 'Hier';
+    return `Il y a ${diffDays} jours`;
+  };
+
+  const getLastVisitIso = (parishId: string): string | undefined => {
+    const ts = visitTotals[parishId]?.lastVisitAt;
+    // Timestamp Firestore
+    const d = (ts as any)?.toDate?.();
+    return d ? d.toISOString() : undefined;
+  };
+
+  // Top 3 selon Firestore (fallback: premières paroisses)
+  const mostVisitedParishes = [...availableParishes]
+    .sort((a, b) => (visitTotals[b.id]?.count || 0) - (visitTotals[a.id]?.count || 0))
+    .slice(0, 3)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      location: p.location,
+      visits: visitTotals[p.id]?.count || 0,
+      lastVisit: formatLastVisit(getLastVisitIso(p.id)),
+    }));
 
   // Afficher un indicateur de chargement si les données sont en cours de chargement
   if (loading) {
@@ -181,11 +210,10 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
           <View style={styles.headerContent}>
             <View style={styles.profileSection}>
               <View style={styles.avatar}>
-                <Ionicons name="person" size={24} color="#ffffff" />
+                <MaterialCommunityIcons name="church" size={24} color="#ffffff" />
               </View>
               <View style={styles.profileInfo}>
-                <Text style={styles.welcomeText}>Paix du Christ!</Text>
-                <Text style={styles.userName}>Bienvenue dans Jàngu Bi</Text>
+                <Text style={styles.welcomeText}>Bienvenue dans Jàngu Bi</Text>
               </View>
             </View>
             <View style={styles.headerActions}>
@@ -275,23 +303,33 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
         <View style={[styles.activitySection, { backgroundColor: colors.background }]}>
           <View style={styles.activityHeader}>
             <Text style={[styles.activityTitle, { color: colors.text }]}>Paroisses les plus visitées</Text>
-            <TouchableOpacity onPress={() => setCurrentScreen('parishes')}>
+            <TouchableOpacity onPress={() => setShowChurchModal(true)}>
               <Text style={[styles.seeAllText, { color: colors.accent }]}>Voir tout</Text>
             </TouchableOpacity>
           </View>
           
           <View style={styles.activityList}>
             {mostVisitedParishes.map((parish, index) => (
-              <TouchableOpacity key={index} style={[styles.activityItem, { backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                key={index}
+                style={[styles.activityItem, { backgroundColor: colors.card }]}
+                onPress={() => {
+                  const full = parishes.find(p => p.id === parish.id);
+                  if (full) handleChurchSelection(full);
+                  else setShowChurchModal(true);
+                }}
+              >
                 <View style={styles.activityIcon}>
-                  <Ionicons name={parish.icon as any} size={20} color="#ffffff" />
+                  <Ionicons name="business" size={20} color="#ffffff" />
                 </View>
                 <View style={styles.activityContent}>
                   <Text style={[styles.activityText, { color: colors.text }]}>{parish.name}</Text>
                   <Text style={[styles.activityTime, { color: colors.textSecondary }]}>{parish.location}</Text>
                   <View style={styles.parishStats}>
                     <Text style={[styles.visitCount, { color: colors.textSecondary }]}>{parish.visits} visites</Text>
-                    <Text style={[styles.lastVisit, { color: colors.textSecondary }]}>• {parish.lastVisit}</Text>
+                    {!!parish.lastVisit && (
+                      <Text style={[styles.lastVisit, { color: colors.textSecondary }]}>• {parish.lastVisit}</Text>
+                    )}
                   </View>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
@@ -318,7 +356,12 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
             </View>
             
             <FlatList
-              data={parishes}
+              data={[...parishes].sort((a, b) => {
+                const cb = visitTotals[b.id]?.count || 0;
+                const ca = visitTotals[a.id]?.count || 0;
+                if (cb !== ca) return cb - ca;
+                return a.name.localeCompare(b.name);
+              })}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -336,6 +379,9 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
                       <Text style={styles.parishItemName}>{item.name}</Text>
                       <Text style={styles.parishItemLocation}>{item.city}</Text>
                       <Text style={styles.parishItemDiocese}>{item.dioceseName}</Text>
+                      <Text style={styles.parishItemVisits}>
+                        {(visitTotals[item.id]?.count || 0)} visite{(visitTotals[item.id]?.count || 0) > 1 ? 's' : ''}
+                      </Text>
                     </View>
                     {selectedParish?.id === item.id && (
                       <Ionicons name="checkmark-circle" size={24} color="#f59e0b" />
@@ -668,6 +714,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#f59e0b',
     fontWeight: '600',
+    marginTop: 2,
+  },
+  parishItemVisits: {
+    fontSize: 12,
+    color: '#64748b',
     marginTop: 2,
   },
   loadingContainer: {

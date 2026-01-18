@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
+import * as WebBrowser from 'expo-web-browser';
 import { ThemeProvider } from './lib/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import { paymentService } from './lib/payment-service';
@@ -16,7 +17,6 @@ import DonationsScreen from './src/components/screens/donations/DonationsScreen'
 import DonationTypeScreen from './src/components/screens/donations/DonationTypeScreen';
 import DonationHistoryScreen from './src/components/screens/donations/DonationHistoryScreen';
 import AuthScreen from './src/components/screens/AuthScreen';
-import PaymentScreen from './src/components/screens/donations/PaymentScreen';
 import LiturgyScreen from './src/components/screens/liturgy/LiturgyScreen';
 import PrayerCalendarScreen from './src/components/screens/prayer/PrayerCalendarScreen';
 import NewsScreen from './src/components/screens/news/NewsScreen';
@@ -28,15 +28,19 @@ import SettingsScreen from './src/components/screens/settings/SettingsScreen';
 // Garder l'écran de démarrage visible pendant le chargement des ressources
 SplashScreen.preventAutoHideAsync();
 
+// Recommandé par expo-web-browser quand on utilise openAuthSessionAsync
+WebBrowser.maybeCompleteAuthSession();
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const [selectedDonationType, setSelectedDonationType] = useState('');
   const [selectedAmount, setSelectedAmount] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [selectionContext, setSelectionContext] = useState('');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   
   // Utiliser le hook useAuth pour gérer l'authentification
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, updateProfile } = useAuth();
   const isAuthenticated = !!user && !!profile;
   
   // Profil utilisateur basé sur les données Firebase
@@ -222,13 +226,7 @@ export default function App() {
       case 'donation-history':
         return <DonationHistoryScreen {...screenProps} />;
       case 'auth':
-        return <AuthScreen {...screenProps} />;
-      case 'payment':
-        return <PaymentScreen 
-          setCurrentScreen={setCurrentScreen}
-          selectedDonationType={selectedDonationType}
-          selectedAmount={selectedAmount}
-        />;
+        return <AuthScreen {...screenProps} initialMode={authMode} />;
       case 'liturgy':
         return <LiturgyScreen {...screenProps} />;
       case 'prayer-calendar':
@@ -242,7 +240,17 @@ export default function App() {
       case 'notifications':
         return <NotificationsScreen {...screenProps} />;
       case 'settings':
-        return <SettingsScreen {...screenProps} />;
+        return (
+          <SettingsScreen
+            setCurrentScreen={setCurrentScreen}
+            setIsAuthenticated={handleSetIsAuthenticated}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            profile={profile}
+            updateProfile={updateProfile}
+            setAuthMode={setAuthMode}
+          />
+        );
       default:
         return <DashboardScreen {...screenProps} />;
     }

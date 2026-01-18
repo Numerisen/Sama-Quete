@@ -5,7 +5,7 @@
 ### 1. **Ngrok n'est PAS adapté pour la production**
 
 **Pourquoi c'est un problème :**
-- ❌ L'URL ngrok (`https://6bc93741367f.ngrok-free.app`) change à chaque redémarrage
+- ❌ L'URL ngrok (`https://sama-quete.onrender.com`) change à chaque redémarrage
 - ❌ Instable : peut expirer ou être bloqué
 - ❌ Non accessible par votre collègue (URL temporaire)
 - ❌ Limite de bande passante sur le plan gratuit

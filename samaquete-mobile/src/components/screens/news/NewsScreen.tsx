@@ -39,6 +39,7 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
 
   // Charger les vraies actualités depuis Firestore
   const { news, loading, error } = useNews(parishId);
+  const isLoading = parishLoading || loading;
 
 
   const handleRefresh = async () => {
@@ -129,7 +130,7 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
               <View style={styles.newsCard}>
                 <Ionicons name="newspaper" size={24} color="#ffffff" />
                 <Text style={styles.newsCardTitle}>
-                  {loading ? 'Chargement...' : `${newsItems.length} actualité${newsItems.length > 1 ? 's' : ''}`}
+                  {isLoading ? 'Chargement...' : `${newsItems.length} actualité${newsItems.length > 1 ? 's' : ''}`}
                 </Text>
                 <Text style={styles.newsCardSubtitle}>
                   {parishName}
@@ -151,10 +152,15 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
 
         {/* Liste des actualités */}
         <View style={[styles.newsContainer, { backgroundColor: colors.background }]}>
-          {loading ? (
+          {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#10b981" />
               <Text style={styles.loadingText}>Chargement des actualités...</Text>
+            </View>
+          ) : !parishId ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="business-outline" size={64} color="#cbd5e1" />
+              <Text style={styles.emptyText}>Sélectionnez d'abord une église</Text>
             </View>
           ) : error ? (
             <View style={styles.errorContainer}>
@@ -223,7 +229,7 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
           ))}
         </View>
         
-        {!loading && !error && newsItems.length === 0 && null}
+        {!isLoading && !error && newsItems.length === 0 && null}
 
         {/* Footer pour les notifications 
         <LinearGradient colors={['#10b981', '#059669']} style={styles.footer}>

@@ -15,15 +15,20 @@ interface AuthScreenProps {
   setUserProfile: (profile: any) => void;
   userProfile: any;
   selectedAmount?: string;
+  initialMode?: 'signin' | 'signup';
 }
 
-export default function AuthScreen({ setCurrentScreen, setIsAuthenticated, setUserProfile, selectedAmount }: AuthScreenProps) {
+export default function AuthScreen({ setCurrentScreen, setIsAuthenticated, setUserProfile, selectedAmount, initialMode = 'signin' }: AuthScreenProps) {
   const { colors } = useTheme();
   const { signUp, signIn, loading: authLoading } = useAuth();
   
   // État pour basculer entre connexion et inscription
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
   const [loading, setLoading] = useState(false);
+  
+  React.useEffect(() => {
+    setIsSignUp(initialMode === 'signup');
+  }, [initialMode]);
   
   // États pour l'inscription
   const [signUpData, setSignUpData] = useState({
@@ -62,7 +67,7 @@ export default function AuthScreen({ setCurrentScreen, setIsAuthenticated, setUs
         setUserProfile(result.user);
         setIsAuthenticated(true);
         Alert.alert('Succès', 'Compte créé avec succès !', [
-          { text: 'Continuer', onPress: () => setCurrentScreen('payment') }
+          { text: 'Continuer', onPress: () => setCurrentScreen('settings') }
         ]);
       } else {
         Alert.alert('Erreur', result.error || 'Erreur lors de l\'inscription');
@@ -85,7 +90,7 @@ export default function AuthScreen({ setCurrentScreen, setIsAuthenticated, setUs
         setUserProfile(result.user);
         setIsAuthenticated(true);
         Alert.alert('Succès', 'Connexion réussie !', [
-          { text: 'Continuer', onPress: () => setCurrentScreen('payment') }
+          { text: 'Continuer', onPress: () => setCurrentScreen('settings') }
         ]);
       } else {
         Alert.alert('Erreur', result.error || 'Erreur lors de la connexion');
@@ -355,7 +360,7 @@ export default function AuthScreen({ setCurrentScreen, setIsAuthenticated, setUs
 
                 <TouchableOpacity 
                   style={[styles.guestButton, { borderColor: colors.primary }]} 
-                  onPress={() => setCurrentScreen('payment')}
+                  onPress={() => setCurrentScreen('donation-type')}
                 >
                   <Text style={[styles.guestButtonText, { color: colors.primary }]}>
                     Continuer en tant qu'invité

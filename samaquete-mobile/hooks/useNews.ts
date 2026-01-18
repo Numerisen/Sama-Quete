@@ -9,10 +9,14 @@ export function useNews(parishId: string) {
   useEffect(() => {
     if (!parishId) {
       setLoading(false)
+      setError(null)
+      setNews([])
       return
     }
 
     console.log('📰 Chargement des actualités pour la paroisse:', parishId)
+    setLoading(true)
+    setError(null)
     
     // Écouter les actualités en temps réel
     const unsubscribe = NewsService.subscribeToNews(
@@ -22,6 +26,13 @@ export function useNews(parishId: string) {
         setNews(updatedNews)
         setLoading(false)
         setError(null)
+      }
+      ,
+      (err) => {
+        console.error('❌ Erreur abonnement actualités:', err)
+        setNews([])
+        setLoading(false)
+        setError("Impossible de charger les actualités. Veuillez réessayer.")
       }
     )
 

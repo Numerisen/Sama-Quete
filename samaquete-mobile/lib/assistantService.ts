@@ -113,21 +113,51 @@ class AssistantService {
     }
   }
 
-  private async ensureInitialized(): Promise<void> {
+  /**
+   * Warmup: à appeler à l'ouverture de l'écran IA pour éviter les 502 (Render Free sleep).
+   * Retourne true si le service est prêt, false sinon (best-effort).
+   */
+  async warmup(): Promise<boolean> {
+    try {
+      await this.ensureInitialized();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async isReady(): Promise<boolean> {
     try {
       const healthRes = await this.fetchWithTimeout(
         `${this.baseUrl}/api/v1/chatbot/health`,
         { method: 'GET', headers: this.getHeaders() },
         15000
       );
-      if (healthRes.ok) {
-        const health: any = await healthRes.json().catch(() => null);
-        if (health?.initialized && health?.query_engine_available) return;
-      }
+      if (!healthRes.ok) return false;
+      const health: any = await healthRes.json().catch(() => null);
+      return !!(health?.initialized && health?.query_engine_available);
     } catch {
-      // ignore
+      return false;
     }
-    await this.initRag();
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    // Render Free: on attend VRAIMENT "ready" avant d'envoyer /query.
+    // Sinon on déclenche des 502/timeouts.
+    const startedAt = Date.now();
+    const maxWaitMs = 120000; // 2 min max
+
+    while (Date.now() - startedAt < maxWaitMs) {
+      if (await this.isReady()) return;
+
+      // Tenter init (best-effort)
+      await this.initRag();
+
+      // Attendre un peu (Render peut redémarrer / cold start)
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+
+    throw new Error('Le service redémarre. Veuillez réessayer dans quelques instants.');
   }
 
   /**
@@ -161,9 +191,9 @@ class AssistantService {
         question: question.substring(0, 50) + '...'
       });
       
-      // Timeout plus long (init + chargement index) sur Render Free
+      // Timeout plus long sur Render Free (même après init, la 1ère requête peut être lente)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000);
+      const timeoutId = setTimeout(() => controller.abort(), 180000);
       
       let response: Response;
       try {
@@ -178,6 +208,40 @@ class AssistantService {
         
         clearTimeout(timeoutId);
         
+        // Render/Cloudflare peut renvoyer 502/504 pendant un redémarrage (sleep/redeploy/OOM).
+        // On tente un re-init + retry (plus long sur Render Free).
+        if (response.status === 502 || response.status === 504) {
+          const maxRetries = 6;
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            const delay = Math.min(3000 * attempt, 15000); // 3s, 6s, 9s... (max 15s)
+            console.log(`⚠️ Erreur ${response.status} détectée, tentative ${attempt}/${maxRetries} dans ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            await this.ensureInitialized(); // re-warmup
+
+            const retryController = new AbortController();
+            const retryTimeoutId = setTimeout(() => retryController.abort(), 180000);
+            try {
+              response = await fetch(`${this.baseUrl}/api/v1/chatbot/query`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ question }),
+                signal: retryController.signal,
+              });
+            } finally {
+              clearTimeout(retryTimeoutId);
+            }
+
+            if (response.ok) {
+              break;
+            }
+
+            if ((response.status === 502 || response.status === 504) && attempt === maxRetries) {
+              throw new Error('Le service redémarre. Veuillez réessayer dans quelques instants.');
+            }
+          }
+        }
+
         // Si erreur 503, essayer avec exponential backoff (max 2 tentatives)
         if (response.status === 503) {
           const maxRetries = 2;
@@ -190,7 +254,7 @@ class AssistantService {
             await new Promise(resolve => setTimeout(resolve, delay));
             
             const retryController = new AbortController();
-            const retryTimeoutId = setTimeout(() => retryController.abort(), 120000);
+            const retryTimeoutId = setTimeout(() => retryController.abort(), 180000);
             
             try {
               response = await fetch(`${this.baseUrl}/api/v1/chatbot/query`, {
@@ -239,6 +303,8 @@ class AssistantService {
         // Messages spécifiques selon le code d'erreur
         if (response.status === 503) {
           errorMessage = 'Le service est temporairement indisponible. Veuillez réessayer dans quelques instants.';
+        } else if (response.status === 502 || response.status === 504) {
+          errorMessage = 'Le service redémarre. Veuillez réessayer dans quelques instants.';
         } else if (response.status === 429) {
           errorMessage = 'Trop de requêtes. Veuillez patienter un moment avant de réessayer.';
         } else if (response.status === 500) {
@@ -344,7 +410,6 @@ class AssistantService {
       const adaptedResponse = {
         answer: cleanedAnswer,
         sources: sourcesList.length > 0 ? sourcesList : (ragData.bible_references || []),
-        confidence: ragData.confidence || (ragData.source_count ? Math.min(0.9, ragData.source_count / 10) : 0.9),
         timestamp: ragData.timestamp || new Date().toISOString(),
         bible_references: bibleRefs.length > 0 ? bibleRefs : (ragData.bible_references || []),
         model: ragData.model || 'Google Gemini 1.5 Flash (RAG)'
@@ -353,7 +418,6 @@ class AssistantService {
       console.log('✅ Réponse adaptée:', {
         answerLength: adaptedResponse.answer.length,
         sourcesCount: adaptedResponse.sources.length,
-        confidence: adaptedResponse.confidence
       });
       
       return adaptedResponse;

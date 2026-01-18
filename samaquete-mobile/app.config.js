@@ -40,7 +40,8 @@ module.exports = {
     scheme: "jangui-bi",
     plugins: [
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-web-browser"
     ],
     description: "Jàngu Bi : l'Église, partout avec toi - Application mobile pour la communauté catholique du Sénégal",
     extra: {

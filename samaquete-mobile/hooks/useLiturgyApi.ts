@@ -3,7 +3,8 @@ import { liturgyApiService, CachedLiturgyData } from '../lib/liturgyApiService';
 
 export function useLiturgyApi() {
   const [todayLiturgy, setTodayLiturgy] = useState<CachedLiturgyData | null>(null);
-  const [loading, setLoading] = useState(false);
+  // On démarre en "loading" pour éviter le flash "Aucune donnée..." au premier rendu
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isOnline, setIsOnline] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);

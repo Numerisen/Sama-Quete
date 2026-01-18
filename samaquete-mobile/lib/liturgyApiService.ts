@@ -13,7 +13,7 @@ import { textOfDayScraper } from './textOfDayScraper';
 const LITURGY_API_CONFIG = {
   // URL de base - changez selon votre configuration
   // BASE_URL: 'http://localhost:5000', // Local
-  BASE_URL: 'https://6bc93741367f.ngrok-free.app', // ngrok
+  BASE_URL: 'https://sama-quete.onrender.com', // ngrok
   // BASE_URL: 'https://votre-api-deployee.com', // Production
   
   // Endpoints

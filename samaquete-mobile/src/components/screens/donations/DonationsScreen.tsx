@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice } from '../../../../lib/numberFormat';
@@ -7,6 +7,9 @@ import { useParishes } from '../../../../hooks/useParishes';
 import { useDonationTypesRealtime } from '../../../../hooks/useDonationTypes';
 import { ChurchStorageService } from '../../../../lib/church-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../../../hooks/useAuth';
+import { AnonymousStorage } from '../../../../lib/anonymous-storage';
+import { paymentService } from '../../../../lib/payment-service';
 
 interface DonationsScreenProps {
   setCurrentScreen: (screen: string) => void;
@@ -29,6 +32,9 @@ export default function DonationsScreen({ setCurrentScreen, setSelectionContext,
   const { parishes, loading: parishesLoading, error, selectedParish, setSelectedParish } = useParishes();
   const [parishId, setParishId] = useState<string>('');
   const [displayTypes, setDisplayTypes] = useState<DonationTypeDisplay[]>([]);
+  const [isPaying, setIsPaying] = useState(false);
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
 
   // Utiliser le hook pour charger les types de dons en temps réel
   const { donationTypes, loading: loadingTypes, error: typesError } = useDonationTypesRealtime(parishId);
@@ -128,16 +134,92 @@ export default function DonationsScreen({ setCurrentScreen, setSelectionContext,
     },
   ];
 
-  const handleDonationSelect = (donationType: any, selectedAmount?: string) => {
-    if (selectedAmount) {
-      // Aller directement à l'écran de paiement avec le montant sélectionné
-      setSelectedDonationType(donationType.title);
-      setSelectedAmount(selectedAmount);
-      setCurrentScreen("payment");
-    } else {
-      setSelectionContext(donationType.title);
-      setCurrentScreen("donation-type");
+  const mapDonationType = (titleOrId: string): 'quete' | 'denier' | 'cierge' | 'messe' => {
+    const t = (titleOrId || '').toLowerCase();
+    if (t.includes('quete')) return 'quete';
+    if (t.includes('denier')) return 'denier';
+    if (t.includes('cierge')) return 'cierge';
+    if (t.includes('messe')) return 'messe';
+    // fallback: certains ids Firestore peuvent être "quete"/"denier"/...
+    if (t === 'quete' || t === 'denier' || t === 'cierge' || t === 'messe') return t as any;
+    return 'quete';
+  };
+
+  const parseAmount = (amountStr: string): number => {
+    const n = (amountStr || '').replace(/[^\d]/g, '');
+    return parseInt(n, 10) || 0;
+  };
+
+  const startPayment = async (type: DonationTypeDisplay, amountLabel: string) => {
+    if (isPaying) return;
+    const amount = parseAmount(amountLabel);
+    if (amount < 100) {
+      Alert.alert('Montant invalide', 'Le montant minimum est de 100 FCFA');
+      return;
     }
+
+    setIsPaying(true);
+    try {
+      const donationType = mapDonationType(type.id || type.title);
+      const description = `Don ${type.title} - ${selectedParish?.name || 'Paroisse'}`;
+
+      let anonymousUid: string | undefined;
+      if (!isAuthenticated) {
+        anonymousUid = await AnonymousStorage.getOrCreateAnonymousUid();
+      }
+
+      const checkout = await paymentService.createDonationCheckout(
+        donationType,
+        amount,
+        description,
+        selectedParish?.id,
+        anonymousUid
+      );
+
+      if (!isAuthenticated) {
+        const returnedUid = (checkout as any).uid;
+        if (returnedUid && returnedUid.startsWith('anonymous_')) {
+          await AnonymousStorage.setAnonymousUid(returnedUid);
+        } else if (anonymousUid) {
+          await AnonymousStorage.setAnonymousUid(anonymousUid);
+        }
+      }
+
+      if (!checkout.checkout_url) {
+        throw new Error('URL de paiement non disponible');
+      }
+
+      const returnUrl = await paymentService.openCheckout(checkout.checkout_url);
+      if (returnUrl) {
+        await paymentService.handlePaymentReturn(returnUrl);
+        setCurrentScreen('donation-history');
+        return;
+      }
+
+      Alert.alert(
+        'Paiement en cours',
+        'Vous allez être redirigé vers PayDunya. Après le paiement, revenez dans l’application pour consulter l’historique.',
+        [{ text: 'OK', onPress: () => setCurrentScreen('dashboard') }]
+      );
+    } catch (e: any) {
+      Alert.alert('Erreur de paiement', e?.message || 'Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
+  const handleDonationSelect = (donationType: DonationTypeDisplay, selectedAmountLabel?: string) => {
+    if (selectedAmountLabel) {
+      // ✅ Plus d'écran "Finaliser le don": on lance PayDunya directement
+      setSelectedDonationType(donationType.title);
+      setSelectedAmount(selectedAmountLabel);
+      startPayment(donationType, selectedAmountLabel);
+      return;
+    }
+
+    // Montant personnalisé -> écran de choix du montant, puis PayDunya direct depuis DonationTypeScreen
+    setSelectionContext(donationType.title);
+    setCurrentScreen("donation-type");
   };
 
   const loading = parishesLoading || loadingTypes;
@@ -176,6 +258,11 @@ export default function DonationsScreen({ setCurrentScreen, setSelectionContext,
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#10b981" />
               <Text style={styles.loadingText}>Chargement des types de dons...</Text>
+            </View>
+          ) : isPaying ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#10b981" />
+              <Text style={styles.loadingText}>Ouverture de PayDunya…</Text>
             </View>
           ) : displayTypes.length === 0 ? (
             <View style={styles.emptyContainer}>

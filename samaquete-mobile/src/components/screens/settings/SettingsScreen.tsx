@@ -4,18 +4,29 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../../lib/ThemeContext';
 import { useParishes } from '../../../../hooks/useParishes';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../../../lib/firebase';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { User } from 'firebase/auth';
+import type { UserProfile } from '../../../../lib/auth-service';
 
 interface SettingsScreenProps {
   setCurrentScreen: (screen: string) => void;
-  userProfile: any;
-  setUserProfile: (profile: any) => void;
   setIsAuthenticated: (auth: boolean) => void;
+  isAuthenticated: boolean;
+  user: User | null;
+  profile: UserProfile | null;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
+  setAuthMode: (mode: 'signin' | 'signup') => void;
 }
 
-export default function SettingsScreen({ setCurrentScreen, userProfile, setUserProfile, setIsAuthenticated }: SettingsScreenProps) {
+export default function SettingsScreen({
+  setCurrentScreen,
+  setIsAuthenticated,
+  isAuthenticated,
+  user,
+  profile,
+  updateProfile,
+  setAuthMode,
+}: SettingsScreenProps) {
   const { colors, isDarkMode, toggleTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [biometricAuth, setBiometricAuth] = useState(false);
@@ -26,57 +37,45 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
   const { parishes, loading: parishesLoading, selectedParish, setSelectedParish } = useParishes();
   
   const [editedProfile, setEditedProfile] = useState({
-    firstName: userProfile?.firstName || 'Jean',
-    lastName: userProfile?.lastName || 'Baptiste',
-    phone: userProfile?.phone || '+221 77 123 45 67',
-    email: userProfile?.email || 'jean.baptiste@example.com',
-    parish: userProfile?.parish || 'Paroisse Sainte-Anne'
+    firstName: profile?.firstName || '',
+    lastName: profile?.lastName || '',
+    phone: profile?.phone || '',
+    email: profile?.email || '',
+    parish: profile?.parishName || ''
   });
 
-  // Charger le profil depuis Firestore
   useEffect(() => {
-    loadUserProfile();
-  }, []);
-
-  const loadUserProfile = async () => {
-    try {
-      setLoading(true);
-      // Pour l'instant, on utilise un ID utilisateur fictif
-      // Dans une vraie app, vous récupéreriez l'ID depuis l'auth
-      const userId = 'user_123'; // Remplacer par l'ID utilisateur réel
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setEditedProfile({
-          firstName: userData.firstName || 'Jean',
-          lastName: userData.lastName || 'Baptiste',
-          phone: userData.phone || '+221 77 123 45 67',
-          email: userData.email || 'jean.baptiste@example.com',
-          parish: userData.parish || 'Paroisse Sainte-Anne'
-        });
-        setUserProfile(userData);
-      }
-    } catch (error) {
-      console.error('Erreur lors du chargement du profil:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Quand le profil Firebase arrive, on pré-remplit le formulaire.
+    setEditedProfile({
+      firstName: profile?.firstName || '',
+      lastName: profile?.lastName || '',
+      phone: profile?.phone || '',
+      email: profile?.email || '',
+      parish: profile?.parishName || '',
+    });
+  }, [profile]);
 
   const handleSaveProfile = async () => {
     try {
+      if (!user) {
+        Alert.alert('Connexion requise', 'Veuillez vous connecter pour modifier votre profil.');
+        return;
+      }
       setLoading(true);
-      const userId = 'user_123'; // Remplacer par l'ID utilisateur réel
-      
-      // Sauvegarder dans Firestore
-      await setDoc(doc(db, 'users', userId), {
-        ...editedProfile,
-        updatedAt: new Date(),
-        parishId: selectedParish?.id || null
-      }, { merge: true });
-      
-      setUserProfile(editedProfile);
+
+      const result = await updateProfile({
+        firstName: editedProfile.firstName,
+        lastName: editedProfile.lastName,
+        phone: editedProfile.phone,
+        parishId: selectedParish?.id,
+        parishName: selectedParish?.name || editedProfile.parish,
+      });
+
+      if (!result.success) {
+        Alert.alert('Erreur', result.error || 'Impossible de sauvegarder le profil');
+        return;
+      }
+
       setIsEditing(false);
       Alert.alert('Succès', 'Profil mis à jour avec succès');
     } catch (error) {
@@ -109,14 +108,13 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
         parish: parish.name
       };
       setEditedProfile(updatedProfile);
-      
-      // Sauvegarder dans Firestore
-      const userId = 'user_123';
-      await setDoc(doc(db, 'users', userId), {
-        ...updatedProfile,
-        parishId: parish.id,
-        updatedAt: new Date()
-      }, { merge: true });
+
+      if (user) {
+        await updateProfile({
+          parishId: parish.id,
+          parishName: parish.name,
+        });
+      }
       
       Alert.alert('Succès', `Église changée pour ${parish.name}`);
     } catch (error) {
@@ -144,14 +142,42 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
       </LinearGradient>
 
       <ScrollView style={styles.content}>
-        {/* Profil Utilisateur */}
+        {/* Profil Utilisateur / Connexion */}
         <View style={[styles.profileCard, { backgroundColor: colors.card }]}>
           <View style={styles.profileHeader}>
             <View style={styles.avatar}>
               <Ionicons name="person" size={40} color="#ffffff" />
             </View>
             <View style={styles.profileInfo}>
-              {isEditing ? (
+              {!isAuthenticated ? (
+                <>
+                  <Text style={[styles.userName, { color: colors.text }]}>Connexion</Text>
+                  <Text style={[styles.userPhone, { color: colors.textSecondary }]}>
+                    Connectez-vous pour synchroniser votre profil et vos dons.
+                  </Text>
+
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                    <TouchableOpacity
+                      style={[styles.authButton, { backgroundColor: colors.primary }]}
+                      onPress={() => {
+                        setAuthMode('signin');
+                        setCurrentScreen('auth');
+                      }}
+                    >
+                      <Text style={styles.authButtonText}>Se connecter</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.authButton, { backgroundColor: colors.accent }]}
+                      onPress={() => {
+                        setAuthMode('signup');
+                        setCurrentScreen('auth');
+                      }}
+                    >
+                      <Text style={styles.authButtonText}>S’inscrire</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : isEditing ? (
                 <View style={styles.editForm}>
                   <TextInput
                     style={[styles.editInput, { color: colors.text, backgroundColor: colors.surface }]}
@@ -177,7 +203,7 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
                   <TextInput
                     style={[styles.editInput, { color: colors.text, backgroundColor: colors.surface }]}
                     value={editedProfile.email}
-                    onChangeText={(text) => setEditedProfile({...editedProfile, email: text})}
+                    editable={false}
                     placeholder="Email"
                     placeholderTextColor={colors.textSecondary}
                   />
@@ -202,17 +228,19 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
                 </>
               )}
             </View>
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Ionicons name={isEditing ? "checkmark" : "pencil"} size={20} color="#ffffff" />
-              )}
-            </TouchableOpacity>
+            {isAuthenticated && (
+              <TouchableOpacity
+                style={[styles.editButton, { backgroundColor: colors.primary }]}
+                onPress={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Ionicons name={isEditing ? "checkmark" : "pencil"} size={20} color="#ffffff" />
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -283,11 +311,13 @@ export default function SettingsScreen({ setCurrentScreen, userProfile, setUserP
         </View>
 
 
-        {/* Bouton de déconnexion */}
-        <TouchableOpacity style={[styles.logoutButton, { backgroundColor: colors.card }]} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={colors.error} />
-          <Text style={[styles.logoutText, { color: colors.error }]}>Se déconnecter</Text>
-        </TouchableOpacity>
+        {/* Bouton de déconnexion (uniquement si connecté) */}
+        {isAuthenticated && (
+          <TouchableOpacity style={[styles.logoutButton, { backgroundColor: colors.card }]} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={20} color={colors.error} />
+            <Text style={[styles.logoutText, { color: colors.error }]}>Se déconnecter</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Modal de sélection des paroisses */}
@@ -442,7 +472,20 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   editButton: {
-    padding: 8,
+    padding: 10,
+    borderRadius: 999,
+  },
+  authButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   editForm: {
     flex: 1,

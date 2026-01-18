@@ -203,16 +203,7 @@ export default function PrayerCalendarScreen({ setCurrentScreen }: PrayerCalenda
           </View>
 
               {/* Section informations supplémentaires */}
-              <View style={styles.infoCard}>
-                <View style={styles.infoHeader}>
-                  <Ionicons name="information-circle" size={20} color="#3b82f6" />
-                  <Text style={styles.infoTitle}>Informations</Text>
-                </View>
-                <Text style={styles.infoText}>
-                  Les horaires sont synchronisés avec votre paroisse. 
-                  {notificationsEnabled && ' Vous recevrez un rappel 15 minutes avant chaque heure de prière.'}
-                </Text>
-              </View>
+              
             </>
           )}
 

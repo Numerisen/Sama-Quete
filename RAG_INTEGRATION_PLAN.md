@@ -18,7 +18,7 @@ Intégrer le repository RAG `numerisenSamaQuetesRagAndTextOfTheDay` dans le proj
 
 ### App Mobile
 - **Service** : `samaquete-mobile/lib/assistantService.ts`
-- **URL** : `https://6bc93741367f.ngrok-free.app` (ngrok) ou variable d'environnement
+- **URL** : `https://sama-quete.onrender.com` (ngrok) ou variable d'environnement
 
 ## 🔄 Plan d'Intégration
 

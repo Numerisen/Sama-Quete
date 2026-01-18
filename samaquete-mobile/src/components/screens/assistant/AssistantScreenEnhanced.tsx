@@ -35,6 +35,8 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isWarmingUp, setIsWarmingUp] = useState(true);
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const scrollViewRef = React.useRef<ScrollView>(null);
@@ -42,9 +44,8 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
   // Message de bienvenue initial
   useEffect(() => {
     // Configurer l'URL de l'API RAG FastAPI (ngrok ou production)
-    // Par défaut: http://localhost:8000 (RAG FastAPI)
-    // En production: URL ngrok ou URL de production du RAG
-    const apiUrl = process.env.EXPO_PUBLIC_ASSISTANT_API_URL || 'http://localhost:8000';
+    // Par défaut: URL Render stable (localhost n'est pas accessible depuis un téléphone)
+    const apiUrl = process.env.EXPO_PUBLIC_ASSISTANT_API_URL || 'https://sama-quete.onrender.com';
     assistantService.setBaseUrl(apiUrl);
     console.log('🔗 RAG FastAPI URL configurée:', apiUrl);
     
@@ -59,8 +60,14 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
     // Charger les suggestions
     loadSuggestions();
     
-    // Vérifier la connexion
-    checkConnection();
+    // Warmup Render Free: pré-initialiser en arrière-plan pour éviter les 502 au 1er message
+    // Warmup best-effort: même si ça échoue, on ne bloque pas l'UI indéfiniment.
+    assistantService
+      .warmup()
+      .finally(() => {
+        setIsWarmingUp(false);
+        checkConnection();
+      });
   }, []);
 
   // Scroller automatiquement vers le bas quand de nouveaux messages arrivent
@@ -103,9 +110,61 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
   // Détecter si c'est une simple salutation
   const isSimpleGreeting = (text: string): boolean => {
     const greetings = ['bonjour', 'salut', 'bonsoir', 'bonne nuit', 'hello', 'hi', 'hey', 'coucou'];
-    const normalizedText = text.toLowerCase().trim();
-    return greetings.some(greeting => normalizedText === greeting || normalizedText.startsWith(greeting + ' '));
+    const normalizedText = text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // enlever les accents
+      .replace(/[^\p{L}\p{N}\s]/gu, '') // enlever ponctuation/emoji
+      .replace(/\s+/g, ' ')
+      .trim();
+    // ex: "Bonjouurrr" -> "bonjour"
+    const collapsed = normalizedText.replace(/(.)\1+/g, '$1');
+    return greetings.some(greeting => collapsed === greeting || collapsed.startsWith(greeting + ' '));
   };
+
+  // Si une question est en attente, l'envoyer automatiquement dès que le warmup est fini
+  useEffect(() => {
+    const run = async () => {
+      if (!pendingQuestion) return;
+      if (isLoading) return;
+
+      // Si on est encore en warmup, on tente un warmup best-effort puis on continue.
+      // On ne doit jamais rester bloqué indéfiniment sur "j'initialise...".
+      if (isWarmingUp) {
+        await assistantService.warmup();
+        setIsWarmingUp(false);
+      }
+
+      const q = pendingQuestion;
+      setPendingQuestion(null);
+      setIsLoading(true);
+      try {
+        const response: AssistantResponse = await assistantService.askQuestion(q);
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: response.answer || 'Aucune réponse reçue',
+          isUser: false,
+          timestamp: response.timestamp,
+          sources: response.sources,
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            text: errorMsg || "Désolé, je ne peux pas répondre pour le moment. Veuillez réessayer.",
+            isUser: false,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    run();
+  }, [isWarmingUp, pendingQuestion, isLoading]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || isLoading) return;
@@ -134,6 +193,28 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
           timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, greetingResponse]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Si le warmup est encore en cours, éviter d'appeler /query trop tôt (cause de 502 sur Render Free)
+      if (isWarmingUp) {
+        // Ne pas spammer le chat si l'utilisateur tape plusieurs fois.
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.text?.includes("J'initialise le service")) return prev;
+          return [
+            ...prev,
+            {
+              id: (Date.now() + 1).toString(),
+              text: "J'initialise le service… j'envoie votre question dès que c'est prêt.",
+              isUser: false,
+              timestamp: new Date().toISOString(),
+            },
+          ];
+        });
+        // Écraser la pending question par la dernière (la plus récente)
+        setPendingQuestion(questionText);
         setIsLoading(false);
         return;
       }
@@ -257,6 +338,19 @@ export default function AssistantScreenEnhanced({ setCurrentScreen }: AssistantS
             timestamp: new Date().toISOString(),
           };
           setMessages(prev => [...prev, greetingResponse]);
+          setIsLoading(false);
+          return;
+        }
+
+        if (isWarmingUp) {
+          const waitMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: "J'initialise le service… j'envoie votre question dès que c'est prêt.",
+            isUser: false,
+            timestamp: new Date().toISOString(),
+          };
+          setMessages(prev => [...prev, waitMessage]);
+          setPendingQuestion(question);
           setIsLoading(false);
           return;
         }

@@ -10,6 +10,7 @@
 
 import { auth } from './firebase';
 import { Linking } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import type { Auth } from 'firebase/auth';
 
 export interface PaymentPlan {
@@ -99,9 +100,9 @@ export class PaymentService {
    * Obtenir le token d'authentification Firebase (optionnel)
    * Retourne les headers avec ou sans token selon l'authentification
    */
-  private async getAuthHeader(): Promise<HeadersInit> {
+  private async getAuthHeader(): Promise<Record<string, string>> {
     const token = await this.getAuthToken();
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     
@@ -238,14 +239,28 @@ export class PaymentService {
    * 
    * @param checkoutUrl - URL de checkout PayDunya
    */
-  async openCheckout(checkoutUrl: string): Promise<void> {
+  async openCheckout(checkoutUrl: string): Promise<string | null> {
     try {
-      const canOpen = await Linking.canOpenURL(checkoutUrl);
-      if (canOpen) {
-        await Linking.openURL(checkoutUrl);
-      } else {
-        throw new Error('Impossible d\'ouvrir l\'URL de paiement');
+      // ✅ IMPORTANT iOS/Safari:
+      // Au lieu de dépendre du deep link "jangui-bi://" depuis Safari (souvent "address invalid" en Expo Go),
+      // on capture la redirection finale HTTPS vers /payment/return via openAuthSessionAsync.
+      const returnUrl = `${this.baseUrl.replace(/\/+$/, '')}/payment/return`;
+
+      try {
+        const result = await WebBrowser.openAuthSessionAsync(checkoutUrl, returnUrl);
+        if (result.type === 'success' && result.url) {
+          return result.url;
+        }
+        return null;
+      } catch (e) {
+        // Fallback: ouvrir dans Safari si openAuthSessionAsync n'est pas disponible
+        console.warn('openAuthSessionAsync échoué, fallback Linking.openURL:', e);
       }
+
+      const canOpen = await Linking.canOpenURL(checkoutUrl);
+      if (!canOpen) throw new Error('Impossible d\'ouvrir l\'URL de paiement');
+      await Linking.openURL(checkoutUrl);
+      return null;
     } catch (error) {
       console.error('Erreur lors de l\'ouverture du checkout:', error);
       throw error;
