@@ -66,8 +66,8 @@ export function usePrayerTimes(parishId: string): UsePrayerTimesResult {
           // Filtrer uniquement les heures actives côté client
           if (data.active) {
             times.push({
+              ...data,
               id: doc.id,
-              ...data
             });
           }
         });

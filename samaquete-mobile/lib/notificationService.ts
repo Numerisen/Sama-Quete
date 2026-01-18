@@ -5,23 +5,15 @@ import { PrayerTime } from '../hooks/usePrayerTimes';
 // Configuration des notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => {
-    const baseBehavior = {
+    const baseBehavior: Notifications.NotificationBehavior = {
+      // Compatibilité SDK 54: ces champs sont attendus (surtout iOS)
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
     };
-
-    if (Platform.OS === 'ios') {
-      return {
-        ...baseBehavior,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      };
-    }
-
-    return {
-      ...baseBehavior,
-      shouldShowAlert: true,
-    };
+    return baseBehavior;
   },
 });
 
@@ -134,6 +126,7 @@ export async function schedulePrayerNotification(
         categoryIdentifier: 'prayer-times',
       },
       trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
         weekday: dayOfWeek + 1, // expo-notifications utilise 1-7 au lieu de 0-6
         hour: notifHours,
         minute: notifMinutes,
