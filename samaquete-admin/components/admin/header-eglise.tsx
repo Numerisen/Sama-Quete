@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { NotificationBell } from "./notification-bell"
 
 export default function AdminEgliseHeader({ openSidebar }: { openSidebar: () => void }) {
   const searchParams = useSearchParams()
@@ -71,9 +70,6 @@ export default function AdminEgliseHeader({ openSidebar }: { openSidebar: () => 
 
           {/* Actions de droite */}
           <div className="flex items-center gap-3">
-            {/* Notifications */}
-            <NotificationBell />
-
             {/* Menu utilisateur */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

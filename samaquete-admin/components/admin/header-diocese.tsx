@@ -44,14 +44,6 @@ export default function AdminDioceseHeader({ openSidebar }: HeaderProps) {
 
         {/* Actions utilisateur */}
         <div className="flex items-center gap-3">
-          {/* Notifications */}
-          <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-              3
-            </span>
-          </button>
-
           {/* Menu utilisateur */}
           <div className="relative group">
             <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors">
