@@ -14,8 +14,11 @@ const nextConfig = {
   },
   // Désactiver le prérendu statique pour éviter les erreurs useSearchParams
   output: 'standalone',
-  // Exclure Firebase et undici du bundle client (utilisés uniquement côté serveur)
-  serverComponentsExternalPackages: ['firebase', 'firebase-admin', 'undici'],
+  // Exclure Firebase et undici du bundle (utilisés côté serveur)
+  experimental: {
+    // ⚠ Ne pas inclure 'undici' ici si on le met dans transpilePackages (conflit Next)
+    serverComponentsExternalPackages: ['firebase', 'firebase-admin'],
+  },
   // Transpiler undici pour supporter la syntaxe moderne
   transpilePackages: ['undici'],
   // Configuration webpack pour éviter les erreurs de fonts et undici
