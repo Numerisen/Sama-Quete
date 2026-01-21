@@ -24,17 +24,17 @@ export default function HomePage() {
         // Si utilisateur connecté avec rôle, rediriger selon le rôle (hiérarchie complète)
         switch (userRole.role) {
           case 'super_admin':
-            router.push('/admin/dashboard')
+          router.push('/admin/dashboard')
             break
           case 'archdiocese_admin':
             router.push('/adminarchdiocese/dashboard')
             break
           case 'diocese_admin':
-            router.push('/admindiocese/dashboard')
+          router.push('/admindiocese/dashboard')
             break
           case 'parish_admin':
             const parishName = userRole.parishId || 'Paroisse'
-            router.push(`/adminparoisse/dashboard?paroisse=${encodeURIComponent(parishName)}`)
+          router.push(`/adminparoisse/dashboard?paroisse=${encodeURIComponent(parishName)}`)
             break
           case 'church_admin':
             const churchName = userRole.churchId || 'Église'
