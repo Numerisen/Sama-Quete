@@ -67,6 +67,7 @@ export default function ParoisseNewsPage() {
     excerpt: "",
     category: "Annonce",
     published: true,
+    image: "",
     author: userRole?.name || "Admin"
   })
 
@@ -109,6 +110,7 @@ export default function ParoisseNewsPage() {
         excerpt: newNews.excerpt!,
         category: newNews.category || "Annonce",
         published: newNews.published ?? true,
+        image: (newNews.image || "").trim(),
         author: newNews.author || userRole?.name || "Admin",
         parishId
       }
@@ -132,6 +134,7 @@ export default function ParoisseNewsPage() {
         excerpt: "",
         category: "Annonce",
         published: true,
+        image: "",
         author: userRole?.name || "Admin"
       })
       setIsAdding(false)
@@ -329,6 +332,25 @@ export default function ParoisseNewsPage() {
                 />
               </div>
 
+              <div className="col-span-2">
+                <Label>Image (URL, optionnel)</Label>
+                <Input
+                  value={newNews.image || ""}
+                  onChange={(e) => setNewNews({ ...newNews, image: e.target.value })}
+                  placeholder="https://example.com/image.jpg"
+                />
+                {newNews.image && (
+                  <div className="mt-2">
+                    <Label className="text-sm text-gray-600">Aperçu :</Label>
+                    <img
+                      src={newNews.image}
+                      alt="Aperçu"
+                      className="mt-2 w-full h-40 object-cover rounded-lg border bg-white"
+                    />
+                  </div>
+                )}
+              </div>
+
               <div>
                 <Label>Catégorie</Label>
                 <select
@@ -402,6 +424,15 @@ export default function ParoisseNewsPage() {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
+                    {news.image && (
+                      <div className="mb-3">
+                        <img
+                          src={news.image}
+                          alt={news.title}
+                          className="w-full h-40 object-cover rounded-lg border bg-white"
+                        />
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant={news.published ? "default" : "secondary"}>
                         {news.category}
@@ -422,6 +453,12 @@ export default function ParoisseNewsPage() {
                     
                     {editingId === news.id ? (
                       <div className="space-y-3 mt-4">
+                        <Input
+                          defaultValue={news.image || ""}
+                          className="w-full"
+                          id={`image-${news.id}`}
+                          placeholder="URL de l'image (optionnel)"
+                        />
                         <Textarea
                           defaultValue={news.content}
                           rows={4}
@@ -433,7 +470,8 @@ export default function ParoisseNewsPage() {
                             size="sm"
                             onClick={() => {
                               const content = (document.getElementById(`content-${news.id}`) as HTMLTextAreaElement).value
-                              handleSaveEdit(news.id!, { content })
+                              const image = (document.getElementById(`image-${news.id}`) as HTMLInputElement)?.value
+                              handleSaveEdit(news.id!, { content, image: (image || "").trim() })
                             }}
                           >
                             <Save className="w-3 h-3 mr-1" />
