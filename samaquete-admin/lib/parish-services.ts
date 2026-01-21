@@ -14,6 +14,10 @@ import {
   Unsubscribe
 } from 'firebase/firestore'
 import { db } from './firebase'
+import {
+  DonationType as RawDonationType,
+  DonationTypeService,
+} from './donation-type-service'
 
 // Types pour les données paroissiales
 export interface PrayerTime {
@@ -565,5 +569,145 @@ export class ParishSettingsService {
       console.error('Erreur lors de la mise à jour des paramètres:', error)
       throw error
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Donation types (adapter)
+// ---------------------------------------------------------------------------
+
+// Type attendu par les pages admin église (UI)
+export interface DonationType {
+  id?: string
+  name: string
+  description: string
+  icon: string
+  defaultAmounts: number[]
+  active: boolean
+  parishId: string
+  order?: number
+  createdAt?: any
+  updatedAt?: any
+}
+
+function parseAmountToNumber(value: string): number {
+  const digits = String(value ?? '').replace(/[^\d]/g, '')
+  const n = Number(digits)
+  return Number.isFinite(n) ? n : 0
+}
+
+function numberToAmountString(value: number): string {
+  // On stocke simple (sans séparateurs) pour éviter des formats ambigus.
+  const n = Math.round(Number(value) || 0)
+  return String(n)
+}
+
+function mapIconToRaw(icon: string): string {
+  switch (icon) {
+    case 'heart':
+      return 'heart-outline'
+    case 'gift':
+      return 'add'
+    case 'church':
+      return 'business'
+    case 'users':
+      return 'people'
+    case 'flame':
+      return 'flame'
+    default:
+      return icon || 'heart-outline'
+  }
+}
+
+function mapIconFromRaw(icon: string): string {
+  switch (icon) {
+    case 'heart-outline':
+      return 'heart'
+    case 'add':
+      return 'gift'
+    case 'business':
+      return 'church'
+    case 'people':
+      return 'users'
+    default:
+      return icon || 'heart'
+  }
+}
+
+function rawToUiType(raw: RawDonationType, parishIdFallback: string): DonationType {
+  return {
+    id: raw.id,
+    name: raw.name,
+    description: raw.description,
+    icon: mapIconFromRaw(raw.icon),
+    defaultAmounts: (raw.defaultAmounts || []).map(parseAmountToNumber),
+    active: !!raw.isActive,
+    parishId: raw.parishId || parishIdFallback,
+    order: raw.order,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  }
+}
+
+function uiToRawType(
+  ui: Omit<DonationType, 'id' | 'createdAt' | 'updatedAt'>
+): Omit<RawDonationType, 'id' | 'createdAt' | 'updatedAt'> {
+  const amounts = (ui.defaultAmounts || []).slice(0, 4)
+  while (amounts.length < 4) amounts.push(0)
+
+  return {
+    name: ui.name,
+    description: ui.description,
+    icon: mapIconToRaw(ui.icon),
+    gradientColors: ['#22c55e', '#16a34a'],
+    defaultAmounts: [
+      numberToAmountString(amounts[0]),
+      numberToAmountString(amounts[1]),
+      numberToAmountString(amounts[2]),
+      numberToAmountString(amounts[3]),
+    ],
+    isActive: ui.active,
+    parishId: ui.parishId,
+    order: ui.order,
+  }
+}
+
+export class ParishDonationTypeService {
+  static async getAll(parishId: string): Promise<DonationType[]> {
+    const types = await DonationTypeService.getAllDonationTypesByParish(parishId)
+    return types.map((t) => rawToUiType(t, parishId))
+  }
+
+  static async create(
+    data: Omit<DonationType, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<string | null> {
+    return await DonationTypeService.createDonationType(uiToRawType(data))
+  }
+
+  static async update(id: string, updates: Partial<DonationType>): Promise<boolean> {
+    const rawUpdates: Partial<Omit<RawDonationType, 'id' | 'createdAt'>> = {}
+
+    if (typeof updates.name === 'string') rawUpdates.name = updates.name
+    if (typeof updates.description === 'string') rawUpdates.description = updates.description
+    if (typeof updates.icon === 'string') rawUpdates.icon = mapIconToRaw(updates.icon)
+    if (typeof updates.active === 'boolean') rawUpdates.isActive = updates.active
+    if (typeof updates.order === 'number') rawUpdates.order = updates.order
+
+    if (Array.isArray(updates.defaultAmounts)) {
+      const amounts = updates.defaultAmounts.slice(0, 4)
+      while (amounts.length < 4) amounts.push(0)
+      rawUpdates.defaultAmounts = [
+        numberToAmountString(amounts[0]),
+        numberToAmountString(amounts[1]),
+        numberToAmountString(amounts[2]),
+        numberToAmountString(amounts[3]),
+      ] as RawDonationType['defaultAmounts']
+    }
+
+    return await DonationTypeService.updateDonationType(id, rawUpdates)
+  }
+
+  static async delete(id: string): Promise<boolean> {
+    return await DonationTypeService.deleteDonationType(id)
   }
 }
