@@ -77,11 +77,16 @@ export default function AdminDioceseDonationsPage() {
 
   // Calcul des statistiques
   const totalAmount = filteredDonations.reduce((sum, d) => sum + (d.amount || 0), 0)
-  const receivedAmount = filteredDonations.filter(d => d.status === "Reçu").reduce((sum, d) => sum + (d.amount || 0), 0)
-  const pendingAmount = filteredDonations.filter(d => d.status === "En attente").reduce((sum, d) => sum + (d.amount || 0), 0)
+  // Statuts normalisés dans Firestore (admin_donations): pending | confirmed | cancelled
+  const receivedAmount = filteredDonations.filter(d => d.status === "confirmed").reduce((sum, d) => sum + (d.amount || 0), 0)
+  const pendingAmount = filteredDonations.filter(d => d.status === "pending").reduce((sum, d) => sum + (d.amount || 0), 0)
 
 
-  const statuses = ["Reçu", "En attente", "Annulé"]
+  const statuses = [
+    { value: "confirmed", label: "Reçu" },
+    { value: "pending", label: "En attente" },
+    { value: "cancelled", label: "Annulé" },
+  ]
   const types = ["Offrande", "Dîme", "Don", "Collecte", "Autre"]
 
   if (loading) {
@@ -166,7 +171,7 @@ export default function AdminDioceseDonationsPage() {
               className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
             >
               <option value="all">Tous les statuts</option>
-              {statuses.map(status => <option key={status} value={status}>{status}</option>)}
+              {statuses.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
             <select 
               value={typeFilter} 
@@ -214,11 +219,17 @@ export default function AdminDioceseDonationsPage() {
                     <td className="py-2 px-4 text-black">{donation.parish || 'N/A'}</td>
                     <td className="py-2 px-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        donation.status === 'Reçu' ? 'bg-green-100 text-green-800' :
-                        donation.status === 'En attente' ? 'bg-orange-100 text-orange-800' :
+                        donation.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                        donation.status === 'pending' ? 'bg-orange-100 text-orange-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {donation.status || 'N/A'}
+                        {donation.status === 'confirmed'
+                          ? 'Reçu'
+                          : donation.status === 'pending'
+                          ? 'En attente'
+                          : donation.status === 'cancelled'
+                          ? 'Annulé'
+                          : (donation.status || 'N/A')}
                       </span>
                     </td>
                     <td className="py-2 px-4 text-black">{donation.date || 'N/A'}</td>

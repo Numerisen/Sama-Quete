@@ -114,7 +114,8 @@ export default function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={
                   loginType === 'admin' ? 'admin@admin.com' :
-                  loginType === 'diocese' ? 'diocese@diocese.com' :
+                  // Compte diocèse utilisé par les scripts d'initialisation
+                  loginType === 'diocese' ? 'diocese@admin.com' :
                   loginType === 'paroisse' ? 'admin.paroisse@test.com' :
                   'admin.eglise@test.com'
                 }
@@ -160,7 +161,7 @@ export default function LoginForm() {
             <p>Comptes de test :</p>
             <div className="mt-2 space-y-1">
               <p><strong>Super Admin:</strong> admin@admin.com</p>
-              <p><strong>Admin Diocèse:</strong> diocese@diocese.com</p>
+              <p><strong>Admin Diocèse:</strong> diocese@admin.com</p>
               <p><strong>Admin Paroisse:</strong> admin.paroisse@test.com</p>
               <p><strong>Admin Église:</strong> admin.eglise@test.com</p>
             </div>

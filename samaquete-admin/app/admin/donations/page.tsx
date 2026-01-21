@@ -106,14 +106,10 @@ export default function AdminDonationsPage() {
   const handleDelete = async (id: string) => {
     if (window.confirm("Confirmer la suppression de ce don ?")) {
       try {
-        const success = await DonationService.deleteDonation(id)
-        if (success) {
+        await AdminDonationService.delete(id)
           setDonations(donations.filter(d => d.id !== id))
           toast.success("Don supprimé avec succès")
-          loadStats() // Recharger les stats
-        } else {
-          toast.error("Erreur lors de la suppression")
-        }
+        computeStats(donations.filter(d => d.id !== id))
       } catch (error) {
         console.error("Erreur:", error)
         toast.error("Erreur lors de la suppression")
