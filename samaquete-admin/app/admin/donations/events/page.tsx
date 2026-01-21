@@ -25,6 +25,8 @@ export default function DonationEventsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Événements supprimés de l'interface super admin
+    router.replace("/admin/donations")
     loadEvents()
   }, [])
 

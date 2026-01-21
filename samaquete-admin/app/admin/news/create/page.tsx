@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Image as ImageIcon, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+import { useAuth } from "@/lib/auth-context"
 
 const categories = [
   { value: "Événement", label: "Événement" },
@@ -22,6 +24,8 @@ const priorities = [
 ]
 
 export default function CreateAdminNewsPage() {
+  // ✅ Super admin: lecture seule sur Actualités (pas de CRUD)
+  const { isAdmin } = useAuth()
   const [form, setForm] = useState({
     title: "",
     excerpt: "",
@@ -36,6 +40,12 @@ export default function CreateAdminNewsPage() {
   const [error, setError] = useState("")
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    if (isAdmin) {
+      router.replace("/admin/news")
+    }
+  }, [isAdmin, router])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })

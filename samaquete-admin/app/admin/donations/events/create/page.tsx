@@ -11,11 +11,15 @@ import { useAuth } from "@/lib/auth-context"
 import { DonationEvent, DonationService } from "@/lib/donation-service"
 import { Church, Loader2, Target } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 export default function CreateDonationEventPage() {
   const router = useRouter()
+  // Événements supprimés de l'interface super admin
+  useEffect(() => {
+    router.replace("/admin/donations")
+  }, [router])
   const { userRole } = useAuth()
   const [loading, setLoading] = useState(false)
   

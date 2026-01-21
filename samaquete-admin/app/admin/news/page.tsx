@@ -1,10 +1,9 @@
 "use client"
-import { useState, useEffect, ChangeEvent } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, Edit, Trash2, Download, Image as ImageIcon, Star, Flame, Megaphone } from "lucide-react"
-import Link from "next/link"
+import { Download, Image as ImageIcon, Star, Flame, Megaphone } from "lucide-react"
 import { motion } from "framer-motion"
 import { NewsService, NewsItem } from "@/lib/firestore-services"
 import { useToast } from "@/hooks/use-toast"
@@ -74,8 +73,6 @@ export default function AdminNewsPage() {
   const [search, setSearch] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
-  const [editId, setEditId] = useState<number | null>(null)
-  const [editForm, setEditForm] = useState<any>({ title: "", excerpt: "", date: "", time: "", location: "", category: "Événement", priority: "medium", image: "" })
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
@@ -149,69 +146,7 @@ export default function AdminNewsPage() {
     return matchSearch && matchCat && matchPrio
   })
 
-  // Suppression
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Confirmer la suppression de cette actualité ?")) {
-      try {
-        await NewsService.delete(id)
-        toast({
-          title: "Succès",
-          description: "Actualité supprimée avec succès",
-        })
-      } catch (error) {
-        console.error('Erreur lors de la suppression:', error)
-        toast({
-          title: "Erreur",
-          description: "Impossible de supprimer l'actualité",
-          variant: "destructive"
-        })
-      }
-    }
-  }
-  
-  // Edition inline
-  const handleEdit = (item: any) => {
-    setEditId(item.id)
-    setEditForm({ ...item })
-  }
-  
-  const handleEditChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value })
-  }
-  
-  const handleEditSave = async (id: string) => {
-    try {
-      await NewsService.update(id, {
-        title: editForm.title,
-        excerpt: editForm.excerpt,
-        content: editForm.content,
-        date: editForm.date,
-        time: editForm.time,
-        location: editForm.location,
-        category: editForm.category,
-        priority: editForm.priority,
-        image: editForm.image,
-        diocese: editForm.diocese,
-        published: editForm.published
-      })
-      setEditId(null)
-      toast({
-        title: "Succès",
-        description: "Actualité modifiée avec succès",
-      })
-    } catch (error) {
-      console.error('Erreur lors de la modification:', error)
-      toast({
-        title: "Erreur",
-        description: "Impossible de modifier l'actualité",
-        variant: "destructive"
-      })
-    }
-  }
-  
-  const handleEditCancel = () => {
-    setEditId(null)
-  }
+  // Lecture seule (super_admin) : pas de CRUD sur les actualités
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -219,7 +154,7 @@ export default function AdminNewsPage() {
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle className="text-3xl font-bold text-black mb-1">Gestion des actualités</CardTitle>
-            <p className="text-black/80 text-sm">Publiez, modifiez et supprimez les actualités paroissiales.</p>
+            <p className="text-black/80 text-sm">Consultation des actualités (lecture seule).</p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Input
@@ -237,11 +172,6 @@ export default function AdminNewsPage() {
             <Button onClick={() => exportToCSV(filteredNews)} variant="outline" className="flex items-center gap-2 text-black border-green-200 bg-white/90 hover:bg-green-50 rounded-xl px-3 py-2">
               <Download className="w-5 h-5" /> Export CSV
             </Button>
-            <Link href="/admin/news/create">
-              <Button className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white shadow-lg rounded-xl px-4 py-2">
-                <Plus className="w-5 h-5" /> Nouvelle actu
-              </Button>
-            </Link>
           </div>
         </CardHeader>
         <CardContent>
@@ -260,7 +190,7 @@ export default function AdminNewsPage() {
                     <th className="py-3 px-4 text-black">Date</th>
                     <th className="py-3 px-4 text-black">Catégorie</th>
                     <th className="py-3 px-4 text-black">Priorité</th>
-                    <th className="py-3 px-4 text-right text-black">Actions</th>
+                    {/* Lecture seule: pas d'actions */}
                   </tr>
                 </thead>
                 <tbody>
@@ -279,52 +209,18 @@ export default function AdminNewsPage() {
                         <ImageIcon className="w-10 h-10 text-gray-500" />
                       )}
                     </td>
-                    {editId === item.id ? (
-                      <>
-                        <td className="py-2 px-4 font-semibold text-black">
-                          <Input name="title" value={editForm.title} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4 text-black">
-                          <textarea name="excerpt" value={editForm.excerpt} onChange={handleEditChange} className="h-8 w-full rounded border border-gray-200 px-2" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <Input name="date" value={editForm.date} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <select name="category" value={editForm.category} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-black">
-                            {categories.filter(c => c.value !== "all").map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="py-2 px-4">
-                          <select name="priority" value={editForm.priority} onChange={handleEditChange} className="h-8 rounded px-2 border-gray-200 bg-white/90 text-black">
-                            {priorities.filter(p => p.value !== "all").map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEditSave(item.id)}>Enregistrer</Button>
-                          <Button size="sm" variant="ghost" className="rounded-lg" onClick={handleEditCancel}>Annuler</Button>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="py-2 px-4 font-semibold text-black">{item.title}</td>
-                        <td className="py-2 px-4 text-black">{item.excerpt}</td>
-                        <td className="py-2 px-4 text-black">{item.date}</td>
-                        <td className="py-2 px-4">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(item.category)}`}>{item.category}</span>
-                        </td>
-                        <td className="py-2 px-4">
-                          <span className="px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-                            {getPriorityIcon(item.priority)}
-                            {priorities.find(p => p.value === item.priority)?.label}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
-                        </td>
-                      </>
-                    )}
+                    <td className="py-2 px-4 font-semibold text-black">{item.title}</td>
+                    <td className="py-2 px-4 text-black">{item.excerpt}</td>
+                    <td className="py-2 px-4 text-black">{item.date}</td>
+                    <td className="py-2 px-4">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(item.category)}`}>{item.category}</span>
+                    </td>
+                    <td className="py-2 px-4">
+                      <span className="px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                        {getPriorityIcon(item.priority)}
+                        {priorities.find(p => p.value === item.priority)?.label}
+                      </span>
+                    </td>
                   </motion.tr>
                 ))}
                 </tbody>

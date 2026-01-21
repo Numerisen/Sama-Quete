@@ -104,7 +104,9 @@ export interface LiturgyItem {
 
 // Service pour les actualités
 export class NewsService {
-  private static collection = 'news'
+  // Les actualités de l'interface admin sont stockées dans admin_news
+  // (cf. scripts de migration et règles Firestore).
+  private static collection = 'admin_news'
 
   static async getAll(): Promise<NewsItem[]> {
     const q = query(collection(db, this.collection), orderBy('createdAt', 'desc'))

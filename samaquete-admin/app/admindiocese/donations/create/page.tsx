@@ -10,12 +10,18 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { useEffect } from "react"
 
 export default function AdminDioceseDonationsCreatePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const diocese = searchParams.get('diocese') || 'Diocèse de Thiès'
   const { toast } = useToast()
+
+  // ✅ Diocèse: consultation uniquement sur Dons (pas de création)
+  useEffect(() => {
+    router.replace(`/admindiocese/donations?diocese=${encodeURIComponent(diocese)}`)
+  }, [diocese, router])
 
   const [formData, setFormData] = useState({
     donorName: "",

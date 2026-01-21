@@ -3,11 +3,12 @@ export const dynamic = "force-dynamic"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Calendar, Megaphone, Eye, User } from "lucide-react"
+import { Download, Flame, Image as ImageIcon, Megaphone, Star } from "lucide-react"
 import { motion } from "framer-motion"
 import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
+import { NewsService } from "@/lib/firestore-services"
 
 // Données initiales supprimées - Utilisation uniquement des données Firestore
 
@@ -19,7 +20,7 @@ export default function AdminDioceseNewsPage() {
   const [news, setNews] = useState<any[]>([])
   const [search, setSearch] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
-  const [statusFilter, setStatusFilter] = useState("all")
+  const [priorityFilter, setPriorityFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
@@ -27,27 +28,40 @@ export default function AdminDioceseNewsPage() {
   useEffect(() => {
     const loadNews = async () => {
       try {
-        // TODO: Implémenter le chargement depuis Firestore
-        // const firestoreNews = await NewsService.getAll()
-        // const dioceseNews = firestoreNews.filter(n => n.diocese === diocese)
-        // setNews(dioceseNews)
-        setNews([]) // Aucune donnée pour le moment
+        const firestoreNews = await NewsService.getAll()
+        const dioceseNews = firestoreNews
+          .filter(n => (n.diocese || "") === diocese)
+          .map(n => ({
+            id: n.id!,
+            title: n.title,
+            excerpt: n.excerpt,
+            date: n.date,
+            category: n.category,
+            priority: n.priority,
+            image: n.image,
+            published: n.published,
+          }))
+        setNews(dioceseNews)
       } catch (error) {
         console.error('Erreur lors du chargement des actualités:', error)
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les actualités",
+          variant: "destructive",
+        })
         setNews([])
       }
     }
     loadNews()
-  }, [diocese])
+  }, [diocese, toast])
 
   // Filtres et recherche
   const filteredNews = news.filter(n => {
-    const matchSearch = n.title?.toLowerCase().includes(search.toLowerCase()) || 
-                       n.content?.toLowerCase().includes(search.toLowerCase()) ||
-                       n.author?.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = (n.title || "").toLowerCase().includes(search.toLowerCase()) ||
+                       (n.excerpt || "").toLowerCase().includes(search.toLowerCase())
     const matchCategory = categoryFilter === "all" || n.category === categoryFilter
-    const matchStatus = statusFilter === "all" || n.status === statusFilter
-    return matchSearch && matchCategory && matchStatus
+    const matchPriority = priorityFilter === "all" || n.priority === priorityFilter
+    return matchSearch && matchCategory && matchPriority
   })
 
   // Pagination
@@ -59,12 +73,42 @@ export default function AdminDioceseNewsPage() {
   // Réinitialiser la page courante quand les filtres changent
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, categoryFilter, statusFilter, news])
+  }, [search, categoryFilter, priorityFilter, news])
 
   // Fonctions de modification et suppression supprimées - Mode consultation uniquement
 
-  const categories = ["Événement", "Formation", "Charité", "Liturgie", "Communauté"]
-  const statuses = ["Publié", "Brouillon", "Archivé"]
+  const categories = ["Événement", "Solidarité", "Formation", "Groupe", "Information"]
+  const priorities = [
+    { value: "high", label: "Haute" },
+    { value: "medium", label: "Moyenne" },
+    { value: "low", label: "Basse" },
+  ]
+
+  const getPriorityIcon = (priority: string) => {
+    switch (priority) {
+      case "high":
+        return <Flame className="w-4 h-4 text-black inline-block mr-1" />
+      case "medium":
+        return <Star className="w-4 h-4 text-black inline-block mr-1" />
+      case "low":
+      default:
+        return <Megaphone className="w-4 h-4 text-black inline-block mr-1" />
+    }
+  }
+
+  const exportToCSV = (items: any[]) => {
+    const header = ["Titre", "Extrait", "Date", "Catégorie", "Priorité", "Publié"]
+    const rows = items.map(n => [n.title, n.excerpt, n.date, n.category, n.priority, n.published ? "oui" : "non"])
+    const csvContent = [header, ...rows].map(e => e.join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.setAttribute("download", "actualites-diocese.csv")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -95,14 +139,20 @@ export default function AdminDioceseNewsPage() {
               {categories.map(category => <option key={category} value={category}>{category}</option>)}
             </select>
             <select 
-              value={statusFilter} 
-              onChange={e => setStatusFilter(e.target.value)} 
+              value={priorityFilter} 
+              onChange={e => setPriorityFilter(e.target.value)} 
               className="h-10 rounded px-2 border-blue-200 bg-white/90 text-black"
             >
-              <option value="all">Tous les statuts</option>
-              {statuses.map(status => <option key={status} value={status}>{status}</option>)}
+              <option value="all">Toutes les priorités</option>
+              {priorities.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
-            {/* Boutons d'action supprimés - Mode consultation uniquement */}
+            <button
+              onClick={() => exportToCSV(filteredNews)}
+              className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white/90 px-3 py-2 text-black hover:bg-blue-50"
+              type="button"
+            >
+              <Download className="w-5 h-5" /> Export CSV
+            </button>
           </div>
         </CardHeader>
         <CardContent>
@@ -110,12 +160,12 @@ export default function AdminDioceseNewsPage() {
             <table className="w-full text-left min-w-[800px]">
               <thead>
                 <tr className="text-black/80 text-sm bg-blue-50">
+                  <th className="py-3 px-4 text-black">Image</th>
                   <th className="py-3 px-4 text-black">Titre</th>
-                  <th className="py-3 px-4 text-black">Catégorie</th>
-                  <th className="py-3 px-4 text-black">Auteur</th>
-                  <th className="py-3 px-4 text-black">Statut</th>
+                  <th className="py-3 px-4 text-black">Extrait</th>
                   <th className="py-3 px-4 text-black">Date</th>
-                  <th className="py-3 px-4 text-black">Vues</th>
+                  <th className="py-3 px-4 text-black">Catégorie</th>
+                  <th className="py-3 px-4 text-black">Priorité</th>
                   {/* Colonne Actions supprimée - Mode consultation uniquement */}
                 </tr>
               </thead>
@@ -128,26 +178,27 @@ export default function AdminDioceseNewsPage() {
                     transition={{ delay: 0.1 + i * 0.05 }}
                     className="border-b last:border-0 hover:bg-blue-50/40"
                   >
-                    {/* Mode consultation uniquement - Pas d'édition ni suppression */}
+                    <td className="py-2 px-4">
+                      {article.image ? (
+                        <img src={article.image} alt={article.title} className="w-16 h-16 object-cover rounded-xl border-2 border-blue-200 shadow" />
+                      ) : (
+                        <ImageIcon className="w-10 h-10 text-gray-500" />
+                      )}
+                    </td>
                     <td className="py-2 px-4 font-semibold text-black">{article.title || 'N/A'}</td>
+                    <td className="py-2 px-4 text-black">{article.excerpt || 'N/A'}</td>
+                    <td className="py-2 px-4 text-black">{article.date || 'N/A'}</td>
                     <td className="py-2 px-4">
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {article.category || 'N/A'}
                       </span>
                     </td>
-                    <td className="py-2 px-4 text-black">{article.author || 'N/A'}</td>
                     <td className="py-2 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        article.status === 'Publié' ? 'bg-green-100 text-green-800' :
-                        article.status === 'Brouillon' ? 'bg-orange-100 text-orange-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {article.status || 'N/A'}
+                      <span className="px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                        {getPriorityIcon(article.priority)}
+                        {priorities.find(p => p.value === article.priority)?.label || article.priority || "N/A"}
                       </span>
                     </td>
-                    <td className="py-2 px-4 text-black">{article.date || 'N/A'}</td>
-                    <td className="py-2 px-4 text-black">{article.views || 0}</td>
-                    {/* Actions supprimées - Mode consultation uniquement */}
                   </motion.tr>
                 ))}
               </tbody>

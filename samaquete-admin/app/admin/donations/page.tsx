@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { DonationService as AdminDonationService, DonationItem } from "@/lib/firestore-services"
 import { motion } from "framer-motion"
-import { Church, DollarSign, Download, Edit, Loader2, Plus, Target, Trash2, TrendingUp } from "lucide-react"
+import { Church, DollarSign, Download, Loader2, TrendingUp } from "lucide-react"
 import Link from "next/link"
-import { ChangeEvent, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 const donationTypes = [
@@ -57,8 +57,7 @@ export default function AdminDonationsPage() {
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [parishFilter, setParishFilter] = useState("all")
-  const [editId, setEditId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<any>({ donorName: "", type: "messe", amount: 0, parish: "", status: "pending" })
+  // Lecture seule (super_admin) : pas de CRUD sur les dons
 
   // Chargement des données depuis Firebase
   useEffect(() => {
@@ -101,59 +100,6 @@ export default function AdminDonationsPage() {
     const matchParish = parishFilter === "all" || (d.parish || "") === parishFilter
     return matchSearch && matchType && matchParish
   })
-
-  // Suppression
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Confirmer la suppression de ce don ?")) {
-      try {
-        await AdminDonationService.delete(id)
-          setDonations(donations.filter(d => d.id !== id))
-          toast.success("Don supprimé avec succès")
-        computeStats(donations.filter(d => d.id !== id))
-      } catch (error) {
-        console.error("Erreur:", error)
-        toast.error("Erreur lors de la suppression")
-      }
-    }
-  }
-
-  // Edition inline
-  const handleEdit = (item: DonationItem) => {
-    setEditId(item.id)
-    setEditForm({ 
-      donorName: item.donorName,
-      type: item.type,
-      amount: item.amount,
-      parish: item.parish || "",
-      status: item.status || "pending"
-    })
-  }
-
-  const handleEditChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value })
-  }
-
-  const handleEditSave = async (id: string) => {
-    try {
-      await AdminDonationService.update(id, {
-        donorName: editForm.donorName,
-        type: editForm.type,
-        amount: Number(editForm.amount) || 0,
-        parish: editForm.parish,
-        status: editForm.status,
-      })
-      toast.success("Modification enregistrée")
-      setEditId(null)
-      loadDonations() // Recharger les données
-    } catch (error) {
-      console.error("Erreur:", error)
-      toast.error("Erreur lors de la modification")
-    }
-  }
-
-  const handleEditCancel = () => {
-    setEditId(null)
-  }
 
   const formatDate = (date: any) => {
     if (!date) return "Non définie"
@@ -228,7 +174,7 @@ export default function AdminDonationsPage() {
                   <p className="text-orange-100 text-sm">Dons Récents</p>
                   <p className="text-2xl font-bold">{stats.recentDonations.length}</p>
                 </div>
-                <Target className="w-8 h-8 text-orange-200" />
+                <DollarSign className="w-8 h-8 text-orange-200" />
               </div>
             </CardContent>
           </Card>
@@ -258,18 +204,7 @@ export default function AdminDonationsPage() {
             <Button onClick={() => exportToCSV(filteredDonations)} variant="outline" className="flex items-center gap-2 text-black border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2">
               <Download className="w-5 h-5" /> Export CSV
             </Button>
-            <div className="flex gap-2">
-              <Link href="/admin/donations/events">
-                <Button variant="outline" className="flex items-center gap-2 text-black border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2">
-                  <Target className="w-5 h-5" /> Événements
-                </Button>
-              </Link>
-              <Link href="/admin/donations/events/create">
-                <Button className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white shadow-lg rounded-xl px-4 py-2">
-                  <Plus className="w-5 h-5" /> Nouvel événement
-                </Button>
-              </Link>
-            </div>
+            {/* Événements supprimés (lecture seule) */}
           </div>
         </CardHeader>
         <CardContent>
@@ -283,7 +218,7 @@ export default function AdminDonationsPage() {
                   <th className="py-3 px-4 text-black">Paroisse</th>
                   <th className="py-3 px-4 text-black">Statut</th>
                   <th className="py-3 px-4 text-black">Date/Heure</th>
-                  <th className="py-3 px-4 text-right text-black">Actions</th>
+                  {/* Lecture seule: pas d'actions */}
                 </tr>
               </thead>
               <tbody>
@@ -295,58 +230,19 @@ export default function AdminDonationsPage() {
                     transition={{ delay: 0.1 + i * 0.05 }}
                     className="border-b last:border-0 hover:bg-blue-50/40"
                   >
-                    {editId === item.id ? (
-                      <>
-                        <td className="py-2 px-4 font-semibold text-black">
-                          <Input name="donorName" value={editForm.donorName} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <select name="type" value={editForm.type} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
-                            {donationTypes.filter(t => t.value !== "all").map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                          </select>
-                        </td>
-                        <td className="py-2 px-4">
-                          <Input name="amount" type="number" min={0} value={editForm.amount} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <Input name="parish" value={editForm.parish} onChange={handleEditChange} className="h-8" />
-                        </td>
-                        <td className="py-2 px-4">
-                          <select name="status" value={editForm.status} onChange={handleEditChange} className="h-8 rounded px-2 border-blue-200 bg-white/90 text-black">
-                            <option value="pending">En attente</option>
-                            <option value="confirmed">Confirmé</option>
-                            <option value="failed">Échoué</option>
-                          </select>
-                        </td>
-                        <td className="py-2 px-4">
-                          <span className="text-sm text-black">{formatDate(item.date)}</span>
-                        </td>
-                        <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEditSave(item.id)}>Enregistrer</Button>
-                          <Button size="sm" variant="ghost" className="rounded-lg" onClick={handleEditCancel}>Annuler</Button>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="py-2 px-4 font-semibold text-black">{item.donorName}</td>
-                        <td className="py-2 px-4 text-black">{donationTypes.find(t => t.value === item.type)?.label}</td>
-                        <td className="py-2 px-4 font-semibold text-black">{formatAmount(item.amount)}</td>
-                        <td className="py-2 px-4 text-black">{item.parish || "Non spécifié"}</td>
-                        <td className="py-2 px-4">
-                          <Badge 
-                            variant={item.status === 'confirmed' ? 'default' : item.status === 'pending' ? 'secondary' : 'destructive'}
-                            className={item.status === 'confirmed' ? 'bg-blue-600' : item.status === 'pending' ? 'bg-blue-500' : 'bg-blue-600'}
-                          >
-                            {item.status === 'confirmed' ? 'Confirmé' : item.status === 'pending' ? 'En attente' : 'Échoué'}
-                          </Badge>
-                        </td>
-                        <td className="py-2 px-4 text-sm text-black">{formatDate(item.date)}</td>
-                        <td className="py-2 px-4 text-right flex gap-2 justify-end">
-                          <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
-                          <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
-                        </td>
-                      </>
-                    )}
+                    <td className="py-2 px-4 font-semibold text-black">{item.donorName}</td>
+                    <td className="py-2 px-4 text-black">{donationTypes.find(t => t.value === item.type)?.label}</td>
+                    <td className="py-2 px-4 font-semibold text-black">{formatAmount(item.amount)}</td>
+                    <td className="py-2 px-4 text-black">{item.parish || "Non spécifié"}</td>
+                    <td className="py-2 px-4">
+                      <Badge 
+                        variant={item.status === 'confirmed' ? 'default' : item.status === 'pending' ? 'secondary' : 'destructive'}
+                        className={item.status === 'confirmed' ? 'bg-blue-600' : item.status === 'pending' ? 'bg-blue-500' : 'bg-blue-600'}
+                      >
+                        {item.status === 'confirmed' ? 'Confirmé' : item.status === 'pending' ? 'En attente' : 'Échoué'}
+                      </Badge>
+                    </td>
+                    <td className="py-2 px-4 text-sm text-black">{formatDate(item.date)}</td>
                   </motion.tr>
                 ))}
               </tbody>
