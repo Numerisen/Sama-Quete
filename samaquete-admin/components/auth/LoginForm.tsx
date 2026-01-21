@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/auth-context'
-import { Church, Loader2, Shield, Home, Building2 } from 'lucide-react'
+import { Church, Loader2, Shield, Home } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -15,7 +15,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [loginType, setLoginType] = useState<'admin' | 'diocese' | 'paroisse' | 'eglise'>('admin')
+  const [loginType, setLoginType] = useState<'admin' | 'diocese' | 'paroisse'>('admin')
   
   const { signIn } = useAuth()
   const router = useRouter()
@@ -43,24 +43,24 @@ export default function LoginForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src="/placeholder-logo.png" alt="Jàngu Bi" className="w-16 h-16" />
+            <img src="/placeholder-logo.png" alt="SamaQuete" className="w-16 h-16" />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">
-            Connexion Jàngu Bi
+            Connexion SamaQuete
           </CardTitle>
           <p className="text-gray-600">Accès à l'interface d'administration</p>
         </CardHeader>
         
         <CardContent>
           {/* Sélecteur de type de connexion */}
-          <div className="grid grid-cols-2 gap-2 mb-6">
+          <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
             <button
               type="button"
               onClick={() => setLoginType('admin')}
-              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs bg-gray-100 ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs ${
                 loginType === 'admin'
-                  ? 'bg-amber-100 text-amber-600 shadow-sm border-2 border-amber-300'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                  ? 'bg-white text-amber-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Shield className="w-4 h-4" />
@@ -69,10 +69,10 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setLoginType('diocese')}
-              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs bg-gray-100 ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs ${
                 loginType === 'diocese'
-                  ? 'bg-amber-100 text-amber-600 shadow-sm border-2 border-amber-300'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                  ? 'bg-white text-amber-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Church className="w-4 h-4" />
@@ -81,26 +81,14 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setLoginType('paroisse')}
-              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs bg-gray-100 ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs ${
                 loginType === 'paroisse'
-                  ? 'bg-green-100 text-green-600 shadow-sm border-2 border-green-300'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                  ? 'bg-white text-green-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <Home className="w-4 h-4" />
               Admin Paroisse
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginType('eglise')}
-              className={`flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs bg-gray-100 ${
-                loginType === 'eglise'
-                  ? 'bg-emerald-100 text-emerald-600 shadow-sm border-2 border-emerald-300'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              Admin Église
             </button>
           </div>
 
@@ -112,13 +100,7 @@ export default function LoginForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={
-                  loginType === 'admin' ? 'admin@admin.com' :
-                  // Compte diocèse utilisé par les scripts d'initialisation
-                  loginType === 'diocese' ? 'diocese@admin.com' :
-                  loginType === 'paroisse' ? 'admin.paroisse@test.com' :
-                  'admin.eglise@test.com'
-                }
+                placeholder="admin@admin.com"
                 required
               />
             </div>
@@ -163,7 +145,6 @@ export default function LoginForm() {
               <p><strong>Super Admin:</strong> admin@admin.com</p>
               <p><strong>Admin Diocèse:</strong> diocese@admin.com</p>
               <p><strong>Admin Paroisse:</strong> admin.paroisse@test.com</p>
-              <p><strong>Admin Église:</strong> admin.eglise@test.com</p>
             </div>
           </div>
         </CardContent>

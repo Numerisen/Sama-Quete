@@ -69,8 +69,6 @@ export interface ParishNews {
   category: string
   published: boolean
   image?: string
-  author?: string
-  showAuthor?: boolean
   parishId: string
   createdAt?: any
   updatedAt?: any
@@ -565,93 +563,6 @@ export class ParishSettingsService {
       }
     } catch (error) {
       console.error('Erreur lors de la mise à jour des paramètres:', error)
-      throw error
-    }
-  }
-}
-
-// Service pour les types de dons
-export interface DonationType {
-  id?: string
-  parishId: string
-  name: string
-  description: string
-  icon?: string
-  defaultAmounts: number[]  // Les 4 montants par défaut
-  active: boolean
-  order?: number
-  createdAt?: any
-  updatedAt?: any
-}
-
-export class ParishDonationTypeService {
-  static async getAll(parishId: string): Promise<DonationType[]> {
-    try {
-      const q = query(
-        collection(db, 'parish_donation_types'),
-        where('parishId', '==', parishId)
-      )
-      const querySnapshot = await getDocs(q)
-      const types = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as DonationType[]
-
-      // Tri côté client par ordre
-      return types.sort((a, b) => (a.order || 0) - (b.order || 0))
-    } catch (error) {
-      console.error('Erreur lors de la récupération des types de dons:', error)
-      return []
-    }
-  }
-
-  static async getById(id: string): Promise<DonationType | null> {
-    try {
-      const docRef = doc(db, 'parish_donation_types', id)
-      const docSnap = await getDoc(docRef)
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as DonationType
-      }
-      return null
-    } catch (error) {
-      console.error('Erreur lors de la récupération du type de don:', error)
-      return null
-    }
-  }
-
-  static async create(donationType: Omit<DonationType, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-    try {
-      const docRef = await addDoc(collection(db, 'parish_donation_types'), {
-        ...donationType,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      })
-      return docRef.id
-    } catch (error) {
-      console.error('Erreur lors de la création du type de don:', error)
-      throw error
-    }
-  }
-
-  static async update(id: string, updates: Partial<DonationType>): Promise<void> {
-    try {
-      const docRef = doc(db, 'parish_donation_types', id)
-      await updateDoc(docRef, {
-        ...updates,
-        updatedAt: serverTimestamp()
-      })
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du type de don:', error)
-      throw error
-    }
-  }
-
-  static async delete(id: string): Promise<void> {
-    try {
-      const docRef = doc(db, 'parish_donation_types', id)
-      await deleteDoc(docRef)
-    } catch (error) {
-      console.error('Erreur lors de la suppression du type de don:', error)
       throw error
     }
   }
