@@ -32,20 +32,17 @@ const nextConfig = {
       },
     })
     
-    // Exclure undici et Firebase du bundle client
+    // Exclure uniquement undici du bundle client (Firebase est utilisé côté navigateur)
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         undici: false,
-        'firebase/app': false,
-        'firebase/auth': false,
-        'firebase/firestore': false,
       }
       
-      // Ignorer complètement undici et Firebase côté client
+      // Ignorer complètement undici côté client
       config.plugins.push(
         new webpack.IgnorePlugin({
-          resourceRegExp: /^(undici|firebase|@firebase)/,
+          resourceRegExp: /^undici$/,
         })
       )
     }
