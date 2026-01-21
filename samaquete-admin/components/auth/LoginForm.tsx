@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/auth-context'
-import { Church, Loader2, Shield, Home } from 'lucide-react'
+import { Church, Loader2, Shield, Home, Building2, MapPin } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -15,7 +15,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [loginType, setLoginType] = useState<'admin' | 'diocese' | 'paroisse'>('admin')
+  const [loginType, setLoginType] = useState<'admin' | 'archdiocese' | 'diocese' | 'paroisse' | 'eglise'>('admin')
   
   const { signIn } = useAuth()
   const router = useRouter()
@@ -52,44 +52,75 @@ export default function LoginForm() {
         </CardHeader>
         
         <CardContent>
-          {/* Sélecteur de type de connexion */}
-          <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
-            <button
-              type="button"
-              onClick={() => setLoginType('admin')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs ${
-                loginType === 'admin'
-                  ? 'bg-white text-amber-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              Super Admin
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginType('diocese')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs ${
-                loginType === 'diocese'
-                  ? 'bg-white text-amber-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Church className="w-4 h-4" />
-              Admin Diocèse
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginType('paroisse')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-md transition-colors text-xs ${
-                loginType === 'paroisse'
-                  ? 'bg-white text-green-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Home className="w-4 h-4" />
-              Admin Paroisse
-            </button>
+          {/* Sélecteur de type de connexion - 5 niveaux hiérarchiques */}
+          <div className="mb-6 space-y-2">
+            {/* Ligne 1: Super Admin, Archidiocèse, Diocèse */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => setLoginType('admin')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-md transition-colors ${
+                  loginType === 'admin'
+                    ? 'bg-red-50 text-red-600 shadow-sm border-2 border-red-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                <span className="text-xs font-medium">🔴 Super Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginType('archdiocese')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-md transition-colors ${
+                  loginType === 'archdiocese'
+                    ? 'bg-orange-50 text-orange-600 shadow-sm border-2 border-orange-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                <span className="text-xs font-medium">🟠 Archidiocèse</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginType('diocese')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-md transition-colors ${
+                  loginType === 'diocese'
+                    ? 'bg-yellow-50 text-yellow-600 shadow-sm border-2 border-yellow-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <MapPin className="w-4 h-4" />
+                <span className="text-xs font-medium">🟡 Diocèse</span>
+              </button>
+            </div>
+            
+            {/* Ligne 2: Paroisse, Église */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setLoginType('paroisse')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-lg transition-colors ${
+                  loginType === 'paroisse'
+                    ? 'bg-green-50 text-green-600 shadow-sm border-2 border-green-200'
+                    : 'bg-gray-100 text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                <span className="text-xs font-medium">🟢 Paroisse</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginType('eglise')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-lg transition-colors ${
+                  loginType === 'eglise'
+                    ? 'bg-blue-50 text-blue-600 shadow-sm border-2 border-blue-200'
+                    : 'bg-gray-100 text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Church className="w-4 h-4" />
+                <span className="text-xs font-medium">🔵 Église</span>
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -139,13 +170,9 @@ export default function LoginForm() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p>Comptes de test :</p>
-            <div className="mt-2 space-y-1">
-              <p><strong>Super Admin:</strong> admin@admin.com</p>
-              <p><strong>Admin Diocèse:</strong> diocese@admin.com</p>
-              <p><strong>Admin Paroisse:</strong> admin.paroisse@test.com</p>
-            </div>
+          <div className="mt-6 text-center text-xs text-gray-500">
+            <p className="font-medium mb-2">Hiérarchie : Super Admin → Archidiocèse → Diocèse → Paroisse → Église</p>
+            <p className="text-gray-400">La redirection se fait automatiquement selon votre rôle</p>
           </div>
         </CardContent>
       </Card>

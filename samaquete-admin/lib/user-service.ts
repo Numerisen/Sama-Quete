@@ -15,16 +15,24 @@ export interface UserRole {
   uid: string
   email: string
   displayName: string
-  role: 'super_admin' | 'diocese_admin' | 'parish_admin' | 'user'
-  dioceseId?: string
-  parishId?: string
+  role: 'super_admin' | 'archdiocese_admin' | 'diocese_admin' | 'parish_admin' | 'church_admin' | 'user'
+  archdioceseId?: string  // Pour admin archidiocèse
+  dioceseId?: string       // Pour admin diocèse et niveaux inférieurs
+  parishId?: string        // Pour admin paroisse et église
+  churchId?: string        // Pour admin église uniquement
   permissions: {
     canManageUsers: boolean
+    canManageArchdioceses: boolean
     canManageDioceses: boolean
     canManageParishes: boolean
+    canManageChurches: boolean
     canManageContent: boolean
+    canValidateContent: boolean  // Paroisse valide les contenus église
+    canCreateContent: boolean    // Église crée des contenus
     canViewReports: boolean
-    canManageDonations: boolean
+    canViewDonations: boolean    // Voir les dons (lecture seule pour certains)
+    canManageDonations: boolean  // Gérer les dons localement
+    canManageSettings: boolean   // Paramètres globaux (super admin)
   }
   isActive: boolean
   createdAt: any
@@ -105,48 +113,109 @@ export async function getUsersByParish(parishId: string): Promise<UserRole[]> {
   return querySnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserRole))
 }
 
-// Définir les permissions selon le rôle
+// Définir les permissions selon le rôle (hiérarchie: Super Admin > Archidiocèse > Diocèse > Paroisse > Église)
 function getPermissionsByRole(role: UserRole['role']) {
   switch (role) {
     case 'super_admin':
+      // 🔴 SUPER ADMIN: Administration globale, toutes permissions
       return {
         canManageUsers: true,
+        canManageArchdioceses: true,
         canManageDioceses: true,
         canManageParishes: true,
+        canManageChurches: true,
         canManageContent: true,
+        canValidateContent: true,
+        canCreateContent: true,
         canViewReports: true,
-        canManageDonations: true
+        canViewDonations: true,
+        canManageDonations: true,
+        canManageSettings: true
+      }
+    
+    case 'archdiocese_admin':
+      // 🟠 ADMIN ARCHIDIOCÈSE: Gouvernance nationale, supervision diocèses, lecture seule sur dons
+      return {
+        canManageUsers: false,
+        canManageArchdioceses: false,
+        canManageDioceses: false,
+        canManageParishes: false,
+        canManageChurches: false,
+        canManageContent: true,        // Publier annonces archidiocésaines
+        canValidateContent: false,
+        canCreateContent: true,
+        canViewReports: true,           // Statistiques globales
+        canViewDonations: true,         // Lecture seule sur tous les dons
+        canManageDonations: false,      // Pas de gestion locale
+        canManageSettings: false
       }
     
     case 'diocese_admin':
+      // 🟡 ADMIN DIOCÈSE: Supervision territoriale diocèse, lecture seule sur dons du diocèse
       return {
-        canManageUsers: true,
+        canManageUsers: false,
+        canManageArchdioceses: false,
         canManageDioceses: false,
-        canManageParishes: true,
-        canManageContent: true,
-        canViewReports: true,
-        canManageDonations: true
+        canManageParishes: false,       // Supervise mais ne crée pas
+        canManageChurches: false,
+        canManageContent: true,         // Publier annonces diocésaines
+        canValidateContent: false,
+        canCreateContent: true,
+        canViewReports: true,           // Stats du diocèse
+        canViewDonations: true,         // Lecture seule dons du diocèse
+        canManageDonations: false,      // Pas de gestion locale
+        canManageSettings: false
       }
     
     case 'parish_admin':
+      // 🟢 ADMIN PAROISSE: Supervision locale, validation contenus église, vue consolidée dons
+      return {
+        canManageUsers: true,           // Gérer les admins église
+        canManageArchdioceses: false,
+        canManageDioceses: false,
+        canManageParishes: true,        // MAJ infos paroisse
+        canManageChurches: true,        // Gérer églises rattachées
+        canManageContent: true,         // Publier annonces paroissiales
+        canValidateContent: true,       // ✅ VALIDER contenus église (PENDING → PUBLISHED)
+        canCreateContent: true,
+        canViewReports: true,           // Stats paroisse
+        canViewDonations: true,         // Vue consolidée dons paroisse + églises
+        canManageDonations: true,       // Gérer dons locaux
+        canManageSettings: false
+      }
+    
+    case 'church_admin':
+      // 🔵 ADMIN ÉGLISE: Opérationnel terrain, création contenus (validation paroisse requise)
       return {
         canManageUsers: false,
+        canManageArchdioceses: false,
         canManageDioceses: false,
         canManageParishes: false,
-        canManageContent: true,
+        canManageChurches: false,       // Uniquement paramètres locaux église
+        canManageContent: false,        // Ne publie pas directement
+        canValidateContent: false,
+        canCreateContent: true,         // ✅ CRÉER contenus (status PENDING)
         canViewReports: false,
-        canManageDonations: true
+        canViewDonations: true,         // Vue dons de son église uniquement
+        canManageDonations: true,       // Gérer dons locaux église
+        canManageSettings: false
       }
     
     case 'user':
     default:
       return {
         canManageUsers: false,
+        canManageArchdioceses: false,
         canManageDioceses: false,
         canManageParishes: false,
+        canManageChurches: false,
         canManageContent: false,
+        canValidateContent: false,
+        canCreateContent: false,
         canViewReports: false,
-        canManageDonations: false
+        canViewDonations: false,
+        canManageDonations: false,
+        canManageSettings: false
       }
   }
 }
