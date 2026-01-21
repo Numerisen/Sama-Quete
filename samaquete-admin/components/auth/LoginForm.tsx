@@ -66,7 +66,7 @@ export default function LoginForm() {
                 }`}
               >
                 <Shield className="w-4 h-4" />
-                <span className="text-xs font-medium">🔴 Super Admin</span>
+                <span className="text-xs font-medium">Super Admin</span>
               </button>
               <button
                 type="button"
@@ -78,7 +78,7 @@ export default function LoginForm() {
                 }`}
               >
                 <Building2 className="w-4 h-4" />
-                <span className="text-xs font-medium">🟠 Archidiocèse</span>
+                <span className="text-xs font-medium">Archidiocèse</span>
               </button>
               <button
                 type="button"
@@ -90,7 +90,7 @@ export default function LoginForm() {
                 }`}
               >
                 <MapPin className="w-4 h-4" />
-                <span className="text-xs font-medium">🟡 Diocèse</span>
+                <span className="text-xs font-medium">Diocèse</span>
               </button>
             </div>
             
@@ -106,7 +106,7 @@ export default function LoginForm() {
                 }`}
               >
                 <Home className="w-4 h-4" />
-                <span className="text-xs font-medium">🟢 Paroisse</span>
+                <span className="text-xs font-medium">Paroisse</span>
               </button>
               <button
                 type="button"
@@ -118,7 +118,7 @@ export default function LoginForm() {
                 }`}
               >
                 <Church className="w-4 h-4" />
-                <span className="text-xs font-medium">🔵 Église</span>
+                <span className="text-xs font-medium">Église</span>
               </button>
             </div>
           </div>
@@ -170,10 +170,7 @@ export default function LoginForm() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-xs text-gray-500">
-            <p className="font-medium mb-2">Hiérarchie : Super Admin → Archidiocèse → Diocèse → Paroisse → Église</p>
-            <p className="text-gray-400">La redirection se fait automatiquement selon votre rôle</p>
-          </div>
+          
         </CardContent>
       </Card>
     </div>

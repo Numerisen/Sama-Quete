@@ -21,15 +21,27 @@ export default function HomePage() {
       }
       
       if (user && userRole) {
-        // Si utilisateur connecté avec rôle, rediriger selon le rôle
-        if (userRole.role === 'super_admin') {
-          router.push('/admin/dashboard')
-        } else if (userRole.role === 'diocese_admin') {
-          router.push('/admindiocese/dashboard')
-        } else if (userRole.role === 'parish_admin') {
-          // Rediriger vers l'interface paroisse avec le nom de la paroisse
-          const parishName = userRole.parishId || 'Paroisse Saint Jean Bosco'
-          router.push(`/adminparoisse/dashboard?paroisse=${encodeURIComponent(parishName)}`)
+        // Si utilisateur connecté avec rôle, rediriger selon le rôle (hiérarchie complète)
+        switch (userRole.role) {
+          case 'super_admin':
+            router.push('/admin/dashboard')
+            break
+          case 'archdiocese_admin':
+            router.push('/adminarchdiocese/dashboard')
+            break
+          case 'diocese_admin':
+            router.push('/admindiocese/dashboard')
+            break
+          case 'parish_admin':
+            const parishName = userRole.parishId || 'Paroisse'
+            router.push(`/adminparoisse/dashboard?paroisse=${encodeURIComponent(parishName)}`)
+            break
+          case 'church_admin':
+            const churchName = userRole.churchId || 'Église'
+            router.push(`/admineglise/dashboard?eglise=${encodeURIComponent(churchName)}`)
+            break
+          default:
+            router.push('/login')
         }
       }
     }
