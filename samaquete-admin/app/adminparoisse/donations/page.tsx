@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { 
   DollarSign, 
-  Plus, 
   Search, 
   Filter,
   Download,
@@ -21,7 +20,8 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
-import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
+import { ParishDonationService } from "@/lib/parish-services"
 
 interface Donation {
   id: string;
@@ -39,62 +39,56 @@ export default function ParoisseDonationsPage() {
   const searchParams = useSearchParams()
   const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
   const { toast } = useToast()
+  const { userRole } = useAuth()
+  const parishId = userRole?.parishId
 
-  const [donations, setDonations] = useState<Donation[]>([
-    {
-      id: "1",
-      fullname: "Marie Diop",
-      amount: 5000,
-      date: "2024-01-15",
-      type: "Offrande",
-      description: "Don pour les pauvres",
-      phone: "+221 77 123 45 67",
-      status: "confirmed"
-    },
-    {
-      id: "2",
-      fullname: "Jean Ndiaye",
-      amount: 10000,
-      date: "2024-01-14",
-      type: "Dîme",
-      phone: "+221 78 234 56 78",
-      status: "confirmed"
-    },
-    {
-      id: "3",
-      fullname: "Fatou Sarr",
-      amount: 2500,
-      date: "2024-01-13",
-      type: "Offrande",
-      description: "Don pour la construction",
-      status: "pending"
-    },
-    {
-      id: "4",
-      fullname: "Amadou Ba",
-      amount: 15000,
-      date: "2024-01-12",
-      type: "Dîme",
-      phone: "+221 76 345 67 89",
-      status: "confirmed"
-    },
-    {
-      id: "5",
-      fullname: "Aïcha Fall",
-      amount: 7500,
-      date: "2024-01-11",
-      type: "Offrande",
-      description: "Don pour les activités",
-      status: "confirmed"
-    }
-  ])
+  const [donations, setDonations] = useState<Donation[]>([])
+  const [loading, setLoading] = useState(true)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
 
-  const donationTypes = ["Offrande", "Dîme", "Construction", "Activités", "Pauvres", "Autre"]
+  const donationTypes = Array.from(
+    new Set(donations.map(d => d.type).filter(Boolean))
+  )
   const statusOptions = ["confirmed", "pending", "cancelled"]
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        if (!parishId) {
+          setDonations([])
+          return
+        }
+        setLoading(true)
+        const data = await ParishDonationService.getAll(parishId)
+        setDonations(
+          (data || []).map((d: any) => ({
+            id: String(d.id || ''),
+            fullname: d.fullname || 'Utilisateur',
+            amount: Number(d.amount || 0),
+            date: d.date,
+            type: d.type,
+            description: d.description,
+            phone: d.phone,
+            email: d.email,
+            status: d.status,
+          }))
+        )
+      } catch (e) {
+        console.error(e)
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les dons (mobile + admin).",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [parishId, toast])
 
   const filteredDonations = donations.filter(donation => {
     const matchesSearch = donation.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -108,7 +102,8 @@ export default function ParoisseDonationsPage() {
   const totalAmount = donations.reduce((sum, d) => sum + d.amount, 0)
   const confirmedAmount = donations.filter(d => d.status === "confirmed").reduce((sum, d) => sum + d.amount, 0)
   const pendingAmount = donations.filter(d => d.status === "pending").reduce((sum, d) => sum + d.amount, 0)
-  const todayDonations = donations.filter(d => d.date === new Date().toISOString().split('T')[0]).length
+  const today = new Date().toISOString().split('T')[0]
+  const todayDonations = donations.filter(d => (d.date || "").startsWith(today)).length
 
   const formatAmount = (amount: number) => {
     return amount.toLocaleString("fr-FR").replace(/\s/g, " ")

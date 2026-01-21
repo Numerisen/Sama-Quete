@@ -47,6 +47,46 @@ export interface ParishDonation {
   updatedAt?: any
 }
 
+// Dons provenant de l'app mobile (collection Firestore: donations)
+interface MobileDonation {
+  id?: string
+  userId: string
+  parishId: string
+  type: 'quete' | 'denier' | 'cierge' | 'messe'
+  amount: number
+  customAmount?: number
+  message?: string
+  status: 'pending' | 'completed' | 'failed'
+  createdAt?: any
+  updatedAt?: any
+}
+
+function mobileStatusToParishStatus(
+  status: MobileDonation['status']
+): ParishDonation['status'] {
+  switch (status) {
+    case 'completed':
+      return 'confirmed'
+    case 'failed':
+      return 'cancelled'
+    case 'pending':
+    default:
+      return 'pending'
+  }
+}
+
+function toIsoString(value: any): string {
+  // Firestore Timestamp support (toDate), JS Date, string
+  if (value?.toDate) {
+    try {
+      return value.toDate().toISOString()
+    } catch {}
+  }
+  if (value instanceof Date) return value.toISOString()
+  if (typeof value === 'string') return value
+  return new Date().toISOString()
+}
+
 export interface ParishActivity {
   id?: string
   title: string
@@ -188,18 +228,48 @@ export class PrayerTimeService {
 export class ParishDonationService {
   static async getAll(parishId: string): Promise<ParishDonation[]> {
     try {
-      const q = query(
+      // 1) Dons saisis côté admin (collection parish_donations)
+      const adminQ = query(
         collection(db, 'parish_donations'),
         where('parishId', '==', parishId)
       )
-      const querySnapshot = await getDocs(q)
-      const donations = querySnapshot.docs.map(doc => ({
+      const adminSnap = await getDocs(adminQ)
+      const adminDonations = adminSnap.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as ParishDonation[]
-      
-      // Tri côté client pour éviter l'index composite
-      return donations.sort((a, b) => b.date.localeCompare(a.date))
+
+      // 2) Dons effectués via l'app mobile (collection donations)
+      // Tri côté client pour éviter les index composites.
+      let mobileDonations: ParishDonation[] = []
+      try {
+        const mobileQ = query(
+          collection(db, 'donations'),
+          where('parishId', '==', parishId)
+        )
+        const mobileSnap = await getDocs(mobileQ)
+        mobileDonations = mobileSnap.docs.map((d) => {
+          const data = d.data() as Omit<MobileDonation, 'id'>
+          return {
+            id: d.id,
+            fullname: data.userId || 'Utilisateur',
+            amount: Number(data.amount || 0),
+            date: toIsoString(data.createdAt),
+            type: data.type,
+            description: data.message,
+            status: mobileStatusToParishStatus(data.status),
+            parishId: data.parishId,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+          } satisfies ParishDonation
+        })
+      } catch (error) {
+        console.warn('Impossible de charger les dons mobile (collection donations):', error)
+      }
+
+      const combined = [...adminDonations, ...mobileDonations]
+      // Tri côté client (ISO string)
+      return combined.sort((a, b) => b.date.localeCompare(a.date))
     } catch (error) {
       console.error('Erreur lors de la récupération des dons:', error)
       throw error
