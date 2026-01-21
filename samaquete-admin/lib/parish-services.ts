@@ -90,6 +90,7 @@ function toIsoString(value: any): string {
 // Dons synchronisés depuis l'API de paiement (payment-api) vers Firestore (admin_donations)
 interface AdminDonationDoc {
   donorName?: string
+  fullname?: string // Alias pour compatibilité admin paroisse
   amount: number
   type: string // quete|denier|cierge|messe (ou déjà formaté)
   date?: string
@@ -313,7 +314,7 @@ export class ParishDonationService {
           const data = d.data() as AdminDonationDoc
           return {
             id: d.id,
-            fullname: data.donorName || data.uid || 'Donateur',
+            fullname: data.fullname || data.donorName || data.uid || 'Donateur',
             amount: Number(data.amount || 0),
             date: data.date || toIsoString(data.createdAt),
             type: formatDonationTypeLabel(data.type),

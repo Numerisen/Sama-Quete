@@ -51,6 +51,7 @@ export interface ParishItem {
   id?: string
   name: string
   diocese: string
+  dioceseId?: string
   city: string
   cure: string
   vicaire: string
@@ -67,13 +68,20 @@ export interface ParishItem {
 export interface DonationItem {
   id?: string
   donorName: string
+  fullname?: string // Alias pour compatibilité (payment-api écrit les deux)
   amount: number
   type: 'quete' | 'denier' | 'cierge' | 'messe' | 'autre'
   date: string
   diocese: string
+  dioceseId?: string
   parish?: string
+  parishId?: string
+  uid?: string
   description?: string
   status: 'pending' | 'confirmed' | 'cancelled'
+  provider?: string
+  providerToken?: string
+  source?: string
   createdAt?: any
   updatedAt?: any
 }
@@ -373,6 +381,19 @@ export class DonationService {
     const q = query(
       collection(db, this.collection),
       where('diocese', '==', diocese),
+      orderBy('createdAt', 'desc')
+    )
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as DonationItem[]
+  }
+
+  static async getByDioceseId(dioceseId: string): Promise<DonationItem[]> {
+    const q = query(
+      collection(db, this.collection),
+      where('dioceseId', '==', dioceseId),
       orderBy('createdAt', 'desc')
     )
     const querySnapshot = await getDocs(q)

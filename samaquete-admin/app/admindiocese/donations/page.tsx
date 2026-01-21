@@ -9,15 +9,19 @@ import { motion } from "framer-motion"
 import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
-import { DonationService, ParishService } from "@/lib/firestore-services"
+import { DonationService, ParishService, DonationItem, ParishItem } from "@/lib/firestore-services"
+import { useAuth } from "@/lib/auth-context"
 
 export default function AdminDioceseDonationsPage() {
   const searchParams = useSearchParams()
-  const diocese = searchParams.get('diocese') || 'Diocèse de Thiès'
+  const diocese = searchParams.get('diocese') || 'Votre diocèse'
+  const dioceseIdFromUrl = searchParams.get('dioceseId') || undefined
   const { toast } = useToast()
+  const { userRole } = useAuth()
+  const dioceseId = userRole?.dioceseId || dioceseIdFromUrl
   
-  const [donations, setDonations] = useState<any[]>([])
-  const [parishes, setParishes] = useState<any[]>([])
+  const [donations, setDonations] = useState<DonationItem[]>([])
+  const [parishes, setParishes] = useState<ParishItem[]>([])
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
@@ -33,8 +37,15 @@ export default function AdminDioceseDonationsPage() {
         DonationService.getAll(),
         ParishService.getAll()
       ])
-      const dioceseDonations = firestoreDonations.filter(d => d.diocese === diocese)
-      const dioceseParishes = firestoreParishes.filter(p => p.diocese === diocese)
+      // 🔥 Filtrer en priorité par dioceseId (fiable), sinon fallback par nom de diocèse (string)
+      const dioceseDonations = dioceseId
+        ? firestoreDonations.filter(d => d.dioceseId === dioceseId)
+        : firestoreDonations.filter(d => d.diocese === diocese)
+
+      const dioceseParishes = dioceseId
+        ? firestoreParishes.filter(p => p.dioceseId === dioceseId)
+        : firestoreParishes.filter(p => p.diocese === diocese)
+
       setDonations(dioceseDonations)
       setParishes(dioceseParishes)
     } catch (error) {
@@ -52,7 +63,7 @@ export default function AdminDioceseDonationsPage() {
 
   useEffect(() => {
     loadDonations()
-  }, [diocese])
+  }, [diocese, dioceseId])
 
   // Filtres et recherche
   const filteredDonations = donations.filter(d => {
@@ -87,7 +98,7 @@ export default function AdminDioceseDonationsPage() {
     { value: "pending", label: "En attente" },
     { value: "cancelled", label: "Annulé" },
   ]
-  const types = ["Offrande", "Dîme", "Don", "Collecte", "Autre"]
+  const types = ["quete", "denier", "cierge", "messe", "autre"]
 
   if (loading) {
     return (
