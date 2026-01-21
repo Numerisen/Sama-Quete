@@ -87,6 +87,39 @@ function toIsoString(value: any): string {
   return new Date().toISOString()
 }
 
+// Dons synchronisés depuis l'API de paiement (payment-api) vers Firestore (admin_donations)
+interface AdminDonationDoc {
+  donorName?: string
+  amount: number
+  type: string // quete|denier|cierge|messe (ou déjà formaté)
+  date?: string
+  description?: string
+  status: 'confirmed' | 'pending' | 'cancelled'
+  uid?: string
+  parishId?: string | null
+  dioceseId?: string | null
+  provider?: string
+  providerToken?: string
+  createdAt?: any
+  updatedAt?: any
+}
+
+function formatDonationTypeLabel(type: string): string {
+  const t = (type || '').toLowerCase()
+  switch (t) {
+    case 'quete':
+      return 'Quête dominicale'
+    case 'denier':
+      return 'Denier du culte'
+    case 'cierge':
+      return 'Cierge pascal'
+    case 'messe':
+      return 'Messe'
+    default:
+      return type || 'Don'
+  }
+}
+
 export interface ParishActivity {
   id?: string
   title: string
@@ -238,7 +271,7 @@ export class ParishDonationService {
         id: doc.id,
         ...doc.data()
       })) as ParishDonation[]
-
+      
       // 2) Dons effectués via l'app mobile (collection donations)
       // Tri côté client pour éviter les index composites.
       let mobileDonations: ParishDonation[] = []
@@ -268,6 +301,34 @@ export class ParishDonationService {
       }
 
       const combined = [...adminDonations, ...mobileDonations]
+
+      // 3) Dons issus de l'API de paiement (payment-api) synchronisés dans Firestore (admin_donations)
+      try {
+        const apiQ = query(
+          collection(db, 'admin_donations'),
+          where('parishId', '==', parishId)
+        )
+        const apiSnap = await getDocs(apiQ)
+        const apiDonations = apiSnap.docs.map((d) => {
+          const data = d.data() as AdminDonationDoc
+          return {
+            id: d.id,
+            fullname: data.donorName || data.uid || 'Donateur',
+            amount: Number(data.amount || 0),
+            date: data.date || toIsoString(data.createdAt),
+            type: formatDonationTypeLabel(data.type),
+            description: data.description,
+            status: (data.status || 'pending') as ParishDonation['status'],
+            parishId: (data.parishId as string) || parishId,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+          } satisfies ParishDonation
+        })
+        combined.push(...apiDonations)
+      } catch (error) {
+        console.warn('Impossible de charger les dons payment-api (admin_donations):', error)
+      }
+
       // Tri côté client (ISO string)
       return combined.sort((a, b) => b.date.localeCompare(a.date))
     } catch (error) {
