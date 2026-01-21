@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/lib/auth-context'
+import { getUserRole } from '@/lib/user-service'
 import { Church, Loader2, Shield, Home, Building2, MapPin } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -17,8 +18,25 @@ export default function LoginForm() {
   const [error, setError] = useState('')
   const [loginType, setLoginType] = useState<'admin' | 'archdiocese' | 'diocese' | 'paroisse' | 'eglise'>('admin')
   
-  const { signIn } = useAuth()
+  const { signIn, logout } = useAuth()
   const router = useRouter()
+
+  // Mapper les types de login vers les rôles Firebase
+  const loginTypeToRole: Record<string, string> = {
+    'admin': 'super_admin',
+    'archdiocese': 'archdiocese_admin',
+    'diocese': 'diocese_admin',
+    'paroisse': 'parish_admin',
+    'eglise': 'church_admin'
+  }
+
+  const loginTypeLabels: Record<string, string> = {
+    'admin': 'Super Admin',
+    'archdiocese': 'Admin Archidiocèse',
+    'diocese': 'Admin Diocèse',
+    'paroisse': 'Admin Paroisse',
+    'eglise': 'Admin Église'
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,13 +44,37 @@ export default function LoginForm() {
     setError('')
 
     try {
-      await signIn(email, password)
+      // 1) Connexion Firebase
+      const userCredential = await signIn(email, password)
       
-      // La redirection sera gérée par la page racine et ProtectedRoute
-      // qui attendront que le rôle soit chargé depuis Firestore
+      // 2) Récupérer le rôle de l'utilisateur depuis Firestore
+      const userRole = await getUserRole(userCredential.user.uid)
+      
+      // 3) Vérifier que le rôle correspond au type de login sélectionné
+      const expectedRole = loginTypeToRole[loginType]
+      
+      if (!userRole) {
+        await logout()
+        setError('Aucun rôle trouvé pour ce compte. Contactez l\'administrateur.')
+        return
+      }
+
+      if (userRole.role !== expectedRole) {
+        await logout()
+        setError(`Ce compte n'a pas les permissions "${loginTypeLabels[loginType]}". Votre rôle: ${loginTypeLabels[Object.keys(loginTypeToRole).find(k => loginTypeToRole[k] === userRole.role) || 'inconnu']}.`)
+        return
+      }
+
+      if (!userRole.isActive) {
+        await logout()
+        setError('Ce compte est désactivé. Contactez l\'administrateur.')
+        return
+      }
+      
+      // 4) Si tout est OK, rediriger
       router.push('/')
     } catch (err: any) {
-      setError(err.message || 'Erreur de connexion')
+      setError(err.message || 'Email ou mot de passe incorrect')
     } finally {
       setLoading(false)
     }
