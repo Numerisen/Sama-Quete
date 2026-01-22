@@ -36,9 +36,10 @@ export default function NewsScreen({ setCurrentScreen }: NewsScreenProps) {
   
   const parishId = selectedParish?.id || '';
   const parishName = selectedParish?.name || 'Ma paroisse';
+  const dioceseId = selectedParish?.dioceseId;
 
-  // Charger les vraies actualités depuis Firestore
-  const { news, loading, error } = useNews(parishId);
+  // Charger les vraies actualités depuis Firestore (inclut paroisse + diocèse + archidiocèse)
+  const { news, loading, error } = useNews(parishId, dioceseId);
   const isLoading = parishLoading || loading;
 
 

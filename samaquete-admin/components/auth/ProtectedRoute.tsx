@@ -1,61 +1,74 @@
 "use client"
 
-import { useAuth } from '@/lib/auth-context'
-import { Loader2 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { getCurrentUser, getUserClaims } from "@/lib/auth"
+import { UserRole, UserClaims } from "@/types"
+import { canAccess } from "@/lib/permissions"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: 'admin' | 'super_admin' | 'diocese' | 'paroisse' | 'any'
+  requiredRole?: UserRole | UserRole[]
+  requiredDioceseId?: string
+  requiredParishId?: string
 }
 
-export default function ProtectedRoute({ children, requiredRole = 'any' }: ProtectedRouteProps) {
-  const { user, userRole, loading, isAdmin, isDioceseAdmin, isParishAdmin } = useAuth()
+export function ProtectedRoute({
+  children,
+  requiredRole,
+  requiredDioceseId,
+  requiredParishId,
+}: ProtectedRouteProps) {
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
   useEffect(() => {
-    if (!loading) {
+    async function checkAuth() {
+      const user = await getCurrentUser()
       if (!user) {
-        router.push('/login')
+        router.push("/login")
         return
       }
 
-      // Attendre que le rôle soit chargé depuis Firestore
-      if (!userRole) {
-        return // Ne pas rediriger tant que le rôle n'est pas chargé
-      }
-
-      // Vérifier les rôles si spécifié
-      if ((requiredRole === 'admin' || requiredRole === 'super_admin') && !isAdmin) {
-        router.push('/admindiocese/dashboard')
+      const claims = await getUserClaims()
+      if (!claims) {
+        router.push("/login")
         return
       }
 
-      if (requiredRole === 'diocese' && !isDioceseAdmin) {
-        router.push('/admin/dashboard')
-        return
+      if (requiredRole) {
+        const hasAccess = canAccess(
+          claims,
+          requiredRole,
+          requiredDioceseId,
+          requiredParishId
+        )
+        if (!hasAccess) {
+          router.push("/unauthorized")
+          return
+        }
       }
 
-      if (requiredRole === 'paroisse' && !isParishAdmin) {
-        router.push('/admin/dashboard')
-        return
-      }
+      setIsAuthorized(true)
+      setIsLoading(false)
     }
-  }, [user, userRole, loading, isAdmin, isDioceseAdmin, isParishAdmin, router, requiredRole])
 
-  if (loading || (user && !userRole)) {
+    checkAuth()
+  }, [router, requiredRole, requiredDioceseId, requiredParishId])
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Chargement des permissions...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Chargement...</p>
         </div>
       </div>
     )
   }
 
-  if (!user) {
+  if (!isAuthorized) {
     return null
   }
 

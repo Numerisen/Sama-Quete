@@ -4,6 +4,7 @@ import {
   getDoc,
   getDocs,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   query,
@@ -18,6 +19,7 @@ import {
   Parish,
   Church,
   News,
+  ParishNews,
   DonationType,
   Notification,
   Activity,
@@ -103,11 +105,12 @@ export async function getParish(parishId: string): Promise<Parish | null> {
 
 export async function createParish(data: Omit<Parish, "createdAt" | "updatedAt">): Promise<string> {
   const docRef = doc(db, "parishes", data.parishId);
-  await updateDoc(docRef, {
+  // Utiliser setDoc pour créer le document (merge: false pour créer uniquement)
+  await setDoc(docRef, {
     ...data,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
-  });
+  }, { merge: false });
   return data.parishId;
 }
 
@@ -120,6 +123,11 @@ export async function updateParish(
     ...data,
     updatedAt: Timestamp.now(),
   });
+}
+
+export async function deleteParish(parishId: string): Promise<void> {
+  const docRef = doc(db, "parishes", parishId);
+  await deleteDoc(docRef);
 }
 
 // ========== ÉGLISES ==========
@@ -187,19 +195,11 @@ export async function getNews(
   dioceseId?: string,
   status?: ContentStatus
 ): Promise<News[]> {
-  const constraints: QueryConstraint[] = [orderBy("createdAt", "desc")];
-  if (parishId) {
-    constraints.unshift(where("parishId", "==", parishId));
-  }
-  if (dioceseId) {
-    constraints.unshift(where("dioceseId", "==", dioceseId));
-  }
-  if (status) {
-    constraints.unshift(where("status", "==", status));
-  }
-  const q = query(collection(db, "news"), ...constraints);
+  // Récupérer toutes les actualités et filtrer côté client pour éviter les index composites
+  const q = query(collection(db, "news"));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => {
+  
+  let news = snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
       ...data,
@@ -208,6 +208,26 @@ export async function getNews(
       publishedAt: fromFirestoreDate(data.publishedAt),
     };
   }) as News[];
+  
+  // Filtrer côté client
+  if (parishId) {
+    news = news.filter(n => n.parishId === parishId);
+  }
+  if (dioceseId) {
+    news = news.filter(n => n.dioceseId === dioceseId);
+  }
+  if (status) {
+    news = news.filter(n => n.status === status);
+  }
+  
+  // Trier par date (plus récent en premier)
+  news.sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA;
+  });
+  
+  return news;
 }
 
 export async function createNews(data: Omit<News, "newsId" | "createdAt" | "updatedAt" | "publishedAt">): Promise<string> {
@@ -233,6 +253,219 @@ export async function updateNews(
     updateData.publishedAt = Timestamp.now();
   }
   await updateDoc(docRef, updateData);
+}
+
+// ========== ACTUALITÉS (parish_news) ==========
+// Collection utilisée par l'app mobile
+// Supporte les actualités de paroisse, diocèse et archidiocèse
+export async function getParishNews(parishId?: string, published?: boolean): Promise<ParishNews[]> {
+  // Récupérer toutes les actualités (sans orderBy pour éviter les index, on triera côté client)
+  const q = query(collection(db, "parish_news"));
+  const snapshot = await getDocs(q);
+  
+  let news = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      scope: (data.scope || "parish") as "parish" | "diocese" | "archdiocese",
+      parishId: data.parishId || undefined,
+      dioceseId: data.dioceseId || undefined,
+      archdioceseId: data.archdioceseId || undefined,
+      title: data.title || "",
+      content: data.content || "",
+      excerpt: data.excerpt || data.content?.substring(0, 150) || "",
+      category: data.category || "Autre",
+      published: data.published !== false, // Par défaut true si non défini
+      image: data.image || data.imageUrl || "",
+      author: data.author || "",
+      showAuthor: data.showAuthor !== false,
+      createdAt: fromFirestoreDate(data.createdAt),
+      updatedAt: fromFirestoreDate(data.updatedAt),
+    };
+  }) as ParishNews[];
+  
+  // Filtrer côté client
+  if (parishId) {
+    // Pour une paroisse, on récupère :
+    // 1. Les actualités de cette paroisse (scope: 'parish', parishId: parishId)
+    // 2. Les actualités du diocèse de cette paroisse (scope: 'diocese', dioceseId: dioceseId)
+    // 3. Les actualités de l'archidiocèse DAKAR (scope: 'archdiocese', archdioceseId: 'DAKAR')
+    // Pour cela, on a besoin du dioceseId de la paroisse
+    // Pour l'instant, on filtre juste par parishId (on améliorera avec getNewsForParish)
+    news = news.filter(n => {
+      if (n.scope === "parish") {
+        return n.parishId === parishId;
+      }
+      // Pour diocèse et archidiocèse, on ne peut pas filtrer ici sans connaître le dioceseId
+      // On retournera toutes les actualités diocésaines/archidiocésaines
+      return n.scope === "diocese" || n.scope === "archdiocese";
+    });
+  }
+  if (published !== undefined) {
+    news = news.filter(n => n.published === published);
+  }
+  
+  // Trier par date (plus récent en premier)
+  news.sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA;
+  });
+  
+  return news;
+}
+
+/**
+ * Récupère toutes les actualités visibles pour une paroisse donnée
+ * Inclut : actualités de la paroisse + actualités du diocèse + actualités de l'archidiocèse DAKAR
+ */
+export async function getNewsForParish(
+  parishId: string,
+  dioceseId: string,
+  published: boolean = true
+): Promise<ParishNews[]> {
+  const q = query(collection(db, "parish_news"));
+  const snapshot = await getDocs(q);
+  
+  let news = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      scope: (data.scope || "parish") as "parish" | "diocese" | "archdiocese",
+      parishId: data.parishId || undefined,
+      dioceseId: data.dioceseId || undefined,
+      archdioceseId: data.archdioceseId || undefined,
+      title: data.title || "",
+      content: data.content || "",
+      excerpt: data.excerpt || data.content?.substring(0, 150) || "",
+      category: data.category || "Autre",
+      published: data.published !== false,
+      image: data.image || data.imageUrl || "",
+      author: data.author || "",
+      showAuthor: data.showAuthor !== false,
+      createdAt: fromFirestoreDate(data.createdAt),
+      updatedAt: fromFirestoreDate(data.updatedAt),
+    };
+  }) as ParishNews[];
+  
+  // Filtrer : actualités de la paroisse OU du diocèse OU de l'archidiocèse DAKAR
+  news = news.filter(n => {
+    if (!n.published && published) return false;
+    
+    // Actualités de la paroisse
+    if (n.scope === "parish" && n.parishId === parishId) return true;
+    
+    // Actualités du diocèse
+    if (n.scope === "diocese" && n.dioceseId === dioceseId) return true;
+    
+    // Actualités de l'archidiocèse DAKAR (visibles partout)
+    if (n.scope === "archdiocese" && n.archdioceseId === "DAKAR") return true;
+    
+    return false;
+  });
+  
+  // Trier par date (plus récent en premier)
+  news.sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA;
+  });
+  
+  return news;
+}
+
+export async function getParishNewsById(newsId: string): Promise<ParishNews | null> {
+  const docRef = doc(db, "parish_news", newsId);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    scope: (data.scope || "parish") as "parish" | "diocese" | "archdiocese",
+    parishId: data.parishId || undefined,
+    dioceseId: data.dioceseId || undefined,
+    archdioceseId: data.archdioceseId || undefined,
+    title: data.title || "",
+    content: data.content || "",
+    excerpt: data.excerpt || data.content?.substring(0, 150) || "",
+    category: data.category || "Autre",
+    published: data.published !== false,
+    image: data.image || data.imageUrl || "",
+    author: data.author || "",
+    showAuthor: data.showAuthor !== false,
+    createdAt: fromFirestoreDate(data.createdAt),
+    updatedAt: fromFirestoreDate(data.updatedAt),
+  };
+}
+
+export async function createParishNews(data: Omit<ParishNews, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  // Filtrer les champs undefined (Firestore ne les accepte pas)
+  const firestoreData: any = {
+    scope: data.scope || "parish",
+    published: data.published !== false,
+    title: data.title,
+    content: data.content,
+    excerpt: data.excerpt || data.content?.substring(0, 150) || "",
+    category: data.category || "Autre",
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  };
+  
+  // Ajouter seulement les champs définis (pas undefined)
+  if (data.parishId !== undefined) {
+    firestoreData.parishId = data.parishId;
+  }
+  if (data.dioceseId !== undefined) {
+    firestoreData.dioceseId = data.dioceseId;
+  }
+  if (data.archdioceseId !== undefined) {
+    firestoreData.archdioceseId = data.archdioceseId;
+  }
+  if (data.image !== undefined) {
+    firestoreData.image = data.image;
+  }
+  if (data.author !== undefined) {
+    firestoreData.author = data.author;
+  }
+  if (data.showAuthor !== undefined) {
+    firestoreData.showAuthor = data.showAuthor;
+  }
+  
+  const docRef = await addDoc(collection(db, "parish_news"), firestoreData);
+  return docRef.id;
+}
+
+export async function updateParishNews(
+  newsId: string,
+  data: Partial<Omit<ParishNews, "id" | "createdAt">>
+): Promise<void> {
+  const docRef = doc(db, "parish_news", newsId);
+  
+  // Filtrer les champs undefined (Firestore ne les accepte pas)
+  const updateData: any = {
+    updatedAt: Timestamp.now(),
+  };
+  
+  // Ajouter seulement les champs définis (pas undefined)
+  if (data.scope !== undefined) updateData.scope = data.scope;
+  if (data.parishId !== undefined) updateData.parishId = data.parishId;
+  if (data.dioceseId !== undefined) updateData.dioceseId = data.dioceseId;
+  if (data.archdioceseId !== undefined) updateData.archdioceseId = data.archdioceseId;
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.content !== undefined) updateData.content = data.content;
+  if (data.excerpt !== undefined) updateData.excerpt = data.excerpt;
+  if (data.category !== undefined) updateData.category = data.category;
+  if (data.published !== undefined) updateData.published = data.published;
+  if (data.image !== undefined) updateData.image = data.image;
+  if (data.author !== undefined) updateData.author = data.author;
+  if (data.showAuthor !== undefined) updateData.showAuthor = data.showAuthor;
+  
+  await updateDoc(docRef, updateData);
+}
+
+export async function deleteParishNews(newsId: string): Promise<void> {
+  const docRef = doc(db, "parish_news", newsId);
+  await deleteDoc(docRef);
 }
 
 // ========== TYPES DE DONS ==========

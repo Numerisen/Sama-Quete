@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { fetchDonationStats } from "@/lib/api/donations"
-import { getParishes, getChurches, getNews } from "@/lib/firestore/services"
+import { getParishes, getChurches, getParishNews } from "@/lib/firestore/services"
 import { Users, Church, Newspaper, Heart } from "lucide-react"
 
 export default function DashboardPage() {
@@ -25,9 +25,15 @@ export default function DashboardPage() {
       try {
         console.log("📊 Chargement des stats avec claims:", claims);
         
-        // Super Admin voit tout, les autres voient selon leur scope
-        const dioceseId = claims?.role === "super_admin" ? undefined : claims?.dioceseId;
-        const parishId = (claims?.role === "super_admin" || claims?.role === "diocese_admin") ? undefined : claims?.parishId;
+        // Super Admin et Archdiocese Admin voient tout, les autres voient selon leur scope
+        const dioceseId = (claims?.role === "super_admin" || claims?.role === "archdiocese_admin") 
+          ? undefined 
+          : claims?.dioceseId;
+        const parishId = (claims?.role === "super_admin" || 
+                          claims?.role === "archdiocese_admin" || 
+                          claims?.role === "diocese_admin") 
+          ? undefined 
+          : claims?.parishId;
         
         console.log("🔍 Filtres appliqués:", { parishId, dioceseId, role: claims?.role });
         
@@ -35,7 +41,7 @@ export default function DashboardPage() {
         const results = await Promise.allSettled([
           getParishes(dioceseId),
           getChurches(parishId, dioceseId),
-          getNews(parishId, dioceseId),
+          getParishNews(parishId), // Utiliser parish_news (actualités de l'app mobile)
           fetchDonationStats(parishId, dioceseId),
         ])
         

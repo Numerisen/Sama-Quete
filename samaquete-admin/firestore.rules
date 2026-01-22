@@ -12,7 +12,7 @@ service cloud.firestore {
     }
     
     function getUserDioceseId() {
-      return request.auth.token.dioceseId;
+      return request.auth.token.dioceseId != null ? request.auth.token.dioceseId : '';
     }
     
     function getUserParishId() {
@@ -37,6 +37,17 @@ service cloud.firestore {
              resource.data.parishId == getUserParishId();
     }
     
+    // Fonctions pour la création (utilisent request.resource au lieu de resource)
+    function canCreateAsDioceseAdmin() {
+      return getUserRole() == 'diocese_admin' && 
+             request.resource.data.dioceseId == getUserDioceseId();
+    }
+    
+    function canCreateAsParishAdmin() {
+      return getUserRole() == 'parish_admin' && 
+             request.resource.data.parishId == getUserParishId();
+    }
+    
     // Mobile read rules (public, published only)
     function isPublished() {
       return resource.data.status == 'published';
@@ -55,9 +66,27 @@ service cloud.firestore {
     // Parishes - Lecture publique (pas de status requis pour les collections structurelles)
     match /parishes/{parishId} {
       allow read: if true; // Lecture publique pour l'app mobile
-      allow create: if isAuthenticated() && (isSuperAdmin() || isDioceseAdmin());
-      allow update: if isAuthenticated() && (isSuperAdmin() || isDioceseAdmin());
-      allow delete: if isAuthenticated() && isSuperAdmin();
+      // Création : super admin, archdiocese admin, ou diocese admin (dans son diocèse)
+      allow create: if isAuthenticated() && (
+        isSuperAdmin() || 
+        isArchdioceseAdmin() ||
+        (getUserRole() == 'diocese_admin' && 
+         request.resource.data.dioceseId != null &&
+         request.resource.data.dioceseId == getUserDioceseId() &&
+         getUserDioceseId() != '')
+      );
+      // Modification : super admin, archdiocese admin, ou diocese admin (dans son diocèse)
+      allow update: if isAuthenticated() && (
+        isSuperAdmin() || 
+        isArchdioceseAdmin() ||
+        (getUserRole() == 'diocese_admin' && resource.data.dioceseId == getUserDioceseId())
+      );
+      // Suppression : super admin, archdiocese admin, ou diocese admin (dans son diocèse)
+      allow delete: if isAuthenticated() && (
+        isSuperAdmin() || 
+        isArchdioceseAdmin() ||
+        (getUserRole() == 'diocese_admin' && resource.data.dioceseId == getUserDioceseId())
+      );
     }
     
     // Churches - Lecture publique (pour l'app mobile, mais généralement pas utilisées)
@@ -90,10 +119,56 @@ service cloud.firestore {
     }
     
     // Parish News - Lecture publique pour l'app mobile (utilise published)
+    // Supporte les actualités de paroisse, diocèse et archidiocèse
     match /parish_news/{newsId} {
       allow read: if isAuthenticated() || 
                    (request.auth == null && resource.data.published == true);
-      allow write: if isAuthenticated() && (isSuperAdmin() || isParishAdmin());
+      
+      // Création selon le scope
+      allow create: if isAuthenticated() && (
+        // Super admin peut créer tout
+        isSuperAdmin() ||
+        // Archidiocèse peut créer des actualités archidiocésaines (DAKAR)
+        (isArchdioceseAdmin() && request.resource.data.scope == 'archdiocese' && request.resource.data.archdioceseId == 'DAKAR') ||
+        // Diocèse peut créer des actualités diocésaines (son diocèse) ou paroissiales (ses paroisses)
+        (getUserRole() == 'diocese_admin' && (
+          (request.resource.data.scope == 'diocese' && request.resource.data.dioceseId == getUserDioceseId()) ||
+          (request.resource.data.scope == 'parish' && request.resource.data.dioceseId == getUserDioceseId())
+        )) ||
+        // Paroisse peut créer des actualités paroissiales (sa paroisse)
+        (getUserRole() == 'parish_admin' && 
+         request.resource.data.scope == 'parish' && 
+         request.resource.data.parishId == getUserParishId())
+      );
+      
+      // Modification selon le scope
+      allow update: if isAuthenticated() && (
+        isSuperAdmin() ||
+        // Archidiocèse peut modifier ses actualités archidiocésaines
+        (isArchdioceseAdmin() && resource.data.scope == 'archdiocese' && resource.data.archdioceseId == 'DAKAR') ||
+        // Diocèse peut modifier ses actualités diocésaines et celles de ses paroisses
+        (getUserRole() == 'diocese_admin' && (
+          (resource.data.scope == 'diocese' && resource.data.dioceseId == getUserDioceseId()) ||
+          (resource.data.scope == 'parish' && resource.data.dioceseId == getUserDioceseId())
+        )) ||
+        // Paroisse peut modifier ses actualités paroissiales
+        (getUserRole() == 'parish_admin' && 
+         resource.data.scope == 'parish' && 
+         resource.data.parishId == getUserParishId())
+      );
+      
+      // Suppression selon le scope
+      allow delete: if isAuthenticated() && (
+        isSuperAdmin() ||
+        (isArchdioceseAdmin() && resource.data.scope == 'archdiocese' && resource.data.archdioceseId == 'DAKAR') ||
+        (getUserRole() == 'diocese_admin' && (
+          (resource.data.scope == 'diocese' && resource.data.dioceseId == getUserDioceseId()) ||
+          (resource.data.scope == 'parish' && resource.data.dioceseId == getUserDioceseId())
+        )) ||
+        (getUserRole() == 'parish_admin' && 
+         resource.data.scope == 'parish' && 
+         resource.data.parishId == getUserParishId())
+      );
     }
     
     // Donation Types - Lecture publique (support status et isActive/active)
