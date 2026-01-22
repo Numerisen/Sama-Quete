@@ -36,25 +36,19 @@ const sidebarItems: SidebarItem[] = [
     label: "Diocèses",
     href: "/admin/dioceses",
     icon: Building2,
-    roles: ["super_admin"],
+    roles: ["super_admin","archdiocese_admin"],
   },
   {
     label: "Paroisses",
     href: "/admin/parishes",
     icon: Church,
-    roles: ["super_admin", "diocese_admin"],
+    roles: ["super_admin", "diocese_admin","archdiocese_admin"],
   },
   {
     label: "Églises",
     href: "/admin/churches",
     icon: Church,
-    roles: ["super_admin", "diocese_admin", "parish_admin"],
-  },
-  {
-    label: "Informations paroisse",
-    href: "/admin/parish/info",
-    icon: Church,
-    roles: ["parish_admin"],
+    roles: ["super_admin", "diocese_admin", "parish_admin","archdiocese_admin"],
   },
   {
     label: "Actualités",
@@ -62,18 +56,7 @@ const sidebarItems: SidebarItem[] = [
     icon: Newspaper,
     roles: ["super_admin", "archdiocese_admin", "diocese_admin", "parish_admin", "church_admin"],
   },
-  {
-    label: "Activités",
-    href: "/admin/activities",
-    icon: Activity,
-    roles: ["church_admin"],
-  },
-  {
-    label: "prières",
-    href: "/admin/prayers",
-    icon: BookOpen,
-    roles: ["church_admin"],
-  },
+
   {
     label: "Heures de messes",
     href: "/admin/prayer-times",
@@ -84,7 +67,7 @@ const sidebarItems: SidebarItem[] = [
     label: "Types de dons",
     href: "/admin/donation-types",
     icon: Heart,
-    roles: ["parish_admin"],
+    roles: ["parish_admin", "church_admin"],
   },
   {
     label: "Dons",
@@ -93,16 +76,10 @@ const sidebarItems: SidebarItem[] = [
     roles: ["super_admin", "archdiocese_admin", "diocese_admin", "parish_admin", "church_admin"],
   },
   {
-    label: "Notifications",
-    href: "/admin/notifications",
-    icon: Bell,
-    roles: ["parish_admin"],
-  },
-  {
     label: "Utilisateurs",
     href: "/admin/users",
     icon: Users,
-    roles: ["super_admin", "diocese_admin", "parish_admin"],
+    roles: ["super_admin", "diocese_admin","archidiocese_admin"],
   },
   {
     label: "Paramètres",
