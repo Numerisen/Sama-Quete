@@ -24,6 +24,7 @@ import {
   Notification,
   Activity,
   Prayer,
+  PrayerTime,
   ContentStatus,
 } from "@/types";
 
@@ -170,11 +171,11 @@ export async function getChurch(churchId: string): Promise<Church | null> {
 
 export async function createChurch(data: Omit<Church, "createdAt" | "updatedAt">): Promise<string> {
   const docRef = doc(db, "churches", data.churchId);
-  await updateDoc(docRef, {
+  await setDoc(docRef, {
     ...data,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
-  });
+  }, { merge: false });
   return data.churchId;
 }
 
@@ -187,6 +188,11 @@ export async function updateChurch(
     ...data,
     updatedAt: Timestamp.now(),
   });
+}
+
+export async function deleteChurch(churchId: string): Promise<void> {
+  const docRef = doc(db, "churches", churchId);
+  await deleteDoc(docRef);
 }
 
 // ========== ACTUALITÉS ==========
@@ -614,7 +620,7 @@ export async function updateActivity(
   await updateDoc(docRef, updateData);
 }
 
-// ========== PRIÈRES ==========
+// ========== prières ==========
 export async function getPrayers(
   parishId?: string,
   dioceseId?: string,
@@ -642,6 +648,19 @@ export async function getPrayers(
   }) as Prayer[];
 }
 
+export async function getPrayerById(prayerId: string): Promise<Prayer | null> {
+  const docRef = doc(db, "prayers", prayerId);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  const data = docSnap.data();
+  return {
+    ...data,
+    prayerId: docSnap.id,
+    createdAt: fromFirestoreDate(data.createdAt) || new Date(),
+    updatedAt: fromFirestoreDate(data.updatedAt),
+  } as Prayer;
+}
+
 export async function createPrayer(
   data: Omit<Prayer, "prayerId" | "createdAt" | "updatedAt">
 ): Promise<string> {
@@ -662,4 +681,136 @@ export async function updatePrayer(
     ...data,
     updatedAt: Timestamp.now(),
   });
+}
+
+export async function deletePrayer(prayerId: string): Promise<void> {
+  const docRef = doc(db, "prayers", prayerId);
+  await deleteDoc(docRef);
+}
+
+// ========== HEURES DE prières (parish_prayer_times) ==========
+// Collection utilisée par l'app mobile
+export async function getPrayerTimes(parishId?: string, active?: boolean, validatedOnly?: boolean): Promise<PrayerTime[]> {
+  // Récupérer toutes les heures de prières (sans orderBy pour éviter les index, on triera côté client)
+  const q = query(collection(db, "parish_prayer_times"));
+  const snapshot = await getDocs(q);
+  
+  let prayerTimes = snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      parishId: data.parishId || "",
+      name: data.name || "",
+      time: data.time || "",
+      days: data.days || [],
+      active: data.active !== false, // Par défaut true si non défini
+      description: data.description || undefined,
+      createdBy: data.createdBy || "",
+      createdByRole: data.createdByRole || "parish_admin",
+      churchId: data.churchId || undefined,
+      validatedByParish: data.validatedByParish === true, // Par défaut false
+      createdAt: fromFirestoreDate(data.createdAt),
+      updatedAt: fromFirestoreDate(data.updatedAt),
+    };
+  }) as PrayerTime[];
+  
+  // Filtrer côté client
+  if (parishId) {
+    prayerTimes = prayerTimes.filter(pt => pt.parishId === parishId);
+  }
+  if (active !== undefined) {
+    prayerTimes = prayerTimes.filter(pt => pt.active === active);
+  }
+  if (validatedOnly) {
+    prayerTimes = prayerTimes.filter(pt => pt.validatedByParish === true);
+  }
+  
+  // Trier par heure (plus tôt en premier)
+  prayerTimes.sort((a, b) => {
+    if (a.time < b.time) return -1;
+    if (a.time > b.time) return 1;
+    return 0;
+  });
+  
+  return prayerTimes;
+}
+
+export async function getPrayerTimeById(prayerTimeId: string): Promise<PrayerTime | null> {
+  const docRef = doc(db, "parish_prayer_times", prayerTimeId);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    parishId: data.parishId || "",
+    name: data.name || "",
+    time: data.time || "",
+    days: data.days || [],
+    active: data.active !== false,
+    description: data.description || undefined,
+    createdBy: data.createdBy || "",
+    createdByRole: data.createdByRole || "parish_admin",
+    churchId: data.churchId || undefined,
+    validatedByParish: data.validatedByParish === true,
+    createdAt: fromFirestoreDate(data.createdAt),
+    updatedAt: fromFirestoreDate(data.updatedAt),
+  };
+}
+
+export async function createPrayerTime(data: Omit<PrayerTime, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  // Filtrer les champs undefined (Firestore ne les accepte pas)
+  const firestoreData: any = {
+    parishId: data.parishId,
+    name: data.name,
+    time: data.time,
+    days: data.days || [],
+    active: data.active !== false,
+    createdBy: data.createdBy,
+    createdByRole: data.createdByRole,
+    validatedByParish: data.createdByRole === "parish_admin" ? true : false, // Auto-validé si créé par paroisse
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  };
+  
+  if (data.description !== undefined) {
+    firestoreData.description = data.description;
+  }
+  if (data.churchId !== undefined) {
+    firestoreData.churchId = data.churchId;
+  }
+  
+  const docRef = await addDoc(collection(db, "parish_prayer_times"), firestoreData);
+  return docRef.id;
+}
+
+export async function updatePrayerTime(
+  prayerTimeId: string,
+  data: Partial<Omit<PrayerTime, "id" | "createdAt">>
+): Promise<void> {
+  const docRef = doc(db, "parish_prayer_times", prayerTimeId);
+  
+  // Filtrer les champs undefined (Firestore ne les accepte pas)
+  const updateData: any = {
+    updatedAt: Timestamp.now(),
+  };
+  
+  if (data.parishId !== undefined) updateData.parishId = data.parishId;
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.time !== undefined) updateData.time = data.time;
+  if (data.days !== undefined) updateData.days = data.days;
+  if (data.active !== undefined) updateData.active = data.active;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.validatedByParish !== undefined) updateData.validatedByParish = data.validatedByParish;
+  
+  await updateDoc(docRef, updateData);
+}
+
+// Valider une heure de prière créée par une église (appelé par parish_admin)
+export async function validatePrayerTime(prayerTimeId: string): Promise<void> {
+  await updatePrayerTime(prayerTimeId, { validatedByParish: true });
+}
+
+export async function deletePrayerTime(prayerTimeId: string): Promise<void> {
+  const docRef = doc(db, "parish_prayer_times", prayerTimeId);
+  await deleteDoc(docRef);
 }

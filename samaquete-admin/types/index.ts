@@ -177,3 +177,46 @@ export interface Prayer {
   createdAt: Date;
   updatedAt?: Date;
 }
+
+// Type pour les heures de prières (utilisé par l'app mobile)
+export interface PrayerTime {
+  id?: string; // ID du document Firestore
+  parishId: string;
+  name: string; // Nom de la prière (ex: "Fajr", "Dhuhr", "Asr", "Maghrib", "Isha")
+  time: string; // Heure au format HH:mm (ex: "06:30")
+  days: string[]; // Jours de la semaine où cette prière est active (ex: ["Lundi", "Mardi", ...])
+  active: boolean; // Si false, n'est pas affichée dans l'app mobile
+  description?: string; // Description optionnelle
+  createdBy: string; // ID de l'utilisateur qui a créé (parish_admin ou church_admin)
+  createdByRole: "parish_admin" | "church_admin"; // Rôle de celui qui a créé
+  churchId?: string; // ID de l'église si créée par une église
+  validatedByParish: boolean; // Si true, validée par la paroisse (visible dans l'app mobile)
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Jours de la semaine disponibles
+export const DAYS_OF_WEEK = [
+  "Dimanche",
+  "Lundi",
+  "Mardi",
+  "Mercredi",
+  "Jeudi",
+  "Vendredi",
+  "Samedi",
+] as const;
+
+export type DayOfWeek = typeof DAYS_OF_WEEK[number];
+
+// Noms de prières courants
+export const PRAYER_NAMES = [
+  "Fajr",
+  "Dhuhr",
+  "Asr",
+  "Maghrib",
+  "Isha",
+  "Tahajjud",
+  "Witr",
+] as const;
+
+export type PrayerName = typeof PRAYER_NAMES[number];

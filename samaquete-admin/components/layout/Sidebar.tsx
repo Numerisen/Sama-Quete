@@ -15,6 +15,7 @@ import {
   Settings,
   Activity,
   BookOpen,
+  Clock,
 } from "lucide-react"
 
 interface SidebarItem {
@@ -68,10 +69,16 @@ const sidebarItems: SidebarItem[] = [
     roles: ["church_admin"],
   },
   {
-    label: "Prières",
+    label: "prières",
     href: "/admin/prayers",
     icon: BookOpen,
     roles: ["church_admin"],
+  },
+  {
+    label: "Heures de messes",
+    href: "/admin/prayer-times",
+    icon: Clock,
+    roles: ["super_admin", "archdiocese_admin", "diocese_admin", "parish_admin", "church_admin"],
   },
   {
     label: "Types de dons",
