@@ -14,11 +14,14 @@ import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
 import { ParishService } from "@/lib/firestore-services"
+import { createChurchAdmin } from "@/lib/admin-user-creation"
+import { useAuth } from "@/lib/auth-context"
 
 export default function AdminParoisseEglisesPage() {
   const searchParams = useSearchParams()
   const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
   const { toast } = useToast()
+  const { userRole } = useAuth()
   
   const [eglises, setEglises] = useState<any[]>([])
   const [search, setSearch] = useState("")
@@ -97,12 +100,39 @@ export default function AdminParoisseEglisesPage() {
         updatedAt: new Date().toISOString()
       }
       
-      await ParishService.create(egliseData)
-      toast({
-        title: "Succès",
-        description: "Église ajoutée avec succès",
-        variant: "default"
-      })
+      const churchId = await ParishService.create(egliseData)
+      
+      // Créer automatiquement un compte admin pour l'église
+      if (churchId && userRole?.parishId && userRole?.dioceseId) {
+        const adminResult = await createChurchAdmin(
+          churchId,
+          formData.name,
+          userRole.parishId,
+          userRole.dioceseId
+        )
+        
+        if (adminResult.success) {
+          toast({
+            title: "Succès",
+            description: `Église ajoutée avec succès ! Compte admin: ${adminResult.email} / Admin123`,
+            variant: "default"
+          })
+        } else {
+          toast({
+            title: "Succès",
+            description: "Église ajoutée avec succès ! (Erreur lors de la création du compte admin)",
+            variant: "default"
+          })
+          console.error("Erreur création compte admin:", adminResult.error)
+        }
+      } else {
+        toast({
+          title: "Succès",
+          description: "Église ajoutée avec succès",
+          variant: "default"
+        })
+      }
+      
       setIsAddDialogOpen(false)
       resetForm()
       loadEglises()

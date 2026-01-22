@@ -24,8 +24,15 @@ const diocesesList = [
 // Données initiales supprimées - Utilisation uniquement des données Firestore
 
 function exportToCSV(parishes: any[]) {
-  const header = ["Nom", "Diocèse", "Ville", "Curé", "Vicaire", "Catéchistes"]
-  const rows = parishes.map(p => [p.name, p.diocese, p.city, p.cure, p.vicaire, p.catechists])
+  const header = ["Nom", "Diocèse", "Ville", "Email", "Téléphone", "Adresse"]
+  const rows = parishes.map(p => [
+    p.name, 
+    p.dioceseName || p.diocese || '', 
+    p.city, 
+    p.contactInfo?.email || '',
+    p.contactInfo?.phone || '',
+    p.contactInfo?.address || ''
+  ])
   const csvContent = [header, ...rows].map(e => e.join(",")).join("\n")
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
   const url = URL.createObjectURL(blob)
@@ -38,8 +45,8 @@ function exportToCSV(parishes: any[]) {
 }
 
 function downloadTemplate() {
-  const header = ["Nom", "Diocèse", "Ville", "Curé", "Vicaire", "Catéchistes"]
-  // Données d'exemple supprimées - Utilisation uniquement des données Firestore
+  const header = ["Nom", "Diocèse", "Ville", "Email", "Téléphone", "Adresse"]
+  const exampleRow = ["Paroisse Exemple", "Diocèse de Dakar", "Dakar", "exemple@paroisse.sn", "+221 33 123 45 67", "Adresse exemple"]
   const csvContent = [header, exampleRow].map(e => e.join(",")).join("\n")
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
   const url = URL.createObjectURL(blob)
@@ -76,7 +83,7 @@ function importFromExcel(file: File, setParishes: Function, setImportModal: Func
       const rows = jsonData.slice(1) as any[][]
       
       // Colonnes attendues
-      const expectedColumns = ["Nom", "Diocèse", "Ville", "Curé", "Vicaire", "Catéchistes"]
+      const expectedColumns = ["Nom", "Diocèse", "Ville", "Email", "Téléphone", "Adresse"]
       const missingColumns = expectedColumns.filter(col => !headers.includes(col))
       
       if (missingColumns.length > 0) {
@@ -92,9 +99,9 @@ function importFromExcel(file: File, setParishes: Function, setImportModal: Func
             name: headers.includes("Nom") ? (row[headers.indexOf("Nom")] || "") : "Nom non spécifié",
             diocese: headers.includes("Diocèse") ? (row[headers.indexOf("Diocèse")] || "") : "Diocèse non spécifié",
             city: headers.includes("Ville") ? (row[headers.indexOf("Ville")] || "") : "Ville non spécifiée",
-            cure: headers.includes("Curé") ? (row[headers.indexOf("Curé")] || "") : "",
-            vicaire: headers.includes("Vicaire") ? (row[headers.indexOf("Vicaire")] || "") : "",
-            catechists: headers.includes("Catéchistes") ? (row[headers.indexOf("Catéchistes")] || "") : "",
+            email: headers.includes("Email") ? (row[headers.indexOf("Email")] || "") : "",
+            phone: headers.includes("Téléphone") ? (row[headers.indexOf("Téléphone")] || "") : "",
+            address: headers.includes("Adresse") ? (row[headers.indexOf("Adresse")] || "") : "",
           }
         }).filter(parish => parish.name && parish.name !== "Nom non spécifié") // Filtrer les lignes vides
         
@@ -111,9 +118,9 @@ function importFromExcel(file: File, setParishes: Function, setImportModal: Func
           name: row[headers.indexOf("Nom")] || "",
           diocese: row[headers.indexOf("Diocèse")] || "",
           city: row[headers.indexOf("Ville")] || "",
-          cure: row[headers.indexOf("Curé")] || "",
-          vicaire: row[headers.indexOf("Vicaire")] || "",
-          catechists: row[headers.indexOf("Catéchistes")] || "",
+          email: row[headers.indexOf("Email")] || "",
+          phone: row[headers.indexOf("Téléphone")] || "",
+          address: row[headers.indexOf("Adresse")] || "",
         }
       }).filter(parish => parish.name) // Filtrer les lignes vides
       
@@ -142,7 +149,7 @@ export default function AdminParishesPage() {
   const [search, setSearch] = useState("")
   const [dioceseFilter, setDioceseFilter] = useState("all")
   const [editId, setEditId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<any>({ name: "", dioceseId: "", city: "", priest: "", vicaire: "", catechists: "" })
+  const [editForm, setEditForm] = useState<any>({ name: "", dioceseId: "", city: "", email: "", phone: "", address: "" })
   const [importModal, setImportModal] = useState(false)
   const [missingColumns, setMissingColumns] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -180,10 +187,9 @@ export default function AdminParishesPage() {
   // Filtres et recherche
   const filteredParishes = parishes.filter(p => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || 
-                       p.city.toLowerCase().includes(search.toLowerCase()) || 
-                       p.priest.toLowerCase().includes(search.toLowerCase()) ||
-                       (p.vicaire && p.vicaire.toLowerCase().includes(search.toLowerCase())) ||
-                       (p.catechists && p.catechists.toLowerCase().includes(search.toLowerCase()))
+                       p.city.toLowerCase().includes(search.toLowerCase()) ||
+                       (p.contactInfo?.email && p.contactInfo.email.toLowerCase().includes(search.toLowerCase())) ||
+                       (p.contactInfo?.phone && p.contactInfo.phone.toLowerCase().includes(search.toLowerCase()))
     const matchDiocese = dioceseFilter === "all" || p.dioceseId === dioceseFilter
     return matchSearch && matchDiocese
   })
@@ -235,9 +241,9 @@ export default function AdminParishesPage() {
       name: item.name,
       dioceseId: item.dioceseId,
       city: item.city,
-      priest: item.priest,
-      vicaire: item.vicaire || "",
-      catechists: item.catechists || ""
+      email: item.contactInfo?.email || "",
+      phone: item.contactInfo?.phone || "",
+      address: item.contactInfo?.address || ""
     })
   }
 
@@ -251,9 +257,11 @@ export default function AdminParishesPage() {
         name: editForm.name,
         dioceseId: editForm.dioceseId,
         city: editForm.city,
-        priest: editForm.priest,
-        vicaire: editForm.vicaire || undefined,
-        catechists: editForm.catechists || undefined
+        contactInfo: {
+          email: editForm.email || undefined,
+          phone: editForm.phone || undefined,
+          address: editForm.address || undefined
+        }
       })
       
       if (success) {
@@ -322,7 +330,7 @@ export default function AdminParishesPage() {
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle className="text-3xl font-bold text-black mb-1">Gestion des paroisses</CardTitle>
-            <p className="text-black/80 text-sm">Gérez les paroisses, curés, vicaires, catéchistes et communautés.</p>
+            <p className="text-black/80 text-sm">Gérez les paroisses et leurs informations.</p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             <Input
@@ -377,9 +385,9 @@ export default function AdminParishesPage() {
                   <th className="py-3 px-4 text-black">Nom</th>
                   <th className="py-3 px-4 text-black">Diocèse</th>
                   <th className="py-3 px-4 text-black">Ville</th>
-                  <th className="py-3 px-4 text-black">Curé</th>
-                  <th className="py-3 px-4 text-black">Vicaire</th>
-                  <th className="py-3 px-4 text-black">Catéchistes</th>
+                  <th className="py-3 px-4 text-black">Email</th>
+                  <th className="py-3 px-4 text-black">Téléphone</th>
+                  <th className="py-3 px-4 text-black">Adresse</th>
                   <th className="py-3 px-4 text-right text-black">Actions</th>
                 </tr>
               </thead>
@@ -406,13 +414,13 @@ export default function AdminParishesPage() {
                           <Input name="city" value={editForm.city} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4 text-black">
-                          <Input name="priest" value={editForm.priest} onChange={handleEditChange} className="h-8" />
+                          <Input name="email" value={editForm.email} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4 text-black">
-                          <Input name="vicaire" value={editForm.vicaire} onChange={handleEditChange} className="h-8" />
+                          <Input name="phone" value={editForm.phone} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4 text-black">
-                          <Input name="catechists" value={editForm.catechists} onChange={handleEditChange} className="h-8" />
+                          <Input name="address" value={editForm.address} onChange={handleEditChange} className="h-8" />
                         </td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEditSave(item.id)}>Enregistrer</Button>
@@ -424,9 +432,9 @@ export default function AdminParishesPage() {
                         <td className="py-2 px-4 font-semibold text-black">{item.name}</td>
                         <td className="py-2 px-4 text-black">{item.dioceseName}</td>
                         <td className="py-2 px-4 text-black">{item.city}</td>
-                        <td className="py-2 px-4 text-black">{item.priest}</td>
-                        <td className="py-2 px-4 text-black">{item.vicaire || "-"}</td>
-                        <td className="py-2 px-4 text-black">{item.catechists || "-"}</td>
+                        <td className="py-2 px-4 text-black">{item.contactInfo?.email || "-"}</td>
+                        <td className="py-2 px-4 text-black">{item.contactInfo?.phone || "-"}</td>
+                        <td className="py-2 px-4 text-black">{item.contactInfo?.address || "-"}</td>
                         <td className="py-2 px-4 text-right flex gap-2 justify-end">
                           <Button size="sm" variant="outline" className="rounded-lg" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button>
                           <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
@@ -508,7 +516,7 @@ export default function AdminParishesPage() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
               <p className="text-black text-sm">
                 <strong>Colonnes attendues :</strong><br />
-                Nom, Diocèse, Ville, Curé, Vicaire, Catéchistes
+                Nom, Diocèse, Ville, Email, Téléphone, Adresse
               </p>
               <p className="text-black text-sm mt-2">
                 <strong>Note :</strong> Les paroisses ont été importées. Vous pouvez modifier les valeurs par défaut directement dans le tableau.

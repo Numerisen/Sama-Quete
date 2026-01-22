@@ -20,9 +20,7 @@ export interface Parish {
   dioceseName: string
   location: string
   city: string
-  priest: string
-  vicaire?: string
-  catechists?: string
+  priest: string // Champ requis par la structure mais non utilisé dans l'UI
   contactInfo: {
     email?: string
     phone?: string

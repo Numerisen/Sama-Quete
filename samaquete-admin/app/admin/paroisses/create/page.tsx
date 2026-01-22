@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Diocese, ParishService } from "@/lib/parish-service"
+import { createParishAdmin } from "@/lib/admin-user-creation"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -24,9 +25,6 @@ export default function CreateParishPage() {
     name: "",
     dioceseId: "",
     city: "",
-    priest: "",
-    vicaire: "",
-    catechists: "",
     email: "",
     phone: "",
     address: "",
@@ -71,7 +69,7 @@ export default function CreateParishPage() {
 
     try {
       // Validation
-      if (!form.name || !form.dioceseId || !form.city || !form.priest) {
+      if (!form.name || !form.dioceseId || !form.city) {
         setError("Veuillez remplir tous les champs obligatoires")
         return
       }
@@ -90,9 +88,7 @@ export default function CreateParishPage() {
         dioceseName: selectedDiocese.name,
         location: form.city,
         city: form.city,
-        priest: form.priest,
-        vicaire: form.vicaire || undefined,
-        catechists: form.catechists || undefined,
+        priest: "", // Champ requis mais vide
         contactInfo: {
           email: form.email || undefined,
           phone: form.phone || undefined,
@@ -104,7 +100,16 @@ export default function CreateParishPage() {
       const parishId = await ParishService.createParish(parishData)
       
       if (parishId) {
-        toast.success("Paroisse créée avec succès !")
+        // Créer automatiquement un compte admin pour la paroisse
+        const adminResult = await createParishAdmin(parishId, form.name, form.dioceseId)
+        
+        if (adminResult.success) {
+          toast.success(`Paroisse créée avec succès ! Compte admin: ${adminResult.email} / Admin123`)
+        } else {
+          toast.success("Paroisse créée avec succès ! (Erreur lors de la création du compte admin)")
+          console.error("Erreur création compte admin:", adminResult.error)
+        }
+        
         router.push("/admin/paroisses")
       } else {
         setError("Erreur lors de la création de la paroisse")
@@ -154,18 +159,6 @@ export default function CreateParishPage() {
             <div className="space-y-2">
               <label className="block text-black font-medium">Ville</label>
               <Input name="city" value={form.city} onChange={handleChange} required placeholder="Ville ou localité" className="bg-white/90 border-blue-200" />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-black font-medium">Curé *</label>
-              <Input name="priest" value={form.priest} onChange={handleChange} required placeholder="Nom du curé" className="bg-white/90 border-blue-200" />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-black font-medium">Vicaire</label>
-              <Input name="vicaire" value={form.vicaire} onChange={handleChange} placeholder="Nom du vicaire (optionnel)" className="bg-white/90 border-blue-200" />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-black font-medium">Catéchistes</label>
-              <Input name="catechists" value={form.catechists} onChange={handleChange} placeholder="Liste des catéchistes (optionnel)" className="bg-white/90 border-blue-200" />
             </div>
             
             <div className="space-y-2">

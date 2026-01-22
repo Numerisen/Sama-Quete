@@ -53,8 +53,7 @@ export default function ParoisseNewsPage() {
   const { userRole } = useAuth()
   const { toast } = useToast()
   
-  const parishId = userRole?.parishId || 'BRVgyxJZA6OjBt5VZszs'
-
+  const [parishId, setParishId] = useState<string>('')
   const [newsList, setNewsList] = useState<NewsItem[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
@@ -68,12 +67,48 @@ export default function ParoisseNewsPage() {
     category: "Annonce",
     published: true,
     image: "",
-    author: userRole?.name || "Admin"
+    author: userRole?.displayName || "Admin"
   })
+
+  // Récupérer le vrai ID de la paroisse depuis Firestore
+  useEffect(() => {
+    const fetchParishId = async () => {
+      try {
+        const { ParishService } = await import('@/lib/parish-service')
+        const parishes = await ParishService.getParishes({ isActive: true })
+        const foundParish = parishes.find(p => 
+          p.name.toLowerCase().includes(paroisse.toLowerCase()) || 
+          paroisse.toLowerCase().includes(p.name.toLowerCase())
+        )
+        if (foundParish) {
+          setParishId(foundParish.id)
+          console.log('✅ ParishId trouvé:', foundParish.id, 'pour:', foundParish.name)
+        } else if (userRole?.parishId) {
+          setParishId(userRole.parishId)
+          console.log('⚠️ Utilisation du parishId du userRole:', userRole.parishId)
+        } else {
+          console.error('❌ Paroisse non trouvée:', paroisse)
+          toast({
+            title: "Erreur",
+            description: `Paroisse "${paroisse}" non trouvée dans Firestore`,
+            variant: "destructive"
+          })
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération du parishId:', error)
+        if (userRole?.parishId) {
+          setParishId(userRole.parishId)
+        }
+      }
+    }
+    fetchParishId()
+  }, [paroisse, userRole])
 
   // Charger les actualités depuis Firestore
   useEffect(() => {
-    loadNews()
+    if (parishId) {
+      loadNews()
+    }
   }, [parishId])
 
   const loadNews = async () => {
@@ -111,7 +146,7 @@ export default function ParoisseNewsPage() {
         category: newNews.category || "Annonce",
         published: newNews.published ?? true,
         image: (newNews.image || "").trim(),
-        author: newNews.author || userRole?.name || "Admin",
+        author: newNews.author || userRole?.displayName || "Admin",
         parishId
       }
 
@@ -135,7 +170,7 @@ export default function ParoisseNewsPage() {
         category: "Annonce",
         published: true,
         image: "",
-        author: userRole?.name || "Admin"
+        author: userRole?.displayName || "Admin"
       })
       setIsAdding(false)
       

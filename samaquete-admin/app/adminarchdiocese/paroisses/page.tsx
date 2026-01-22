@@ -8,19 +8,22 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { MapPin, UserCircle, Users, Plus, Edit, Trash2, RefreshCw } from "lucide-react"
+import { MapPin, UserCircle, Users, Plus, Edit, Trash2, RefreshCw, Download } from "lucide-react"
 import { motion } from "framer-motion"
 import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
-import { ParishService } from "@/lib/firestore-services"
+import { ParishService, Diocese } from "@/lib/parish-service"
+import { createParishAdmin } from "@/lib/admin-user-creation"
 
 export default function AdminDioceseParishesPage() {
   const searchParams = useSearchParams()
-  const diocese = searchParams.get('diocese') || 'Diocèse de Thiès'
+  const dioceseName = searchParams.get('diocese') || 'Archidiocèse de Dakar'
   const { toast } = useToast()
   
   const [parishes, setParishes] = useState<any[]>([])
+  const [dioceses, setDioceses] = useState<Diocese[]>([])
+  const [currentDiocese, setCurrentDiocese] = useState<Diocese | null>(null)
   const [search, setSearch] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
@@ -34,27 +37,37 @@ export default function AdminDioceseParishesPage() {
     name: '',
     city: '',
     address: '',
-    cure: '',
-    vicaire: '',
-    catechists: '',
-    members: 0,
     phone: '',
     email: '',
     description: ''
   })
 
-  // Charger les paroisses depuis Firestore
-  const loadParishes = async () => {
+  // Charger les diocèses et paroisses depuis Firestore
+  const loadData = async () => {
     try {
       setLoading(true)
-      const firestoreParishes = await ParishService.getAll()
-      const dioceseParishes = firestoreParishes.filter(p => p.diocese === diocese)
-      setParishes(dioceseParishes)
+      const [diocesesData, parishesData] = await Promise.all([
+        ParishService.getDioceses(),
+        ParishService.getParishes({ isActive: true })
+      ])
+      
+      setDioceses(diocesesData)
+      
+      // Trouver le diocèse par nom
+      const foundDiocese = diocesesData.find(d => d.name === dioceseName)
+      if (foundDiocese) {
+        setCurrentDiocese(foundDiocese)
+        // Filtrer les paroisses par dioceseId
+        const dioceseParishes = parishesData.filter(p => p.dioceseId === foundDiocese.id)
+        setParishes(dioceseParishes)
+      } else {
+        setParishes([])
+      }
     } catch (error) {
-      console.error('Erreur lors du chargement des paroisses:', error)
+      console.error('Erreur lors du chargement des données:', error)
       toast({
         title: "Erreur",
-        description: "Impossible de charger les paroisses depuis Firebase",
+        description: "Impossible de charger les données depuis Firebase",
         variant: "destructive"
       })
       setParishes([])
@@ -64,14 +77,15 @@ export default function AdminDioceseParishesPage() {
   }
 
   useEffect(() => {
-    loadParishes()
-  }, [diocese])
+    loadData()
+  }, [dioceseName])
 
   // Filtres et recherche
   const filteredParishes = parishes.filter(p => {
     const matchSearch = p.name?.toLowerCase().includes(search.toLowerCase()) || 
                        p.city?.toLowerCase().includes(search.toLowerCase()) ||
-                       p.cure?.toLowerCase().includes(search.toLowerCase())
+                       (p.contactInfo?.email && p.contactInfo.email.toLowerCase().includes(search.toLowerCase())) ||
+                       (p.contactInfo?.phone && p.contactInfo.phone.toLowerCase().includes(search.toLowerCase()))
     return matchSearch
   })
 
@@ -88,23 +102,63 @@ export default function AdminDioceseParishesPage() {
 
   // Fonctions CRUD
   const handleAddParish = async () => {
+    if (!currentDiocese) {
+      toast({
+        title: "Erreur",
+        description: "Diocèse non trouvé",
+        variant: "destructive"
+      })
+      return
+    }
+
     try {
       const parishData = {
-        ...formData,
-        diocese: diocese,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        name: formData.name,
+        dioceseId: currentDiocese.id,
+        dioceseName: currentDiocese.name,
+        location: formData.city,
+        city: formData.city,
+        priest: '', // Champ requis mais vide
+        contactInfo: {
+          email: formData.email || undefined,
+          phone: formData.phone || undefined,
+          address: formData.address || undefined
+        },
+        isActive: true
       }
       
-      await ParishService.create(parishData)
-      toast({
-        title: "Succès",
-        description: "Paroisse ajoutée avec succès",
-        variant: "default"
-      })
+      const parishId = await ParishService.createParish(parishData)
+      
+      if (parishId) {
+        // Créer automatiquement un compte admin pour la paroisse
+        const adminResult = await createParishAdmin(parishId, formData.name, currentDiocese.id)
+        
+        if (adminResult.success) {
+          toast({
+            title: "Succès",
+            description: `Paroisse créée avec succès ! Compte admin: ${adminResult.email} / Admin123`,
+            variant: "default"
+          })
+        } else {
+          toast({
+            title: "Succès",
+            description: "Paroisse créée avec succès ! (Erreur lors de la création du compte admin)",
+            variant: "default"
+          })
+          console.error("Erreur création compte admin:", adminResult.error)
+        }
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Erreur lors de la création de la paroisse",
+          variant: "destructive"
+        })
+        return
+      }
+      
       setIsAddDialogOpen(false)
       resetForm()
-      loadParishes()
+      loadData()
     } catch (error) {
       console.error('Erreur lors de l\'ajout de la paroisse:', error)
       toast({
@@ -116,23 +170,49 @@ export default function AdminDioceseParishesPage() {
   }
 
   const handleEditParish = async () => {
+    if (!currentDiocese || !editingParish) {
+      toast({
+        title: "Erreur",
+        description: "Données manquantes",
+        variant: "destructive"
+      })
+      return
+    }
+
     try {
       const parishData = {
-        ...formData,
-        diocese: diocese,
-        updatedAt: new Date().toISOString()
+        name: formData.name,
+        dioceseId: currentDiocese.id,
+        dioceseName: currentDiocese.name,
+        location: formData.city,
+        city: formData.city,
+        priest: '', // Champ requis mais vide
+        contactInfo: {
+          email: formData.email || undefined,
+          phone: formData.phone || undefined,
+          address: formData.address || undefined
+        }
       }
       
-      await ParishService.update(editingParish.id, parishData)
-      toast({
-        title: "Succès",
-        description: "Paroisse modifiée avec succès",
-        variant: "default"
-      })
-      setIsEditDialogOpen(false)
-      setEditingParish(null)
-      resetForm()
-      loadParishes()
+      const success = await ParishService.updateParish(editingParish.id, parishData)
+      
+      if (success) {
+        toast({
+          title: "Succès",
+          description: "Paroisse modifiée avec succès",
+          variant: "default"
+        })
+        setIsEditDialogOpen(false)
+        setEditingParish(null)
+        resetForm()
+        loadData()
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de modifier la paroisse",
+          variant: "destructive"
+        })
+      }
     } catch (error) {
       console.error('Erreur lors de la modification de la paroisse:', error)
       toast({
@@ -147,13 +227,22 @@ export default function AdminDioceseParishesPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette paroisse ?')) return
     
     try {
-      await ParishService.delete(parishId)
-      toast({
-        title: "Succès",
-        description: "Paroisse supprimée avec succès",
-        variant: "default"
-      })
-      loadParishes()
+      const success = await ParishService.deleteParish(parishId)
+      
+      if (success) {
+        toast({
+          title: "Succès",
+          description: "Paroisse supprimée avec succès",
+          variant: "default"
+        })
+        loadData()
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de supprimer la paroisse",
+          variant: "destructive"
+        })
+      }
     } catch (error) {
       console.error('Erreur lors de la suppression de la paroisse:', error)
       toast({
@@ -169,10 +258,6 @@ export default function AdminDioceseParishesPage() {
       name: '',
       city: '',
       address: '',
-      cure: '',
-      vicaire: '',
-      catechists: '',
-      members: 0,
       phone: '',
       email: '',
       description: ''
@@ -184,14 +269,10 @@ export default function AdminDioceseParishesPage() {
     setFormData({
       name: parish.name || '',
       city: parish.city || '',
-      address: parish.address || '',
-      cure: parish.cure || '',
-      vicaire: parish.vicaire || '',
-      catechists: parish.catechists || '',
-      members: parish.members || 0,
-      phone: parish.phone || '',
-      email: parish.email || '',
-      description: parish.description || ''
+      address: parish.contactInfo?.address || '',
+      phone: parish.contactInfo?.phone || '',
+      email: parish.contactInfo?.email || '',
+      description: ''
     })
     setIsEditDialogOpen(true)
   }
@@ -214,7 +295,7 @@ export default function AdminDioceseParishesPage() {
         <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle className="text-3xl font-bold text-black mb-1">
-              Paroisses - {diocese}
+              Paroisses - {currentDiocese?.name || dioceseName}
             </CardTitle>
             <p className="text-black/80 text-sm">
               Gérez les paroisses de votre diocèse.
@@ -228,7 +309,32 @@ export default function AdminDioceseParishesPage() {
               className="h-10 w-40 bg-white/90 border-blue-200"
             />
             <Button
-              onClick={loadParishes}
+              onClick={() => {
+                const header = ["Nom", "Ville", "Email", "Téléphone", "Adresse"]
+                const rows = filteredParishes.map(p => [
+                  p.name || '',
+                  p.city || '',
+                  p.contactInfo?.email || '',
+                  p.contactInfo?.phone || '',
+                  p.contactInfo?.address || ''
+                ])
+                const csvContent = [header, ...rows].map(e => e.join(",")).join("\n")
+                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement("a")
+                link.href = url
+                link.setAttribute("download", `paroisses-${currentDiocese?.name || dioceseName}.csv`)
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+              }}
+              variant="outline"
+              className="flex items-center gap-2 text-black border-blue-200 bg-white/90 hover:bg-blue-50 rounded-xl px-3 py-2"
+            >
+              <Download className="w-5 h-5" /> Export CSV
+            </Button>
+            <Button
+              onClick={loadData}
               variant="outline"
               className="flex items-center gap-2"
             >
@@ -272,43 +378,6 @@ export default function AdminDioceseParishesPage() {
                       value={formData.address}
                       onChange={(e) => setFormData({...formData, address: e.target.value})}
                       placeholder="Adresse complète de la paroisse"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cure">Curé</Label>
-                    <Input
-                      id="cure"
-                      value={formData.cure}
-                      onChange={(e) => setFormData({...formData, cure: e.target.value})}
-                      placeholder="Nom du curé"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="vicaire">Vicaire</Label>
-                    <Input
-                      id="vicaire"
-                      value={formData.vicaire}
-                      onChange={(e) => setFormData({...formData, vicaire: e.target.value})}
-                      placeholder="Nom du vicaire"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="catechists">Catéchistes</Label>
-                    <Input
-                      id="catechists"
-                      value={formData.catechists}
-                      onChange={(e) => setFormData({...formData, catechists: e.target.value})}
-                      placeholder="Nombre de catéchistes"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="members">Nombre de membres</Label>
-                    <Input
-                      id="members"
-                      type="number"
-                      value={formData.members}
-                      onChange={(e) => setFormData({...formData, members: parseInt(e.target.value) || 0})}
-                      placeholder="0"
                     />
                   </div>
                   <div className="space-y-2">
@@ -360,10 +429,9 @@ export default function AdminDioceseParishesPage() {
                 <tr className="text-black/80 text-sm bg-blue-50">
                   <th className="py-3 px-4 text-black">Nom</th>
                   <th className="py-3 px-4 text-black">Ville</th>
-                  <th className="py-3 px-4 text-black">Curé</th>
-                  <th className="py-3 px-4 text-black">Vicaire</th>
-                  <th className="py-3 px-4 text-black">Catéchistes</th>
-                  <th className="py-3 px-4 text-black">Membres</th>
+                  <th className="py-3 px-4 text-black">Email</th>
+                  <th className="py-3 px-4 text-black">Téléphone</th>
+                  <th className="py-3 px-4 text-black">Adresse</th>
                   <th className="py-3 px-4 text-black">Actions</th>
                 </tr>
               </thead>
@@ -378,10 +446,9 @@ export default function AdminDioceseParishesPage() {
                   >
                     <td className="py-2 px-4 font-semibold text-black">{parish.name || 'N/A'}</td>
                     <td className="py-2 px-4 text-black">{parish.city || 'N/A'}</td>
-                    <td className="py-2 px-4 text-black">{parish.cure || 'N/A'}</td>
-                    <td className="py-2 px-4 text-black">{parish.vicaire || 'N/A'}</td>
-                    <td className="py-2 px-4 text-black">{parish.catechists || 'N/A'}</td>
-                    <td className="py-2 px-4 text-black">{parish.members || 0}</td>
+                    <td className="py-2 px-4 text-black">{parish.contactInfo?.email || 'N/A'}</td>
+                    <td className="py-2 px-4 text-black">{parish.contactInfo?.phone || 'N/A'}</td>
+                    <td className="py-2 px-4 text-black">{parish.contactInfo?.address || 'N/A'}</td>
                     <td className="py-2 px-4">
                       <div className="flex gap-2">
                         <Button
@@ -413,7 +480,7 @@ export default function AdminDioceseParishesPage() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucune paroisse trouvée</h3>
                 <p className="text-gray-600 mb-6">
                   {parishes.length === 0 
-                    ? `Aucune paroisse n'est enregistrée dans Firestore pour le diocèse ${diocese}.`
+                    ? `Aucune paroisse n'est enregistrée dans Firestore pour le diocèse ${currentDiocese?.name || dioceseName}.`
                     : "Aucune paroisse ne correspond à vos critères de recherche."
                   }
                 </p>
@@ -476,43 +543,6 @@ export default function AdminDioceseParishesPage() {
                 value={formData.address}
                 onChange={(e) => setFormData({...formData, address: e.target.value})}
                 placeholder="Adresse complète de la paroisse"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-cure">Curé</Label>
-              <Input
-                id="edit-cure"
-                value={formData.cure}
-                onChange={(e) => setFormData({...formData, cure: e.target.value})}
-                placeholder="Nom du curé"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-vicaire">Vicaire</Label>
-              <Input
-                id="edit-vicaire"
-                value={formData.vicaire}
-                onChange={(e) => setFormData({...formData, vicaire: e.target.value})}
-                placeholder="Nom du vicaire"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-catechists">Catéchistes</Label>
-              <Input
-                id="edit-catechists"
-                value={formData.catechists}
-                onChange={(e) => setFormData({...formData, catechists: e.target.value})}
-                placeholder="Nombre de catéchistes"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-members">Nombre de membres</Label>
-              <Input
-                id="edit-members"
-                type="number"
-                value={formData.members}
-                onChange={(e) => setFormData({...formData, members: parseInt(e.target.value) || 0})}
-                placeholder="0"
               />
             </div>
             <div className="space-y-2">

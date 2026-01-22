@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ParishService } from "@/lib/parish-service"
+import { createDioceseAdmin } from "@/lib/admin-user-creation"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -63,7 +64,16 @@ export default function CreateDiocesePage() {
       const dioceseId = await ParishService.createDiocese(dioceseData)
       
       if (dioceseId) {
-        toast.success("Diocèse créé avec succès !")
+        // Créer automatiquement un compte admin pour le diocèse
+        const adminResult = await createDioceseAdmin(dioceseId, form.name)
+        
+        if (adminResult.success) {
+          toast.success(`Diocèse créé avec succès ! Compte admin: ${adminResult.email} / Admin123`)
+        } else {
+          toast.success("Diocèse créé avec succès ! (Erreur lors de la création du compte admin)")
+          console.error("Erreur création compte admin:", adminResult.error)
+        }
+        
         router.push("/admin/dioceses")
       } else {
         setError("Erreur lors de la création du diocèse")

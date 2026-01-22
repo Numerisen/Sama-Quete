@@ -39,8 +39,7 @@ export default function PrayersPage() {
   const { userRole } = useAuth()
   const { toast } = useToast()
   
-  const parishId = userRole?.parishId || 'paroisse-saint-jean-bosco'
-
+  const [parishId, setParishId] = useState<string>('')
   const [prayerTimes, setPrayerTimes] = useState<PrayerTime[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -56,9 +55,45 @@ export default function PrayersPage() {
 
   const daysOfWeek = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
 
+  // Récupérer le vrai ID de la paroisse depuis Firestore
+  useEffect(() => {
+    const fetchParishId = async () => {
+      try {
+        const { ParishService } = await import('@/lib/parish-service')
+        const parishes = await ParishService.getParishes({ isActive: true })
+        const foundParish = parishes.find(p => 
+          p.name.toLowerCase().includes(paroisse.toLowerCase()) || 
+          paroisse.toLowerCase().includes(p.name.toLowerCase())
+        )
+        if (foundParish) {
+          setParishId(foundParish.id)
+          console.log('✅ ParishId trouvé:', foundParish.id, 'pour:', foundParish.name)
+        } else if (userRole?.parishId) {
+          setParishId(userRole.parishId)
+          console.log('⚠️ Utilisation du parishId du userRole:', userRole.parishId)
+        } else {
+          console.error('❌ Paroisse non trouvée:', paroisse)
+          toast({
+            title: "Erreur",
+            description: `Paroisse "${paroisse}" non trouvée dans Firestore`,
+            variant: "destructive"
+          })
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération du parishId:', error)
+        if (userRole?.parishId) {
+          setParishId(userRole.parishId)
+        }
+      }
+    }
+    fetchParishId()
+  }, [paroisse, userRole])
+
   // Charger les heures de prières depuis Firestore
   useEffect(() => {
-    loadPrayerTimes()
+    if (parishId) {
+      loadPrayerTimes()
+    }
   }, [parishId])
 
   const loadPrayerTimes = async () => {
