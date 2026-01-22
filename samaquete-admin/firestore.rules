@@ -1,117 +1,168 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Règles pour la collection users
-    match /users/{userId} {
-      // L'utilisateur peut lire et modifier son propre profil
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Les super admins peuvent lire tous les profils
-      allow read: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
-      
-      // Les super admins peuvent modifier tous les profils
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
-      
-      // Les admins diocèse peuvent lire les profils de leur diocèse
-      allow read: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'diocese_admin' &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.dioceseId == resource.data.dioceseId;
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
     }
     
-    // Règles pour la collection dioceses
+    function getUserRole() {
+      return request.auth.token.role;
+    }
+    
+    function getUserDioceseId() {
+      return request.auth.token.dioceseId;
+    }
+    
+    function getUserParishId() {
+      return request.auth.token.parishId;
+    }
+    
+    function isSuperAdmin() {
+      return getUserRole() == 'super_admin';
+    }
+    
+    function isArchdioceseAdmin() {
+      return getUserRole() == 'archdiocese_admin';
+    }
+    
+    function isDioceseAdmin() {
+      return getUserRole() == 'diocese_admin' && 
+             resource.data.dioceseId == getUserDioceseId();
+    }
+    
+    function isParishAdmin() {
+      return getUserRole() == 'parish_admin' && 
+             resource.data.parishId == getUserParishId();
+    }
+    
+    // Mobile read rules (public, published only)
+    function isPublished() {
+      return resource.data.status == 'published';
+    }
+    
+    function matchesParishId(parishId) {
+      return resource.data.parishId == parishId;
+    }
+    
+    // Dioceses - Lecture publique (pas de status requis pour les collections structurelles)
     match /dioceses/{dioceseId} {
-      // Lecture publique (pour l'affichage)
-      allow read: if request.auth != null;
-      
-      // Seuls les super admins peuvent modifier
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+      allow read: if true; // Lecture publique pour l'app mobile
+      allow write: if isAuthenticated() && isSuperAdmin();
     }
     
-    // Règles pour la collection parishes
+    // Parishes - Lecture publique (pas de status requis pour les collections structurelles)
     match /parishes/{parishId} {
-      // Lecture publique (pour l'affichage)
-      allow read: if request.auth != null;
-      
-      // Les super admins peuvent tout modifier
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
-      
-      // Les admins diocèse peuvent modifier les paroisses de leur diocèse
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'diocese_admin' &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.dioceseId == resource.data.dioceseId;
+      allow read: if true; // Lecture publique pour l'app mobile
+      allow create: if isAuthenticated() && (isSuperAdmin() || isDioceseAdmin());
+      allow update: if isAuthenticated() && (isSuperAdmin() || isDioceseAdmin());
+      allow delete: if isAuthenticated() && isSuperAdmin();
     }
     
-    // Règles pour la collection admin_users
-    match /admin_users/{userId} {
-      // Lecture pour tous les admins authentifiés
-      allow read: if request.auth != null;
-      
-      // Écriture pour les super admins
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    // Churches - Lecture publique (pour l'app mobile, mais généralement pas utilisées)
+    match /churches/{churchId} {
+      allow read: if true; // Lecture publique pour l'app mobile
+      allow create: if isAuthenticated() && (isSuperAdmin() || isDioceseAdmin() || isParishAdmin());
+      allow update: if isAuthenticated() && (isSuperAdmin() || isDioceseAdmin() || isParishAdmin());
+      allow delete: if isAuthenticated() && (isSuperAdmin() || isDioceseAdmin() || isParishAdmin());
     }
     
-    // Règles pour la collection admin_news
-    match /admin_news/{newsId} {
-      // Lecture pour tous les admins authentifiés
-      allow read: if request.auth != null;
-      
-      // Écriture pour les super admins et admins diocèse
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'diocese_admin'];
+    // News - Lecture publique pour les documents publiés (support status et published)
+    match /news/{newsId} {
+      allow read: if isAuthenticated() || 
+                   (request.auth == null && (
+                     resource.data.status == 'published' || 
+                     resource.data.published == true
+                   ));
+      allow create: if isAuthenticated() && getUserRole() != 'church_admin';
+      allow update: if isAuthenticated() && (
+        isSuperAdmin() || 
+        isArchdioceseAdmin() || 
+        isDioceseAdmin() || 
+        isParishAdmin()
+      );
+      allow delete: if isAuthenticated() && (
+        isSuperAdmin() || 
+        isDioceseAdmin() || 
+        isParishAdmin()
+      );
     }
     
-    // Règles pour la collection admin_parishes
-    match /admin_parishes/{parishId} {
-      // Lecture pour tous les admins authentifiés
-      allow read: if request.auth != null;
-      
-      // Écriture pour les super admins et admins diocèse
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'diocese_admin'];
+    // Parish News - Lecture publique pour l'app mobile (utilise published)
+    match /parish_news/{newsId} {
+      allow read: if isAuthenticated() || 
+                   (request.auth == null && resource.data.published == true);
+      allow write: if isAuthenticated() && (isSuperAdmin() || isParishAdmin());
     }
     
-    // Règles pour la collection admin_donations
-    match /admin_donations/{donationId} {
-      // Lecture pour tous les admins authentifiés
-      allow read: if request.auth != null;
-      
-      // Écriture pour les super admins et admins diocèse
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'diocese_admin'];
+    // Donation Types - Lecture publique (support status et isActive/active)
+    match /donation_types/{donationTypeId} {
+      allow read: if isAuthenticated() || 
+                   (request.auth == null && (
+                     resource.data.status == 'published' || 
+                     resource.data.isActive == true ||
+                     resource.data.active == true
+                   ));
+      allow write: if isAuthenticated() && isParishAdmin();
     }
     
-    // Règles pour la collection admin_liturgy
-    match /admin_liturgy/{liturgyId} {
-      // Lecture pour tous les admins authentifiés
-      allow read: if request.auth != null;
-      
-      // Écriture pour les super admins et admins diocèse
-      allow write: if request.auth != null && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'diocese_admin'];
+    // Notifications - Lecture publique pour les documents publiés
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() || (request.auth == null && resource.data.status == 'published');
+      allow write: if isAuthenticated() && isParishAdmin();
     }
     
-    // Règles pour les autres collections (à adapter selon vos besoins)
-    match /{document=**} {
-      // Par défaut, refuser l'accès
-      allow read, write: if false;
+    // Activities - Lecture publique pour les documents publiés
+    match /activities/{activityId} {
+      allow read: if isAuthenticated() || (request.auth == null && resource.data.status == 'published');
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        isSuperAdmin() || 
+        isDioceseAdmin() || 
+        isParishAdmin()
+      );
+    }
+    
+    // Prayers - Lecture publique pour les documents publiés
+    match /prayers/{prayerId} {
+      allow read: if isAuthenticated() || (request.auth == null && resource.data.status == 'published');
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        isSuperAdmin() || 
+        isDioceseAdmin() || 
+        isParishAdmin()
+      );
+    }
+    
+    // Parish Prayer Times - Lecture publique pour l'app mobile
+    match /parish_prayer_times/{prayerTimeId} {
+      allow read: if true; // Lecture publique pour l'app mobile
+      allow write: if isAuthenticated() && (isSuperAdmin() || isParishAdmin());
+    }
+    
+    // Parish Notifications - Lecture publique pour l'app mobile
+    match /parish_notifications/{notificationId} {
+      allow read: if true; // Lecture publique pour l'app mobile
+      allow write: if isAuthenticated() && (isSuperAdmin() || isParishAdmin());
+    }
+    
+    // Parish Visit Totals - Lecture/écriture publique pour les statistiques
+    match /parish_visit_totals/{parishId} {
+      allow read: if true; // Lecture publique pour l'app mobile
+      allow write: if true; // Écriture publique pour permettre l'incrémentation des visites
+    }
+    
+    // Parish Donation Types - Lecture publique pour l'app mobile
+    match /parish_donation_types/{donationTypeId} {
+      allow read: if true; // Lecture publique pour l'app mobile
+      allow write: if isAuthenticated() && (isSuperAdmin() || isParishAdmin());
+    }
+    
+    // Liturgy - Lecture/écriture publique pour l'app mobile (synchronisation)
+    match /liturgy/{liturgyId} {
+      allow read: if true; // Lecture publique pour l'app mobile
+      allow write: if true; // Écriture publique pour permettre la synchronisation
     }
   }
 }
