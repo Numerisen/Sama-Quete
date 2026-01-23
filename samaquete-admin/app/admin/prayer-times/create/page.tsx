@@ -32,18 +32,32 @@ export default function CreatePrayerTimePage() {
     active: true,
     description: "",
     createdBy: "",
-    createdByRole: claims?.role === "church_admin" ? "church_admin" : "parish_admin",
+    createdByRole: (claims?.role === "church_admin" ? "church_admin" : 
+                     claims?.role === "super_admin" ? "super_admin" :
+                     claims?.role === "archdiocese_admin" ? "archdiocese_admin" :
+                     claims?.role === "diocese_admin" ? "diocese_admin" : "parish_admin"),
     churchId: claims?.churchId || undefined,
-    validatedByParish: claims?.role === "parish_admin" ? true : false,
+    validatedByParish: (claims?.role === "parish_admin" || 
+                        claims?.role === "super_admin" || 
+                        claims?.role === "archdiocese_admin" ||
+                        claims?.role === "diocese_admin") ? true : false,
   })
 
   useEffect(() => {
     loadParishes()
-  }, [])
+  }, [claims])
 
   async function loadParishes() {
     try {
-      if (claims?.role === "church_admin") {
+      if (claims?.role === "super_admin" || claims?.role === "archdiocese_admin") {
+        // Super admin et archdiocèse peuvent choisir parmi toutes les paroisses
+        const data = await getParishes(undefined)
+        setParishes(data)
+      } else if (claims?.role === "diocese_admin") {
+        // Diocèse peut choisir parmi les paroisses de son diocèse
+        const data = await getParishes(claims.dioceseId)
+        setParishes(data)
+      } else if (claims?.role === "church_admin") {
         // Église peut choisir parmi les paroisses de son diocèse
         const data = await getParishes(claims.dioceseId)
         setParishes(data)
@@ -96,11 +110,20 @@ export default function CreatePrayerTimePage() {
       // Récupérer l'ID de l'utilisateur
       const userId = auth.currentUser?.uid || ""
       
+      // S'assurer que tous les champs requis sont présents
       const prayerTimeData = {
         ...formData,
         createdBy: userId,
+        createdByRole: formData.createdByRole || (claims?.role === "church_admin" ? "church_admin" : "parish_admin"),
+        validatedByParish: formData.validatedByParish !== undefined 
+          ? formData.validatedByParish 
+          : (claims?.role === "parish_admin" || 
+             claims?.role === "super_admin" || 
+             claims?.role === "archdiocese_admin" ||
+             claims?.role === "diocese_admin"),
       }
       
+      console.log("📝 Données de création:", prayerTimeData)
       await createPrayerTime(prayerTimeData)
       toast({
         title: "Succès",
@@ -167,7 +190,10 @@ export default function CreatePrayerTimePage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="parishId">Paroisse *</Label>
-                  {claims?.role === "church_admin" ? (
+                  {(claims?.role === "super_admin" || 
+                    claims?.role === "archdiocese_admin" || 
+                    claims?.role === "diocese_admin" ||
+                    claims?.role === "church_admin") ? (
                     <Select
                       value={formData.parishId}
                       onValueChange={(value) => setFormData({ ...formData, parishId: value })}

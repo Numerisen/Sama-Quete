@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getPrayerTimeById, updatePrayerTime, getParishes } from "@/lib/firestore/services"
+import { auth } from "@/lib/firebase"
 import { PrayerTime, DAYS_OF_WEEK } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -42,8 +43,11 @@ export default function EditPrayerTimePage() {
 
   useEffect(() => {
     loadPrayerTime()
-    loadParishes()
   }, [prayerTimeId])
+
+  useEffect(() => {
+    loadParishes()
+  }, [claims])
 
   async function loadPrayerTime() {
     try {
@@ -95,6 +99,7 @@ export default function EditPrayerTimePage() {
         const data = await getParishes(claims.dioceseId)
         setParishes(data)
       }
+      // Parish admin ne peut modifier que pour sa paroisse (déjà chargée)
     } catch (error) {
       console.error("Erreur chargement paroisses:", error)
     }
@@ -134,6 +139,12 @@ export default function EditPrayerTimePage() {
 
     setSaving(true)
     try {
+      // Forcer le rafraîchissement du token pour avoir les claims à jour
+      if (auth.currentUser) {
+        await auth.currentUser.getIdToken(true)
+      }
+      
+      console.log("📝 Données de mise à jour:", formData)
       await updatePrayerTime(prayerTimeId, formData)
       toast({
         title: "Succès",
@@ -235,6 +246,8 @@ export default function EditPrayerTimePage() {
                       ? "Vous modifiez une heure de messe pour votre paroisse"
                       : claims?.role === "church_admin"
                       ? "Sélectionnez la paroisse pour cette heure de messe"
+                      : claims?.role === "diocese_admin"
+                      ? "Sélectionnez une paroisse de votre diocèse"
                       : "Sélectionnez la paroisse"}
                   </p>
                 </div>

@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Pagination } from "@/components/ui/pagination"
 
 export default function NewsPage() {
   const { claims } = useAuth()
@@ -27,6 +28,8 @@ export default function NewsPage() {
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [newsToDelete, setNewsToDelete] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     loadNews()
@@ -105,6 +108,17 @@ export default function NewsPage() {
     return <Badge className={cat.color}>{cat.label}</Badge>
   }
 
+  // Pagination
+  const totalPages = Math.ceil(news.length / itemsPerPage)
+  const paginatedNews = news.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
   if (loading) {
     return <div>Chargement...</div>
   }
@@ -143,7 +157,7 @@ export default function NewsPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {news.map((item) => (
+        {paginatedNews.map((item) => (
           <Card key={item.id} className="flex flex-col">
             {item.image && (
               <div className="aspect-video w-full overflow-hidden rounded-t-lg bg-muted">
@@ -237,6 +251,20 @@ export default function NewsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {news.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={news.length}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newItemsPerPage) => {
+            setItemsPerPage(newItemsPerPage)
+            setCurrentPage(1)
+          }}
+        />
+      )}
     </div>
   )
 }

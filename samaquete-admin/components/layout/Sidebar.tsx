@@ -4,6 +4,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { cn } from "@/lib/utils"
+import { useEffect, useState } from "react"
+import { getParish, getChurch, getDioceses } from "@/lib/firestore/services"
 import {
   LayoutDashboard,
   Building2,
@@ -16,6 +18,7 @@ import {
   Activity,
   BookOpen,
   Clock,
+  UserCircle,
 } from "lucide-react"
 
 interface SidebarItem {
@@ -82,6 +85,12 @@ const sidebarItems: SidebarItem[] = [
     roles: ["super_admin", "diocese_admin","archidiocese_admin"],
   },
   {
+    label: "Fidèles",
+    href: "/admin/fideles",
+    icon: UserCircle,
+    roles: ["super_admin", "archdiocese_admin"],
+  },
+  {
     label: "Paramètres",
     href: "/admin/settings",
     icon: Settings,
@@ -92,17 +101,54 @@ const sidebarItems: SidebarItem[] = [
 export function Sidebar() {
   const pathname = usePathname()
   const { claims } = useAuth()
+  const [entityName, setEntityName] = useState<string>("")
+
+  useEffect(() => {
+    async function loadEntityName() {
+      if (!claims) return
+
+      try {
+        if (claims.role === "parish_admin" && claims.parishId) {
+          const parish = await getParish(claims.parishId)
+          if (parish) {
+            setEntityName(parish.name)
+          }
+        } else if (claims.role === "church_admin" && claims.churchId) {
+          const church = await getChurch(claims.churchId)
+          if (church) {
+            setEntityName(church.name)
+          }
+        } else if (claims.role === "diocese_admin" && claims.dioceseId) {
+          const dioceses = await getDioceses()
+          const diocese = dioceses.find(d => d.dioceseId === claims.dioceseId)
+          if (diocese) {
+            setEntityName(diocese.name)
+          }
+        } else if (claims.role === "archdiocese_admin") {
+          setEntityName("Archidiocèse de Dakar")
+        } else if (claims.role === "super_admin") {
+          setEntityName("Super Administrateur")
+        }
+      } catch (error) {
+        console.error("Erreur chargement nom entité:", error)
+      }
+    }
+
+    loadEntityName()
+  }, [claims])
 
   const filteredItems = sidebarItems.filter((item) =>
     claims?.role ? item.roles.includes(claims.role) : false
   )
+
+  const displayName = entityName || claims?.role?.replace("_", " ").toUpperCase() || ""
 
   return (
     <div className="w-64 bg-card border-r border-border h-screen fixed left-0 top-0 overflow-y-auto">
       <div className="p-6">
         <h2 className="text-xl font-bold">Sama-Quête Admin</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {claims?.role?.replace("_", " ").toUpperCase()}
+          {displayName}
         </p>
       </div>
       <nav className="px-4 pb-4">

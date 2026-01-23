@@ -14,6 +14,7 @@ export interface UserClaims {
   dioceseId?: string;
   parishId?: string;
   churchId?: string;
+  mustChangePassword?: boolean;
 }
 
 // Diocèses fixes du Sénégal
@@ -115,11 +116,14 @@ export interface DonationType {
   name: string;
   description?: string;
   icon?: string;
-  defaultAmounts: number[];
-  order: number;
+  defaultAmounts: number[]; // Tableau de 4 montants en FCFA
   parishId: string;
   dioceseId: string;
   isActive: boolean;
+  createdBy: string; // ID de l'utilisateur qui a créé
+  createdByRole: UserRole; // Rôle de celui qui a créé
+  churchId?: string; // ID de l'église si créée par une église
+  validatedByParish: boolean; // Si true, validée par la paroisse (visible dans l'app mobile)
   createdAt?: Date;
   updatedAt?: Date;
 }

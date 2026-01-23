@@ -165,10 +165,10 @@ export default function EditParishPage() {
                   id="parishId"
                   value={formData.parishId}
                   disabled
-                  className="bg-muted"
+                  className="bg-muted text-muted-foreground cursor-not-allowed"
                 />
                 <p className="text-xs text-muted-foreground">
-                  L'ID ne peut pas être modifié
+                  L'ID ne peut pas être modifié après création
                 </p>
               </div>
 

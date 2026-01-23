@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
-import { createParish, getDioceses } from "@/lib/firestore/services"
+import { createParish, getDioceses, getParishes } from "@/lib/firestore/services"
 import { auth } from "@/lib/firebase"
 import { Parish, Diocese, FIXED_DIOCESES } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -37,6 +37,17 @@ export default function CreateParishPage() {
     loadDioceses()
   }, [])
 
+  useEffect(() => {
+    // Générer automatiquement un parish ID si le diocèse est sélectionné
+    if (formData.dioceseId) {
+      generateParishId()
+    } else {
+      // Réinitialiser si le diocèse est désélectionné
+      setFormData(prev => ({ ...prev, parishId: "" }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.dioceseId])
+
   async function loadDioceses() {
     try {
       // Super admin et archdiocese admin peuvent choisir n'importe quel diocèse
@@ -49,6 +60,46 @@ export default function CreateParishPage() {
       }
     } catch (error) {
       console.error("Erreur chargement diocèses:", error)
+    }
+  }
+
+  async function generateParishId() {
+    if (!formData.dioceseId) {
+      setFormData(prev => ({ ...prev, parishId: "" }))
+      return
+    }
+    
+    try {
+      // Récupérer toutes les paroisses du diocèse
+      const parishes = await getParishes(formData.dioceseId)
+      
+      // Trouver le prochain numéro disponible
+      // Format: 3 premières lettres du diocèse + _ + numéro (ex: THI_001, DAK_001)
+      const prefix = formData.dioceseId.substring(0, 3).toUpperCase()
+      
+      // Chercher tous les IDs existants avec ce préfixe
+      const existingNumbers = parishes
+        .map(p => {
+          // Supporte plusieurs formats: THI_001, PAR_001, etc.
+          const match = p.parishId.match(new RegExp(`^${prefix}_(\\d+)$`, 'i')) || 
+                       p.parishId.match(/^PAR_(\d+)$/i)
+          return match ? parseInt(match[1], 10) : 0
+        })
+        .filter(n => n > 0)
+      
+      const nextNumber = existingNumbers.length > 0 
+        ? Math.max(...existingNumbers) + 1 
+        : 1
+      
+      const suggestedId = `${prefix}_${nextNumber.toString().padStart(3, '0')}`
+      
+      // Toujours mettre à jour l'ID (génération automatique)
+      setFormData(prev => ({ ...prev, parishId: suggestedId }))
+    } catch (error) {
+      console.error("Erreur génération ID:", error)
+      // En cas d'erreur, générer un ID basique
+      const prefix = formData.dioceseId.substring(0, 3).toUpperCase()
+      setFormData(prev => ({ ...prev, parishId: `${prefix}_001` }))
     }
   }
 
@@ -145,12 +196,14 @@ export default function CreateParishPage() {
                 <Input
                   id="parishId"
                   value={formData.parishId}
-                  onChange={(e) => setFormData({ ...formData, parishId: e.target.value.toUpperCase() })}
-                  placeholder="PAR_001"
-                  required
+                  disabled
+                  className="bg-muted text-muted-foreground cursor-not-allowed"
+                  placeholder="DKR_001"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Identifiant unique (ex: PAR_001, PAR_002)
+                  {formData.parishId 
+                    ? "ID généré automatiquement (non modifiable)"
+                    : "L'ID sera généré automatiquement après sélection du diocèse"}
                 </p>
               </div>
 
@@ -171,7 +224,9 @@ export default function CreateParishPage() {
               {(claims?.role === "super_admin" || claims?.role === "archdiocese_admin") ? (
                 <Select
                   value={formData.dioceseId}
-                  onValueChange={(value) => setFormData({ ...formData, dioceseId: value })}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, dioceseId: value, parishId: "" }) // Réinitialiser pour régénérer
+                  }}
                   required
                 >
                   <SelectTrigger>
@@ -190,13 +245,13 @@ export default function CreateParishPage() {
                   id="dioceseId"
                   value={formData.dioceseId}
                   disabled
-                  className="bg-muted"
+                  className="bg-muted text-muted-foreground cursor-not-allowed"
                 />
               )}
               <p className="text-xs text-muted-foreground">
                 {claims?.role === "diocese_admin" 
-                  ? "Vous créez une paroisse dans votre diocèse"
-                  : "Sélectionnez le diocèse de cette paroisse"}
+                  ? "Vous créez une paroisse dans votre diocèse. L'ID sera généré automatiquement."
+                  : "Sélectionnez le diocèse de cette paroisse. L'ID sera généré automatiquement."}
               </p>
             </div>
 

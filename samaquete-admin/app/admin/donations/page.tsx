@@ -6,6 +6,8 @@ import { fetchDonations, fetchDonationStats } from "@/lib/api/donations"
 import { Donation } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { format } from "date-fns"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Pagination } from "@/components/ui/pagination"
 
 export default function DonationsPage() {
   const { claims } = useAuth()
@@ -18,6 +20,9 @@ export default function DonationsPage() {
     totalAmount: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     loadDonations()
@@ -56,17 +61,48 @@ export default function DonationsPage() {
     }
   }
 
+  // Trier les dons
+  const sortedDonations = [...donations].sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime()
+    const dateB = new Date(b.createdAt).getTime()
+    return sortOrder === "newest" ? dateB - dateA : dateA - dateB
+  })
+
+  // Pagination
+  const totalPages = Math.ceil(sortedDonations.length / itemsPerPage)
+  const paginatedDonations = sortedDonations.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [sortOrder, itemsPerPage])
+
   if (loading) {
     return <div>Chargement...</div>
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dons</h1>
-        <p className="text-muted-foreground mt-2">
-          Consultation des dons (lecture seule)
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dons</h1>
+          <p className="text-muted-foreground mt-2">
+            Consultation des dons (lecture seule)
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={sortOrder} onValueChange={(value: "newest" | "oldest") => setSortOrder(value)}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Plus récent au plus ancien</SelectItem>
+              <SelectItem value="oldest">Plus ancien au plus récent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -128,7 +164,7 @@ export default function DonationsPage() {
       )}
 
       <div className="space-y-4">
-        {donations.map((donation) => (
+        {paginatedDonations.map((donation) => (
           <Card key={donation.donationId}>
             <CardHeader>
               <CardTitle className="text-lg">
@@ -160,6 +196,20 @@ export default function DonationsPage() {
           </Card>
         ))}
       </div>
+
+      {sortedDonations.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={sortedDonations.length}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newItemsPerPage) => {
+            setItemsPerPage(newItemsPerPage)
+            setCurrentPage(1)
+          }}
+        />
+      )}
     </div>
   )
 }

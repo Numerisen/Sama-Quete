@@ -42,9 +42,7 @@ export default function ParishesPage() {
       
       const [parishesData, diocesesData] = await Promise.all([
         getParishes(dioceseId),
-        (claims?.role === "super_admin" || claims?.role === "archdiocese_admin") 
-          ? getDioceses() 
-          : Promise.resolve([]),
+        getDioceses(), // Toujours charger les diocèses pour afficher les noms
       ])
       setParishes(parishesData)
       setDioceses(diocesesData)
@@ -53,6 +51,11 @@ export default function ParishesPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const getDioceseName = (dioceseId: string): string => {
+    const diocese = dioceses.find(d => d.dioceseId === dioceseId)
+    return diocese ? diocese.name : dioceseId
   }
 
   async function handleDelete(parishId: string) {
@@ -126,7 +129,7 @@ export default function ParishesPage() {
                   ID: {parish.parishId}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Diocèse: {parish.dioceseId}
+                  Diocèse: {getDioceseName(parish.dioceseId)}
                 </p>
                 {parish.address && (
                   <p className="text-sm text-muted-foreground line-clamp-1">

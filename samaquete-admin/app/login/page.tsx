@@ -23,6 +23,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password)
+      // Rediriger vers le dashboard après connexion
       router.push("/admin/dashboard")
     } catch (error: any) {
       toast({

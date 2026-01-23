@@ -10,6 +10,7 @@ import { Plus, Edit, Trash2, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
+import { Pagination } from "@/components/ui/pagination"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,8 @@ export default function DonationTypesPage() {
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [donationTypeToDelete, setDonationTypeToDelete] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     loadDonationTypes()
@@ -126,6 +129,17 @@ export default function DonationTypesPage() {
     }
   }
 
+  // Pagination
+  const totalPages = Math.ceil(donationTypes.length / itemsPerPage)
+  const paginatedDonationTypes = donationTypes.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
   if (loading) {
     return <div className="p-6">Chargement...</div>
   }
@@ -158,9 +172,15 @@ export default function DonationTypesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {donationTypes.map((type) => (
-            <Card key={type.donationTypeId}>
+        <>
+          <div className="mb-4">
+            <p className="text-sm text-muted-foreground">
+              Total: <span className="font-semibold">{donationTypes.length}</span> type{donationTypes.length > 1 ? 's' : ''} de don{donationTypes.length > 1 ? 's' : ''}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {paginatedDonationTypes.map((type) => (
+              <Card key={type.donationTypeId}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{type.name}</CardTitle>
@@ -258,9 +278,10 @@ export default function DonationTypesPage() {
                   )}
                 </div>
               </CardContent>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        </>
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -282,6 +303,20 @@ export default function DonationTypesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {donationTypes.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={donationTypes.length}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newItemsPerPage) => {
+            setItemsPerPage(newItemsPerPage)
+            setCurrentPage(1)
+          }}
+        />
+      )}
     </div>
   )
 }

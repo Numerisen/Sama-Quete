@@ -340,6 +340,9 @@ export async function createParishNews(data: Omit<ParishNews, "id" | "createdAt"
         ...newsData,
       });
       console.log("✅ Actualité créée dans parish_news:", docRef.id);
+      
+      // Créer une notification dans parish_notifications pour toutes les paroisses concernées
+      await createNotificationForNews(newsData, docRef.id);
     } catch (error) {
       console.error("❌ Erreur création dans parish_news:", error);
       // Ne pas faire échouer la création principale si la synchro échoue
@@ -396,6 +399,13 @@ export async function updateParishNews(
     try {
       await syncNewsToParishCollection(dataToSync);
       console.log("✅ Actualité synchronisée dans parish_news:", newsId);
+      
+      // Créer une notification si l'actualité vient d'être publiée
+      const wasPublished = currentData.published;
+      const isNowPublished = data.published !== undefined ? data.published : wasPublished;
+      if (!wasPublished && isNowPublished) {
+        await createNotificationForNews(dataToSync, newsId);
+      }
     } catch (error) {
       console.error("❌ Erreur synchronisation vers parish_news:", error);
       // Ne pas faire échouer la mise à jour principale si la synchro échoue
@@ -490,12 +500,18 @@ export async function createPrayerTime(data: Omit<PrayerTime, "id" | "createdAt"
     active: data.active !== undefined ? data.active : true,
     description: data.description || null,
     createdBy: data.createdBy,
-    createdByRole: data.createdByRole,
-    validatedByParish: data.validatedByParish !== undefined ? data.validatedByParish : (data.createdByRole === "parish_admin"),
+    createdByRole: data.createdByRole || "parish_admin",
+    validatedByParish: data.validatedByParish !== undefined 
+      ? data.validatedByParish 
+      : (data.createdByRole === "parish_admin" || 
+         data.createdByRole === "super_admin" || 
+         data.createdByRole === "archdiocese_admin" ||
+         data.createdByRole === "diocese_admin"),
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
   
+  // Ajouter churchId seulement si défini et si c'est un church_admin
   if (data.churchId) {
     prayerTimeData.churchId = data.churchId;
   }
@@ -847,6 +863,49 @@ export async function syncAllDonationTypesToParishCollection(): Promise<void> {
 }
 
 // ========== NOTIFICATIONS ==========
+
+// Fonction helper pour créer des notifications dans parish_notifications
+async function createNotificationForNews(newsData: any, newsId: string): Promise<void> {
+  try {
+    const parishesToNotify: string[] = [];
+    
+    // Déterminer les paroisses à notifier selon le scope
+    if (newsData.scope === "parish" && newsData.parishId) {
+      parishesToNotify.push(newsData.parishId);
+    } else if (newsData.scope === "diocese" && newsData.dioceseId) {
+      // Récupérer toutes les paroisses du diocèse
+      const parishes = await getParishes(newsData.dioceseId);
+      parishesToNotify.push(...parishes.map(p => p.parishId));
+    } else if (newsData.scope === "archdiocese") {
+      // Récupérer toutes les paroisses de l'archidiocèse (DAKAR)
+      const parishes = await getParishes();
+      const dakarParishes = parishes.filter(p => p.dioceseId === "DAKAR");
+      parishesToNotify.push(...dakarParishes.map(p => p.parishId));
+    }
+    
+    // Créer une notification pour chaque paroisse
+    const notificationPromises = parishesToNotify.map(parishId =>
+      addDoc(collection(db, "parish_notifications"), {
+        parishId,
+        type: "news",
+        title: "📰 Nouvelle actualité",
+        message: newsData.title,
+        icon: "newspaper",
+        priority: "normal",
+        read: false,
+        relatedId: newsId,
+        createdAt: Timestamp.now(),
+      })
+    );
+    
+    await Promise.all(notificationPromises);
+    console.log(`✅ ${parishesToNotify.length} notifications créées pour l'actualité ${newsId}`);
+  } catch (error) {
+    console.error("❌ Erreur création notifications:", error);
+    // Ne pas faire échouer la création principale si les notifications échouent
+  }
+}
+
 export async function getNotifications(): Promise<Notification[]> {
   const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"));
   const snapshot = await getDocs(q);
