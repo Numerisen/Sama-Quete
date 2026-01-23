@@ -365,7 +365,7 @@ async function main() {
     // Note: Ce script doit être adapté pour fonctionner avec Node.js (sans React Native)
     // Pour l'instant, on va créer une version simplifiée qui utilise fetch directement
     
-    const BASE_URL = `https://www.aelf.org/${date}/romain/messe`;
+    const BASE_URL = `https://www.aelf.org/${date}/romain/prière`;
     
     console.log('📡 Connexion à: ' + BASE_URL);
     
@@ -420,7 +420,7 @@ async function main() {
         .trim()
         .replace(/\s+/g, ' ')
         .replace(/^.*?aelf\.org[^>]*>\s*/, '') // Nettoyer les préfixes
-        .replace(/\s*-\s*Messe.*$/i, ''); // Nettoyer les suffixes
+        .replace(/\s*-\s*prière.*$/i, ''); // Nettoyer les suffixes
     }
     
     // Si toujours pas de titre, utiliser une valeur par défaut basée sur la date

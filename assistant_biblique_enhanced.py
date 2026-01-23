@@ -198,7 +198,7 @@ def text_of_the_day():
         return jsonify({'error': 'Invalid timezone'}), 400
     now = datetime.now(user_tz)
     date_str = now.strftime('%Y-%m-%d')
-    url = f'https://www.aelf.org/{date_str}/romain/messe'
+    url = f'https://www.aelf.org/{date_str}/romain/prière'
     
     try:
         resp = requests.get(url, timeout=10)

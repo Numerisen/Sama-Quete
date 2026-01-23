@@ -127,7 +127,7 @@ Les clés Firebase sont déjà configurées dans les fichiers :
 ```typescript
 {
   title: string
-  type: 'quete' | 'denier' | 'cierge' | 'messe'
+  type: 'quete' | 'denier' | 'cierge' | 'prière'
   description: string
   targetAmount: number
   currentAmount: number

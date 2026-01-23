@@ -1,0 +1,270 @@
+{
+  "date": "2026-01-22T17:59:40.468Z",
+  "summary": {
+    "passed": 30,
+    "failed": 2,
+    "warnings": 11,
+    "total": 43,
+    "successRate": 69.8
+  },
+  "tests": [
+    {
+      "name": "Églises non visibles mobile",
+      "passed": true,
+      "message": "Les églises sont bien internes",
+      "isWarning": false
+    },
+    {
+      "name": "Dons rattachés à parishId",
+      "passed": false,
+      "message": "Certains dons ne référencent pas parishId",
+      "isWarning": false
+    },
+    {
+      "name": "Dons jamais rattachés à churchId",
+      "passed": true,
+      "message": "Aucun don n'utilise churchId",
+      "isWarning": false
+    },
+    {
+      "name": "Rôle super_admin défini",
+      "passed": true,
+      "message": "Rôle super_admin présent",
+      "isWarning": false
+    },
+    {
+      "name": "Rôle archdiocese_admin défini",
+      "passed": true,
+      "message": "Rôle archdiocese_admin présent",
+      "isWarning": false
+    },
+    {
+      "name": "Rôle diocese_admin défini",
+      "passed": true,
+      "message": "Rôle diocese_admin présent",
+      "isWarning": false
+    },
+    {
+      "name": "Rôle parish_admin défini",
+      "passed": true,
+      "message": "Rôle parish_admin présent",
+      "isWarning": false
+    },
+    {
+      "name": "Rôle church_admin défini",
+      "passed": true,
+      "message": "Rôle church_admin présent",
+      "isWarning": false
+    },
+    {
+      "name": "Page Dashboard",
+      "passed": true,
+      "message": "Page Dashboard existe",
+      "isWarning": false
+    },
+    {
+      "name": "Page Informations paroisse",
+      "passed": true,
+      "message": "Page Informations paroisse existe",
+      "isWarning": false
+    },
+    {
+      "name": "Informations paroisse utilise parishId",
+      "passed": true,
+      "message": "Utilise parishId",
+      "isWarning": true
+    },
+    {
+      "name": "Page Églises",
+      "passed": true,
+      "message": "Page Églises existe",
+      "isWarning": false
+    },
+    {
+      "name": "Églises utilise parishId",
+      "passed": true,
+      "message": "Utilise parishId",
+      "isWarning": true
+    },
+    {
+      "name": "Page Actualités & contenus",
+      "passed": true,
+      "message": "Page Actualités & contenus existe",
+      "isWarning": false
+    },
+    {
+      "name": "Actualités & contenus utilise parishId",
+      "passed": true,
+      "message": "Utilise parishId",
+      "isWarning": true
+    },
+    {
+      "name": "Page Types de dons",
+      "passed": true,
+      "message": "Page Types de dons existe",
+      "isWarning": false
+    },
+    {
+      "name": "Types de dons utilise parishId",
+      "passed": true,
+      "message": "Utilise parishId",
+      "isWarning": true
+    },
+    {
+      "name": "Page Dons",
+      "passed": true,
+      "message": "Page Dons existe",
+      "isWarning": false
+    },
+    {
+      "name": "Dons utilise parishId",
+      "passed": true,
+      "message": "Utilise parishId",
+      "isWarning": true
+    },
+    {
+      "name": "Page Notifications",
+      "passed": true,
+      "message": "Page Notifications existe",
+      "isWarning": false
+    },
+    {
+      "name": "Notifications utilise parishId",
+      "passed": true,
+      "message": "Utilise parishId",
+      "isWarning": true
+    },
+    {
+      "name": "Page Utilisateurs",
+      "passed": true,
+      "message": "Page Utilisateurs existe",
+      "isWarning": false
+    },
+    {
+      "name": "Utilisateurs utilise parishId",
+      "passed": false,
+      "message": "Ne référence pas parishId",
+      "isWarning": true
+    },
+    {
+      "name": "Page Paramètres paroisse",
+      "passed": true,
+      "message": "Page Paramètres paroisse existe",
+      "isWarning": false
+    },
+    {
+      "name": "Paramètres paroisse utilise parishId",
+      "passed": true,
+      "message": "Utilise parishId",
+      "isWarning": true
+    },
+    {
+      "name": "Page Dashboard",
+      "passed": true,
+      "message": "Page Dashboard existe",
+      "isWarning": false
+    },
+    {
+      "name": "Page Actualités",
+      "passed": true,
+      "message": "Page Actualités existe",
+      "isWarning": false
+    },
+    {
+      "name": "Page Activités",
+      "passed": true,
+      "message": "Page Activités existe",
+      "isWarning": false
+    },
+    {
+      "name": "Page prières",
+      "passed": true,
+      "message": "Page prières existe",
+      "isWarning": false
+    },
+    {
+      "name": "Page Dons (lecture seule)",
+      "passed": true,
+      "message": "Page Dons (lecture seule) existe",
+      "isWarning": false
+    },
+    {
+      "name": "Dons (lecture seule) en lecture seule",
+      "passed": false,
+      "message": "Page devrait être en lecture seule",
+      "isWarning": true
+    },
+    {
+      "name": "Page Paramètres",
+      "passed": true,
+      "message": "Page Paramètres existe",
+      "isWarning": false
+    },
+    {
+      "name": "Composant Sidebar Admin Paroisse",
+      "passed": true,
+      "message": "Composant Sidebar Admin Paroisse existe",
+      "isWarning": false
+    },
+    {
+      "name": "Composant Header Admin Paroisse",
+      "passed": true,
+      "message": "Composant Header Admin Paroisse existe",
+      "isWarning": false
+    },
+    {
+      "name": "Composant Sidebar Admin Église",
+      "passed": true,
+      "message": "Composant Sidebar Admin Église existe",
+      "isWarning": false
+    },
+    {
+      "name": "Composant Header Admin Église",
+      "passed": true,
+      "message": "Composant Header Admin Église existe",
+      "isWarning": false
+    },
+    {
+      "name": "Composant Table réutilisable",
+      "passed": true,
+      "message": "Composant Table réutilisable existe",
+      "isWarning": false
+    },
+    {
+      "name": "Composant Form réutilisable",
+      "passed": true,
+      "message": "Composant Form réutilisable existe",
+      "isWarning": false
+    },
+    {
+      "name": "Règles Firestore utilisent parishId",
+      "passed": true,
+      "message": "Règles utilisent parishId",
+      "isWarning": false
+    },
+    {
+      "name": "Statuts draft|pending|published",
+      "passed": true,
+      "message": "Statuts définis",
+      "isWarning": false
+    },
+    {
+      "name": "Mobile lit uniquement published",
+      "passed": true,
+      "message": "Règle mobile published présente",
+      "isWarning": true
+    },
+    {
+      "name": "Pas de choix d'église côté mobile",
+      "passed": false,
+      "message": "ATTENTION: Choix d'église détecté (interdit)",
+      "isWarning": false
+    },
+    {
+      "name": "Pas de publication directe sans validation",
+      "passed": true,
+      "message": "Workflow de validation respecté",
+      "isWarning": true
+    }
+  ]
+}

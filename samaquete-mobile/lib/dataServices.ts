@@ -24,7 +24,7 @@ export interface Parish {
     quete: string[];
     denier: string[];
     cierge: string[];
-    messe: string[];
+    prière: string[];
   };
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -62,7 +62,7 @@ export interface Donation {
   id: string;
   userId: string;
   parishId: string;
-  type: 'quete' | 'denier' | 'cierge' | 'messe';
+  type: 'quete' | 'denier' | 'cierge' | 'prière';
   amount: number;
   customAmount?: number;
   message?: string;

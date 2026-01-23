@@ -210,7 +210,7 @@ Paroisse rejette → Status: REJECTED (avec raison)
 ```typescript
 // Église crée une actualité
 await NewsService.create({
-  title: "Messe de Pâques",
+  title: "prière de Pâques",
   content: "...",
   parishId: "st-joseph-medina",  // ⚠️ OBLIGATOIRE
   churchId: "jean-bosco",
@@ -280,7 +280,7 @@ admin_donations/                # Dons synchronisés (PayDunya → Firestore)
     - donorName: string
     - fullname: string          # Alias
     - amount: number
-    - type: "quete" | "denier" | "cierge" | "messe"
+    - type: "quete" | "denier" | "cierge" | "prière"
     - status: "pending" | "confirmed" | "cancelled"
     - parishId?: string
     - dioceseId?: string

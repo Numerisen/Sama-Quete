@@ -239,7 +239,7 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
                 <Ionicons name="business" size={24} color="#ffffff" />
               </View>
               <View style={styles.churchInfo}>
-                <Text style={styles.churchText}>Votre église actuelle</Text>
+                <Text style={styles.churchText}>Votre paroisse actuelle</Text>
                 <Text style={styles.currentChurchName}>{currentChurch}</Text>
               </View>
               <TouchableOpacity 
@@ -275,7 +275,7 @@ export default function DashboardScreen({ setCurrentScreen, userProfile }: Dashb
                 <Ionicons name="calendar" size={20} color="#ffffff" />
               </View>
               <Text style={styles.statValue}>12</Text>
-              <Text style={styles.statLabel}>Horaires de prière</Text>
+              <Text style={styles.statLabel}>Horaires de prières</Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>

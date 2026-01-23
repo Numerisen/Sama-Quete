@@ -10,6 +10,10 @@ export interface PrayerTime {
   active: boolean;
   description?: string;
   parishId: string;
+  createdBy?: string;
+  createdByRole?: "parish_admin" | "church_admin";
+  churchId?: string;
+  validatedByParish?: boolean;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -63,8 +67,8 @@ export function usePrayerTimes(parishId: string): UsePrayerTimesResult {
             parishId: data.parishId
           });
           
-          // Filtrer uniquement les heures actives côté client
-          if (data.active) {
+          // Filtrer uniquement les heures actives ET validées par la paroisse côté client
+          if (data.active && (data.validatedByParish === true || data.createdByRole === 'parish_admin')) {
             times.push({
               ...data,
               id: doc.id,

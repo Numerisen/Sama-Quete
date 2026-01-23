@@ -10,7 +10,7 @@ SamaQuête est une application mobile moderne développée en React Native avec 
 
 - **🎯 Tableau de bord personnalisé** - Vue d'ensemble de vos activités spirituelles
 - **💝 Gestion des dons** - Donation sécurisée avec sélection de paroisse
-- **📖 Informations liturgiques** - Horaires des messes et célébrations
+- **📖 Informations liturgiques** - Horaires des prières et célébrations
 - **📰 Actualités paroissiales** - Nouvelles et événements de la communauté
 - **🤖 Assistant spirituel** - Accompagnement et conseils spirituels
 - **📊 Historique des dons** - Suivi de vos contributions

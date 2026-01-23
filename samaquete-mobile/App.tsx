@@ -8,6 +8,9 @@ import * as WebBrowser from 'expo-web-browser';
 import { ThemeProvider } from './lib/ThemeContext';
 import { useAuth } from './hooks/useAuth';
 import { paymentService } from './lib/payment-service';
+import { NotificationDataService } from './lib/notificationDataService';
+import { sendLocalNotification, addNotificationReceivedListener } from './lib/notificationService';
+import { ChurchStorageService } from './lib/church-storage';
 
 // Import des écrans
 import SplashScreenComponent from './src/components/screens/SplashScreen';
@@ -42,6 +45,7 @@ export default function App() {
   // Utiliser le hook useAuth pour gérer l'authentification
   const { user, profile, signOut, updateProfile } = useAuth();
   const isAuthenticated = !!user && !!profile;
+  const [selectedParishId, setSelectedParishId] = useState<string | null>(null);
   
   // Profil utilisateur basé sur les données Firebase
   const baseUserProfile = profile ? {
@@ -108,6 +112,73 @@ export default function App() {
       subscription.remove();
     };
   }, []);
+
+  // Charger la paroisse sélectionnée
+  useEffect(() => {
+    const loadParish = async () => {
+      try {
+        const selectedParish = await ChurchStorageService.getSelectedChurch();
+        if (selectedParish?.id) {
+          setSelectedParishId(selectedParish.id);
+        }
+      } catch (error) {
+        console.error('Erreur chargement paroisse:', error);
+      }
+    };
+    if (isAuthenticated) {
+      loadParish();
+    }
+  }, [isAuthenticated]);
+
+  // Écouter les nouvelles notifications et déclencher des notifications push locales
+  useEffect(() => {
+    if (!isAuthenticated || !selectedParishId) return;
+
+    console.log('📱 Configuration de l\'écoute des notifications pour:', selectedParishId);
+    
+    let lastNotificationIds: Set<string> = new Set();
+    
+    const unsubscribe = NotificationDataService.subscribeToNotifications(
+      selectedParishId,
+      async (notifications) => {
+        // Identifier les nouvelles notifications (celles qui n'étaient pas dans la liste précédente)
+        const currentNotificationIds = new Set(notifications.map(n => n.id).filter(Boolean));
+        const newNotifications = notifications.filter(n => 
+          n.id && !lastNotificationIds.has(n.id) && !n.read
+        );
+        
+        // Envoyer une notification push locale pour chaque nouvelle notification
+        for (const notification of newNotifications) {
+          try {
+            await sendLocalNotification(
+              notification.title,
+              notification.message,
+              {
+                type: notification.type,
+                relatedId: notification.relatedId,
+                notificationId: notification.id,
+              }
+            );
+            console.log('✅ Notification push locale envoyée:', notification.title);
+          } catch (error) {
+            console.error('❌ Erreur envoi notification push:', error);
+          }
+        }
+        
+        lastNotificationIds = currentNotificationIds;
+      }
+    );
+
+    // Écouter les notifications reçues pour les afficher
+    const notificationListener = addNotificationReceivedListener((notification) => {
+      console.log('📬 Notification reçue:', notification);
+    });
+
+    return () => {
+      unsubscribe();
+      notificationListener.remove();
+    };
+  }, [isAuthenticated, selectedParishId]);
 
   /**
    * Gérer le retour de paiement depuis PayDunya

@@ -127,7 +127,7 @@ export default function PrayerCalendarScreen({ setCurrentScreen }: PrayerCalenda
           
           <View style={styles.headerContent}>
             <Ionicons name="calendar" size={32} color="#ffffff" style={styles.headerIcon} />
-            <Text style={styles.headerTitle}>Calendrier des prières</Text>
+            <Text style={styles.headerTitle}>Calendrier des messes</Text>
             <Text style={styles.headerSubtitle}>{parishName}</Text>
             
             {/* Bouton notifications */}

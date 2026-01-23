@@ -25,7 +25,7 @@ export interface Parish {
     quete: string[]
     denier: string[]
     cierge: string[]
-    messe: string[]
+    prière: string[]
   }
   isActive: boolean
   createdAt: any

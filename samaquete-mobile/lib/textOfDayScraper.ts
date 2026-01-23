@@ -36,7 +36,7 @@ export interface ProcessedLiturgyData {
 }
 
 class TextOfDayScraper {
-  private readonly BASE_URL = 'https://www.aelf.org/{date}/romain/messe';
+  private readonly BASE_URL = 'https://www.aelf.org/{date}/romain/prière';
   private readonly CACHE_KEY = 'scraped_liturgy_';
   private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 heures
 

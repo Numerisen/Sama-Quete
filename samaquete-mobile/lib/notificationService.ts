@@ -247,3 +247,54 @@ export function addNotificationResponseReceivedListener(
 ) {
   return Notifications.addNotificationResponseReceivedListener(callback);
 }
+
+// Planifier une notification quotidienne pour les lectures du jour
+export async function scheduleDailyLiturgyNotification(
+  hour: number = 6,
+  minute: number = 0
+): Promise<string | null> {
+  try {
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '📖 Lectures du jour',
+        body: 'Découvrez les textes liturgiques et les lectures du jour',
+        data: {
+          type: 'liturgy',
+          screen: 'liturgy',
+        },
+        sound: 'default',
+        categoryIdentifier: 'liturgy',
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour,
+        minute,
+        repeats: true,
+      },
+    });
+
+    console.log(`Notification quotidienne planifiée pour ${hour}:${minute}`);
+    return notificationId;
+  } catch (error) {
+    console.error('Erreur lors de la planification de la notification quotidienne:', error);
+    return null;
+  }
+}
+
+// Annuler toutes les notifications de liturgie
+export async function cancelLiturgyNotifications(): Promise<void> {
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const liturgyNotifs = scheduled.filter(
+      (notif) => notif.content.data?.type === 'liturgy'
+    );
+    
+    for (const notif of liturgyNotifs) {
+      await Notifications.cancelScheduledNotificationAsync(notif.identifier);
+    }
+    
+    console.log(`${liturgyNotifs.length} notifications de liturgie annulées`);
+  } catch (error) {
+    console.error('Erreur lors de l\'annulation des notifications de liturgie:', error);
+  }
+}

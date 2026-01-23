@@ -125,23 +125,23 @@ export default function DonationsScreen({ setCurrentScreen, setSelectionContext,
       prices: ["800", "1,500", "2,500", "5,000"],
     },
     {
-      id: "messe",
+      id: "prière",
       icon: "business",
-      title: "Messe d'intention",
-      description: "Messe célébrée pour vos proches",
+      title: "prière d'intention",
+      description: "prière célébrée pour vos proches",
       gradientColors: ["#60a5fa", "#3b82f6"] as [string, string],
       prices: ["12,000", "20,000", "30,000", "50,000"],
     },
   ];
 
-  const mapDonationType = (titleOrId: string): 'quete' | 'denier' | 'cierge' | 'messe' => {
+  const mapDonationType = (titleOrId: string): 'quete' | 'denier' | 'cierge' | 'prière' => {
     const t = (titleOrId || '').toLowerCase();
     if (t.includes('quete')) return 'quete';
     if (t.includes('denier')) return 'denier';
     if (t.includes('cierge')) return 'cierge';
-    if (t.includes('messe')) return 'messe';
+    if (t.includes('prière')) return 'prière';
     // fallback: certains ids Firestore peuvent être "quete"/"denier"/...
-    if (t === 'quete' || t === 'denier' || t === 'cierge' || t === 'messe') return t as any;
+    if (t === 'quete' || t === 'denier' || t === 'cierge' || t === 'prière') return t as any;
     return 'quete';
   };
 

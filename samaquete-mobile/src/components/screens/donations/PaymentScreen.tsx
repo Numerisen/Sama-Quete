@@ -59,12 +59,12 @@ export default function PaymentScreen({ setCurrentScreen, selectedDonationType, 
   /**
    * Convertir le type de don en format attendu par l'API
    */
-  const getDonationType = (): 'quete' | 'denier' | 'cierge' | 'messe' => {
+  const getDonationType = (): 'quete' | 'denier' | 'cierge' | 'prière' => {
     const type = selectedDonationType.toLowerCase();
     if (type.includes('quete')) return 'quete';
     if (type.includes('denier')) return 'denier';
     if (type.includes('cierge')) return 'cierge';
-    if (type.includes('messe')) return 'messe';
+    if (type.includes('prière')) return 'prière';
     return 'quete'; // Par défaut
   };
 

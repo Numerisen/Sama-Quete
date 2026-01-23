@@ -124,7 +124,7 @@ function processLiturgyData(apiData) {
 
 function displayLiturgy(data) {
   console.log('\n' + '='.repeat(80));
-  console.log(colorize('LECTURES DE LA MESSE', 'bright'));
+  console.log(colorize('LECTURES DE LA prière', 'bright'));
   console.log('='.repeat(80));
   
   console.log(colorize(`\nDate: ${data.date}`, 'cyan'));

@@ -74,7 +74,7 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
     { id: 'Quête dominicale', name: 'Quête dominicale', icon: 'heart' },
     { id: 'Denier du culte', name: 'Denier du culte', icon: 'cash' },
     { id: 'Cierge pascal', name: 'Cierge pascal', icon: 'flame' },
-    { id: 'Messe', name: 'Messe', icon: 'book' },
+    { id: 'prière', name: 'prière', icon: 'book' },
   ];
 
   // Filtrer les dons selon le filtre sélectionné
@@ -96,7 +96,7 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
         return 'cash';
       case 'Cierge pascal':
         return 'flame';
-      case 'Messe':
+      case 'prière':
         return 'book';
       default:
         return 'card';
@@ -111,7 +111,7 @@ export default function DonationHistoryScreen({ setCurrentScreen }: DonationHist
         return '#3b82f6';
       case 'Cierge pascal':
         return '#f59e0b';
-      case 'Messe':
+      case 'prière':
         return '#10b981';
       default:
         return '#8b5cf6';

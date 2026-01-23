@@ -7,6 +7,12 @@ import { useTheme } from '../../../../lib/ThemeContext';
 import { useNotifications } from '../../../../hooks/useNotifications';
 import { ChurchStorageService } from '../../../../lib/church-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { 
+  scheduleDailyLiturgyNotification, 
+  cancelLiturgyNotifications,
+  registerForPushNotificationsAsync 
+} from '../../../../lib/notificationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DEFAULT_NOTIFICATION_SETTINGS = {
   actualites: true,
@@ -50,11 +56,22 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     ...DEFAULT_NOTIFICATION_SETTINGS,
   });
+  const [liturgyNotificationEnabled, setLiturgyNotificationEnabled] = useState(false);
 
-  // Charger la paroisse sélectionnée
+  // Charger la paroisse sélectionnée et l'état des notifications
   useEffect(() => {
     loadSelectedParish();
+    loadNotificationSettings();
   }, []);
+
+  const loadNotificationSettings = async () => {
+    try {
+      const liturgyEnabled = await AsyncStorage.getItem('liturgyNotificationsEnabled');
+      setLiturgyNotificationEnabled(liturgyEnabled === 'true');
+    } catch (error) {
+      console.error('Erreur chargement paramètres notifications:', error);
+    }
+  };
 
   const loadSelectedParish = async () => {
     try {
@@ -72,11 +89,34 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
     }
   };
 
-  const toggleNotification = (key: keyof NotificationSettings) => {
+  const toggleNotification = async (key: keyof NotificationSettings) => {
+    const newValue = !notificationSettings[key];
     setNotificationSettings(prev => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: newValue
     }));
+
+    // Gérer les notifications quotidiennes de liturgie
+    if (key === 'lecturesDuJour') {
+      try {
+        if (newValue) {
+          // Activer les notifications quotidiennes
+          const granted = await registerForPushNotificationsAsync();
+          if (granted) {
+            await scheduleDailyLiturgyNotification(6, 0); // 6h du matin
+            await AsyncStorage.setItem('liturgyNotificationsEnabled', 'true');
+            setLiturgyNotificationEnabled(true);
+          }
+        } else {
+          // Désactiver les notifications quotidiennes
+          await cancelLiturgyNotifications();
+          await AsyncStorage.setItem('liturgyNotificationsEnabled', 'false');
+          setLiturgyNotificationEnabled(false);
+        }
+      } catch (error) {
+        console.error('Erreur gestion notifications liturgie:', error);
+      }
+    }
   };
 
   // Gérer le clic sur une notification
@@ -132,18 +172,10 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
     {
       key: 'actualites',
       icon: 'newspaper',
-      title: 'Actualités de l\'église',
+      title: 'Actualités de la paroisse',
       description: 'Nouvelles et événements de votre paroisse',
       color: '#10b981',
       enabled: notificationSettings.actualites,
-    },
-    {
-      key: 'textesLiturgiques',
-      icon: 'book',
-      title: 'Textes liturgiques',
-      description: 'Lectures et textes du jour',
-      color: '#3b82f6',
-      enabled: notificationSettings.textesLiturgiques,
     },
     {
       key: 'lecturesDuJour',
@@ -156,31 +188,15 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
     {
       key: 'prieresSemaine',
       icon: 'heart',
-      title: 'Prières de la semaine',
+      title: 'prières de la semaine',
       description: 'Intentions de prière hebdomadaires',
       color: '#ef4444',
       enabled: notificationSettings.prieresSemaine,
     },
-    {
-      key: 'dons',
-      icon: 'gift',
-      title: 'Rappels de dons',
-      description: 'Notifications pour les quêtes et offrandes',
-      color: '#f59e0b',
-      enabled: notificationSettings.dons,
-    },
-    {
-      key: 'evenements',
-      icon: 'calendar',
-      title: 'Événements paroissiaux',
-      description: 'Messes, célébrations et activités',
-      color: '#06b6d4',
-      enabled: notificationSettings.evenements,
-    },
   ];
 
-  // Utiliser les vraies notifications de Firestore
-  const recentNotifications = firebaseNotifications.slice(0, 10);
+  // Utiliser toutes les notifications de Firestore
+  const allNotifications = firebaseNotifications;
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -233,9 +249,18 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
           </View>
         </LinearGradient>
 
-        {/* Notifications récentes */}
+        {/* Toutes les notifications */}
         <View style={[styles.section, { backgroundColor: colors.background }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Notifications récentes</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Toutes les notifications
+            </Text>
+            {allNotifications.length > 0 && (
+              <Text style={[styles.notificationCount, { color: colors.textSecondary }]}>
+                {allNotifications.length} {allNotifications.length === 1 ? 'notification' : 'notifications'}
+              </Text>
+            )}
+          </View>
           
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -249,15 +274,18 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
               <Ionicons name="alert-circle" size={48} color="#ef4444" />
               <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
             </View>
-          ) : recentNotifications.length === 0 ? (
+          ) : allNotifications.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="notifications-off" size={48} color={colors.textSecondary} />
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
                 Aucune notification pour le moment
               </Text>
+              <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
+                Vous serez notifié lorsque de nouvelles actualités seront publiées
+              </Text>
             </View>
           ) : (
-            recentNotifications.map((notification) => (
+            allNotifications.map((notification) => (
               <TouchableOpacity
                 key={notification.id}
                 style={[
@@ -266,6 +294,7 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
                   !notification.read && styles.unreadNotification
                 ]}
                 onPress={() => handleNotificationPress(notification)}
+                activeOpacity={0.7}
               >
                 <View style={[
                   styles.notificationIcon,
@@ -278,17 +307,19 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
                   />
                 </View>
                 <View style={styles.notificationContent}>
-                  <Text style={[styles.notificationTitle, { color: colors.text }]}>
-                    {notification.title}
-                  </Text>
-                  <Text style={[styles.notificationMessage, { color: colors.textSecondary }]} numberOfLines={2}>
+                  <View style={styles.notificationHeader}>
+                    <Text style={[styles.notificationTitle, { color: colors.text }]}>
+                      {notification.title}
+                    </Text>
+                    {!notification.read && <View style={styles.unreadDot} />}
+                  </View>
+                  <Text style={[styles.notificationMessage, { color: colors.textSecondary }]} numberOfLines={3}>
                     {notification.message}
                   </Text>
                   <Text style={[styles.notificationTime, { color: colors.textSecondary }]}>
                     {getRelativeTime(notification.createdAt)}
                   </Text>
                 </View>
-                {!notification.read && <View style={styles.unreadDot} />}
               </TouchableOpacity>
             ))
           )}
@@ -320,33 +351,7 @@ export default function NotificationsScreen({ setCurrentScreen }: NotificationsS
           ))}
         </View>
 
-        {/* Actions rapides */}
-        <View style={[styles.section, { backgroundColor: colors.background }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Actions rapides</Text>
-          <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: colors.card }]}
-              onPress={() => setCurrentScreen('news')}
-            >
-              <Ionicons name="newspaper" size={24} color="#10b981" />
-              <Text style={[styles.quickActionText, { color: colors.text }]}>Actualités</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: colors.card }]}
-              onPress={() => setCurrentScreen('liturgy')}
-            >
-              <Ionicons name="book" size={24} color="#3b82f6" />
-              <Text style={[styles.quickActionText, { color: colors.text }]}>Liturgie</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: colors.card }]}
-              onPress={() => setCurrentScreen('donations')}
-            >
-              <Ionicons name="heart" size={24} color="#ef4444" />
-              <Text style={[styles.quickActionText, { color: colors.text }]}>Dons</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        
       </ScrollView>
     </SafeAreaView>
   );
@@ -409,11 +414,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 8,
+  },
+  notificationCount: {
+    fontSize: 14,
+    color: '#64748b',
   },
   sectionSubtitle: {
     fontSize: 14,
@@ -448,11 +462,17 @@ const styles = StyleSheet.create({
   notificationContent: {
     flex: 1,
   },
+  notificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   notificationTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 4,
+    flex: 1,
   },
   notificationMessage: {
     fontSize: 14,
@@ -462,12 +482,20 @@ const styles = StyleSheet.create({
   notificationTime: {
     fontSize: 12,
     color: '#9ca3af',
+    marginTop: 4,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#f59e0b',
+    marginLeft: 8,
+  },
+  emptySubtext: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
   },
   settingItem: {
     flexDirection: 'row',
@@ -561,6 +589,12 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 16,
     fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    marginTop: 8,
+    fontSize: 12,
     color: '#64748b',
     textAlign: 'center',
   },

@@ -1,0 +1,388 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // FONCTIONS UTILITAIRES
+    // ============================================
+    
+    // Récupérer le rôle de l'utilisateur
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    // Récupérer le parishId de l'utilisateur
+    function getUserParishId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.parishId;
+    }
+    
+    // Récupérer le churchId de l'utilisateur
+    function getUserChurchId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.churchId;
+    }
+    
+    // Récupérer le dioceseId de l'utilisateur
+    function getUserDioceseId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.dioceseId;
+    }
+    
+    // Vérifier si l'utilisateur est authentifié et a un rôle
+    function isAuthenticated() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
+    // Vérifier si l'utilisateur est super admin
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserRole() == 'super_admin';
+    }
+    
+    // Vérifier si l'utilisateur est admin archidiocèse
+    function isArchdioceseAdmin() {
+      return isAuthenticated() && getUserRole() == 'archdiocese_admin';
+    }
+    
+    // Vérifier si l'utilisateur est admin diocèse
+    function isDioceseAdmin() {
+      return isAuthenticated() && getUserRole() == 'diocese_admin';
+    }
+    
+    // Vérifier si l'utilisateur est admin paroisse
+    function isParishAdmin() {
+      return isAuthenticated() && getUserRole() == 'parish_admin';
+    }
+    
+    // Vérifier si l'utilisateur est admin église
+    function isChurchAdmin() {
+      return isAuthenticated() && getUserRole() == 'church_admin';
+    }
+    
+    // ============================================
+    // COLLECTION: users
+    // ============================================
+    match /users/{userId} {
+      // L'utilisateur peut lire et modifier son propre profil
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Super admin: accès global
+      allow read, write: if isSuperAdmin();
+      
+      // Admin diocèse: lecture des profils de son diocèse
+      allow read: if isDioceseAdmin() && 
+                     getUserDioceseId() == resource.data.dioceseId;
+      
+      // Admin paroisse: lecture des profils de sa paroisse
+      allow read: if isParishAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+    }
+    
+    // ============================================
+    // COLLECTION: dioceses
+    // ============================================
+    match /dioceses/{dioceseId} {
+      // Lecture: tous les utilisateurs authentifiés
+      allow read: if isAuthenticated();
+      
+      // Écriture: super admin uniquement
+      allow write: if isSuperAdmin();
+    }
+    
+    // ============================================
+    // COLLECTION: parishes
+    // ============================================
+    match /parishes/{parishId} {
+      // Lecture: tous les utilisateurs authentifiés
+      allow read: if isAuthenticated();
+      
+      // Écriture: super admin
+      allow write: if isSuperAdmin();
+      
+      // Écriture: admin diocèse pour les paroisses de son diocèse
+      allow write: if isDioceseAdmin() && 
+                      getUserDioceseId() == resource.data.dioceseId;
+      
+      // Écriture: admin paroisse pour sa propre paroisse
+      allow write: if isParishAdmin() && 
+                      getUserParishId() == parishId;
+    }
+    
+    // ============================================
+    // COLLECTION: churches
+    // ============================================
+    match /churches/{churchId} {
+      // Lecture: super admin, admin paroisse de la paroisse, admin église de l'église
+      allow read: if isSuperAdmin() ||
+                     (isParishAdmin() && getUserParishId() == resource.data.parishId) ||
+                     (isChurchAdmin() && getUserChurchId() == churchId);
+      
+      // Écriture: super admin, admin paroisse de la paroisse
+      allow write: if isSuperAdmin() ||
+                      (isParishAdmin() && getUserParishId() == resource.data.parishId);
+    }
+    
+    // ============================================
+    // COLLECTION: admin_news (Actualités)
+    // ============================================
+    match /admin_news/{newsId} {
+      // Super Admin: CRUD complet, accès global
+      allow read, write: if isSuperAdmin();
+      
+      // Admin Archidiocèse: lecture globale, publication archidiocésaine
+      allow read: if isArchdioceseAdmin();
+      allow create: if isArchdioceseAdmin();
+      allow update: if isArchdioceseAdmin() && 
+                        (request.resource.data.status == 'published' || 
+                         request.resource.data.status == 'draft');
+      
+      // Admin Diocèse: lecture/gestion limitée à son diocèse
+      allow read: if isDioceseAdmin() && 
+                     getUserDioceseId() == resource.data.dioceseId;
+      allow create: if isDioceseAdmin();
+      allow update: if isDioceseAdmin() && 
+                        getUserDioceseId() == resource.data.dioceseId;
+      
+      // Admin Paroisse: CRUD complet pour sa paroisse (validation workflow)
+      allow read: if isParishAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      allow create: if isParishAdmin() && 
+                       request.resource.data.parishId == getUserParishId();
+      allow update: if isParishAdmin() && 
+                        getUserParishId() == resource.data.parishId;
+      allow delete: if isParishAdmin() && 
+                       getUserParishId() == resource.data.parishId;
+      
+      // Admin Église: création/modification draft/pending uniquement
+      allow read: if isChurchAdmin() && 
+                     getUserParishId() == resource.data.parishId &&
+                     getUserChurchId() == resource.data.churchId;
+      allow create: if isChurchAdmin() && 
+                       request.resource.data.parishId == getUserParishId() &&
+                       request.resource.data.churchId == getUserChurchId() &&
+                       (request.resource.data.status == 'draft' || 
+                        request.resource.data.status == 'pending') &&
+                       request.resource.data.published == false;
+      allow update: if isChurchAdmin() && 
+                        getUserParishId() == resource.data.parishId &&
+                        getUserChurchId() == resource.data.churchId &&
+                        resource.data.status != 'published' &&
+                        (request.resource.data.status == 'draft' || 
+                         request.resource.data.status == 'pending') &&
+                        request.resource.data.published == false;
+      
+      // Mobile: lecture uniquement published == true et parishId == selectedParish
+      // (Cette règle sera appliquée côté client avec les requêtes filtrées)
+    }
+    
+    // ============================================
+    // COLLECTION: parish_activities (Activités)
+    // ============================================
+    match /parish_activities/{activityId} {
+      // Super Admin: CRUD complet
+      allow read, write: if isSuperAdmin();
+      
+      // Admin Archidiocèse: lecture seule
+      allow read: if isArchdioceseAdmin();
+      
+      // Admin Diocèse: lecture/publication pour son diocèse
+      allow read: if isDioceseAdmin() && 
+                     getUserDioceseId() == resource.data.dioceseId;
+      allow create, update: if isDioceseAdmin();
+      
+      // Admin Paroisse: CRUD complet pour sa paroisse
+      allow read: if isParishAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      allow create: if isParishAdmin() && 
+                       request.resource.data.parishId == getUserParishId();
+      allow update: if isParishAdmin() && 
+                        getUserParishId() == resource.data.parishId;
+      allow delete: if isParishAdmin() && 
+                       getUserParishId() == resource.data.parishId;
+      
+      // Admin Église: CRUD limité (draft/pending uniquement)
+      allow read: if isChurchAdmin() && 
+                     getUserParishId() == resource.data.parishId &&
+                     getUserChurchId() == resource.data.churchId;
+      allow create: if isChurchAdmin() && 
+                       request.resource.data.parishId == getUserParishId() &&
+                       request.resource.data.churchId == getUserChurchId() &&
+                       (request.resource.data.status == 'draft' || 
+                        request.resource.data.status == 'pending');
+      allow update: if isChurchAdmin() && 
+                        getUserParishId() == resource.data.parishId &&
+                        getUserChurchId() == resource.data.churchId &&
+                        resource.data.status != 'published';
+    }
+    
+    // ============================================
+    // COLLECTION: donation_types (Types de dons)
+    // ============================================
+    match /donation_types/{typeId} {
+      // Super Admin: CRUD complet
+      allow read, write: if isSuperAdmin();
+      
+      // Admin Archidiocèse: lecture seule
+      allow read: if isArchdioceseAdmin();
+      
+      // Admin Diocèse: lecture seule pour son diocèse
+      allow read: if isDioceseAdmin() && 
+                     getUserDioceseId() == resource.data.dioceseId;
+      
+      // Admin Paroisse: CRUD complet pour sa paroisse
+      allow read: if isParishAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      allow create: if isParishAdmin() && 
+                       request.resource.data.parishId == getUserParishId();
+      allow update: if isParishAdmin() && 
+                        getUserParishId() == resource.data.parishId;
+      allow delete: if isParishAdmin() && 
+                       getUserParishId() == resource.data.parishId;
+      
+      // Admin Église: lecture seule
+      allow read: if isChurchAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      
+      // Mobile: lecture uniquement isActive == true et parishId == selectedParish
+      // (Filtrage côté client)
+    }
+    
+    // ============================================
+    // COLLECTION: donations (Dons mobile)
+    // ============================================
+    match /donations/{donationId} {
+      // Super Admin: lecture complète
+      allow read: if isSuperAdmin();
+      
+      // Admin Archidiocèse: lecture complète
+      allow read: if isArchdioceseAdmin();
+      
+      // Admin Diocèse: lecture pour son diocèse
+      allow read: if isDioceseAdmin() && 
+                     getUserDioceseId() == resource.data.dioceseId;
+      
+      // Admin Paroisse: lecture seule pour sa paroisse
+      allow read: if isParishAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      
+      // Admin Église: lecture seule pour sa paroisse (pas de filtrage churchId car dons à la paroisse)
+      allow read: if isChurchAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      
+      // Aucune écriture autorisée depuis l'admin (dons créés uniquement via mobile/API)
+      allow write: if false;
+    }
+    
+    // ============================================
+    // COLLECTION: admin_donations (Dons PayDunya)
+    // ============================================
+    match /admin_donations/{donationId} {
+      // Super Admin: lecture complète
+      allow read: if isSuperAdmin();
+      
+      // Admin Archidiocèse: lecture complète
+      allow read: if isArchdioceseAdmin();
+      
+      // Admin Diocèse: lecture pour son diocèse
+      allow read: if isDioceseAdmin() && 
+                     getUserDioceseId() == resource.data.dioceseId;
+      
+      // Admin Paroisse: lecture seule pour sa paroisse
+      allow read: if isParishAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      
+      // Admin Église: lecture seule pour sa paroisse
+      allow read: if isChurchAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      
+      // Aucune écriture autorisée depuis l'admin (synchronisation API uniquement)
+      allow write: if false;
+    }
+    
+    // ============================================
+    // COLLECTION: parish_donations (Dons saisis admin)
+    // ============================================
+    match /parish_donations/{donationId} {
+      // Super Admin: lecture complète
+      allow read: if isSuperAdmin();
+      
+      // Admin Archidiocèse: lecture complète
+      allow read: if isArchdioceseAdmin();
+      
+      // Admin Diocèse: lecture pour son diocèse
+      allow read: if isDioceseAdmin() && 
+                     getUserDioceseId() == resource.data.dioceseId;
+      
+      // Admin Paroisse: lecture seule pour sa paroisse
+      allow read: if isParishAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      
+      // Admin Église: lecture seule pour sa paroisse
+      allow read: if isChurchAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      
+      // Aucune écriture autorisée (lecture seule pour tous)
+      allow write: if false;
+    }
+    
+    // ============================================
+    // COLLECTION: notifications
+    // ============================================
+    match /notifications/{notificationId} {
+      // Super Admin: CRUD complet
+      allow read, write: if isSuperAdmin();
+      
+      // Admin Archidiocèse: lecture/publication
+      allow read: if isArchdioceseAdmin();
+      allow create: if isArchdioceseAdmin();
+      allow update: if isArchdioceseAdmin();
+      
+      // Admin Diocèse: lecture/publication pour son diocèse
+      allow read: if isDioceseAdmin() && 
+                     getUserDioceseId() == resource.data.dioceseId;
+      allow create: if isDioceseAdmin();
+      allow update: if isDioceseAdmin() && 
+                        getUserDioceseId() == resource.data.dioceseId;
+      
+      // Admin Paroisse: CRUD complet pour sa paroisse
+      allow read: if isParishAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      allow create: if isParishAdmin() && 
+                       request.resource.data.parishId == getUserParishId();
+      allow update: if isParishAdmin() && 
+                        getUserParishId() == resource.data.parishId &&
+                        // Modification possible sauf si published (sauf toggle publish)
+                        (resource.data.status != 'published' || 
+                         request.resource.data.status == 'published' ||
+                         request.resource.data.status == 'draft');
+      allow delete: if isParishAdmin() && 
+                       getUserParishId() == resource.data.parishId &&
+                       resource.data.status != 'published';
+      
+      // Admin Église: CRUD limité (draft/pending uniquement)
+      allow read: if isChurchAdmin() && 
+                     getUserParishId() == resource.data.parishId;
+      allow create: if isChurchAdmin() && 
+                       request.resource.data.parishId == getUserParishId() &&
+                       (request.resource.data.status == 'draft' || 
+                        request.resource.data.status == 'pending') &&
+                       request.resource.data.published == false;
+      allow update: if isChurchAdmin() && 
+                        getUserParishId() == resource.data.parishId &&
+                        resource.data.status != 'published' &&
+                        (request.resource.data.status == 'draft' || 
+                         request.resource.data.status == 'pending') &&
+                        request.resource.data.published == false;
+      
+      // Mobile: lecture uniquement published == true et parishId == selectedParish
+      // (Filtrage côté client)
+    }
+    
+    // ============================================
+    // COLLECTIONS AUTRES (par défaut refusé)
+    // ============================================
+    match /{document=**} {
+      // Par défaut, refuser l'accès
+      allow read, write: if false;
+    }
+  }
+}

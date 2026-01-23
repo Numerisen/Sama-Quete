@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Mobile light theme alignment */
+    --background: 54 100% 95%; /* #fefce8 */
+    --foreground: 222 36% 17%; /* #1e293b */
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 222 36% 17%; /* #1e293b */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 36% 17%;
+    --primary: 25 95% 53%; /* #f59e0b */
+    --primary-foreground: 210 40% 98%; /* near white */
+    --secondary: 220 9% 46%; /* #6b7280 */
+    --secondary-foreground: 210 40% 98%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 20% 65%; /* #64748b */
+    --accent: 25 95% 53%; /* same as primary */
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 63%; /* #ef4444 */
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%; /* #e2e8f0 */
+    --input: 214 32% 91%;
+    --ring: 25 95% 53%; /* follow primary */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Mobile dark theme alignment */
+    --background: 222 84% 10%; /* #0f172a */
+    --foreground: 210 40% 98%; /* #f1f5f9 */
+    --card: 215 25% 27%; /* #334155 */
+    --card-foreground: 210 40% 98%;
+    --popover: 222 36% 17%; /* #1e293b */
+    --popover-foreground: 210 40% 98%;
+    --primary: 142 72% 45%; /* #22C55E */
+    --primary-foreground: 222 84% 4.9%;
+    --secondary: 215 16% 43%; /* #475569 */
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%; /* #94a3b8 */
+    --accent: 25 95% 53%; /* #f59e0b */
+    --accent-foreground: 222 84% 4.9%;
+    --destructive: 0 84% 63%; /* #ef4444 */
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 16% 43%; /* #475569 */
+    --input: 215 16% 43%;
+    --ring: 142 72% 45%; /* follow primary */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

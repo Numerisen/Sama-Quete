@@ -64,11 +64,13 @@ export default function AuthScreen({ setCurrentScreen, setIsAuthenticated, setUs
       });
 
       if (result.success) {
+        // Mettre à jour le profil et l'état d'authentification
         setUserProfile(result.user);
         setIsAuthenticated(true);
-        Alert.alert('Succès', 'Compte créé avec succès !', [
-          { text: 'Continuer', onPress: () => setCurrentScreen('settings') }
-        ]);
+        
+        // Rediriger automatiquement vers le dashboard
+        // L'utilisateur est déjà connecté via Firebase Auth (createUserWithEmailAndPassword)
+        setCurrentScreen('dashboard');
       } else {
         Alert.alert('Erreur', result.error || 'Erreur lors de l\'inscription');
       }
@@ -87,11 +89,13 @@ export default function AuthScreen({ setCurrentScreen, setIsAuthenticated, setUs
       const result = await signIn(signInData.identifier, signInData.password);
       
       if (result.success) {
+        // Mettre à jour le profil et l'état d'authentification
         setUserProfile(result.user);
         setIsAuthenticated(true);
-        Alert.alert('Succès', 'Connexion réussie !', [
-          { text: 'Continuer', onPress: () => setCurrentScreen('settings') }
-        ]);
+        
+        // Rediriger automatiquement vers le dashboard
+        // L'utilisateur est déjà connecté via Firebase Auth (signInWithEmailAndPassword)
+        setCurrentScreen('dashboard');
       } else {
         Alert.alert('Erreur', result.error || 'Erreur lors de la connexion');
       }

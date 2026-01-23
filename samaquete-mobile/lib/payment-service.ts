@@ -166,14 +166,14 @@ export class PaymentService {
   /**
    * Créer une session de paiement pour un don
    * 
-   * @param donationType - Type de don ('quete' | 'denier' | 'cierge' | 'messe')
+   * @param donationType - Type de don ('quete' | 'denier' | 'cierge' | 'prière')
    * @param amount - Montant en FCFA (XOF) - peut être 10000 ou plus
    * @param description - Description optionnelle du don
    * @param parishId - ID de la paroisse (optionnel)
    * @returns Informations de checkout incluant l'URL de paiement
    */
   async createDonationCheckout(
-    donationType: 'quete' | 'denier' | 'cierge' | 'messe',
+    donationType: 'quete' | 'denier' | 'cierge' | 'prière',
     amount: number,
     description?: string,
     parishId?: string,
@@ -350,10 +350,10 @@ export class PaymentService {
   /**
    * Adapter un plan de paiement PayDunya pour les dons Jàngu Bi
    */
-  static mapDonationTypeToPlan(donationType: 'quete' | 'denier' | 'cierge' | 'messe', amount: number): string | null {
+  static mapDonationTypeToPlan(donationType: 'quete' | 'denier' | 'cierge' | 'prière', amount: number): string | null {
     // Adaptation selon les besoins de Jàngu Bi
     // Pour l'instant, l'API supporte BOOK_PART_2 et BOOK_PART_3
-    if (donationType === 'messe' && amount >= 10000) {
+    if (donationType === 'prière' && amount >= 10000) {
       return 'BOOK_PART_2';
     }
     

@@ -32,25 +32,25 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
       quete: ["2,000", "5,000", "10,000", "15,000"],
       denier: ["10,000", "20,000", "30,000", "50,000"],
       cierge: ["1,000", "2,000", "3,000", "5,000"],
-      messe: ["15,000", "25,000", "35,000", "50,000"],
+      prière: ["15,000", "25,000", "35,000", "50,000"],
     },
     "Paroisse Sainte-Anne": {
       quete: ["1,500", "3,000", "7,000", "12,000"],
       denier: ["8,000", "15,000", "25,000", "40,000"],
       cierge: ["800", "1,500", "2,500", "4,000"],
-      messe: ["12,000", "20,000", "30,000", "45,000"],
+      prière: ["12,000", "20,000", "30,000", "45,000"],
     },
     "Paroisse Saint-Joseph": {
       quete: ["1,000", "2,500", "6,000", "10,000"],
       denier: ["7,000", "12,000", "20,000", "35,000"],
       cierge: ["600", "1,200", "2,000", "3,500"],
-      messe: ["10,000", "18,000", "28,000", "40,000"],
+      prière: ["10,000", "18,000", "28,000", "40,000"],
     },
     "Paroisse Notre-Dame": {
       quete: ["1,200", "3,000", "6,500", "11,000"],
       denier: ["6,000", "13,000", "22,000", "38,000"],
       cierge: ["700", "1,300", "2,200", "3,800"],
-      messe: ["11,000", "19,000", "29,000", "42,000"],
+      prière: ["11,000", "19,000", "29,000", "42,000"],
     },
   };
 
@@ -67,9 +67,9 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
       title: "Cierge Pascal",
       description: "Lumière pour vos intentions",
     },
-    messe: {
-      title: "Messe d'intention",
-      description: "Messe célébrée pour vos proches",
+    prière: {
+      title: "prière d'intention",
+      description: "prière célébrée pour vos proches",
     },
   };
 
@@ -78,7 +78,7 @@ export default function DonationTypeScreen({ setCurrentScreen, setSelectedAmount
     if (selectionContext.includes('Quête')) return 'quete';
     if (selectionContext.includes('Denier')) return 'denier';
     if (selectionContext.includes('Cierge')) return 'cierge';
-    if (selectionContext.includes('Messe')) return 'messe';
+    if (selectionContext.includes('prière')) return 'prière';
     return 'quete'; // par défaut
   };
 

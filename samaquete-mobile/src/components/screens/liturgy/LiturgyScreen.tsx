@@ -70,13 +70,13 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
   } : null;
 
   const weeklySchedule = [
-    { day: "Lundi", time: "06:30", type: "Messe quotidienne", isToday: false },
-    { day: "Mardi", time: "06:30", type: "Messe quotidienne", isToday: false },
-    { day: "Mercredi", time: "06:30", type: "Messe quotidienne", isToday: false },
-    { day: "Jeudi", time: "06:30", type: "Messe quotidienne", isToday: false },
-    { day: "Vendredi", time: "06:30", type: "Messe quotidienne", isToday: false },
-    { day: "Samedi", time: "18:00", type: "Messe de vigile", isToday: false },
-    { day: "Dimanche", time: "09:00", type: "Messe dominicale", isToday: true },
+    { day: "Lundi", time: "06:30", type: "prière quotidienne", isToday: false },
+    { day: "Mardi", time: "06:30", type: "prière quotidienne", isToday: false },
+    { day: "Mercredi", time: "06:30", type: "prière quotidienne", isToday: false },
+    { day: "Jeudi", time: "06:30", type: "prière quotidienne", isToday: false },
+    { day: "Vendredi", time: "06:30", type: "prière quotidienne", isToday: false },
+    { day: "Samedi", time: "18:00", type: "prière de vigile", isToday: false },
+    { day: "Dimanche", time: "09:00", type: "prière dominicale", isToday: true },
   ];
 
   return (
@@ -173,7 +173,7 @@ export default function LiturgyScreen({ setCurrentScreen }: LiturgyScreenProps) 
           {/* Section lectures d'aujourd'hui - Affichage exactement comme aelf.org */}
           {todayReadings ? (
             <View style={styles.liturgyContainer}>
-              <Text style={styles.mainTitle}>LECTURES DE LA MESSE</Text>
+              <Text style={styles.mainTitle}>LECTURES DE LA prière</Text>
               
               {todayReadings.readings.map((reading, index) => (
                 <View key={index} style={styles.readingSection}>
