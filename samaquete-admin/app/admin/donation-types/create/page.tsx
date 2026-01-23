@@ -62,8 +62,14 @@ export default function CreateDonationTypePage() {
         // Église peut choisir parmi les paroisses de son diocèse
         const parishesData = await getParishes(claims.dioceseId)
         setParishes(parishesData)
+      } else if (claims?.role === "parish_admin" && formData.parishId) {
+        // Pour parish_admin, récupérer le dioceseId depuis la paroisse si absent du token
+        const parishesData = await getParishes()
+        const parish = parishesData.find(p => p.parishId === formData.parishId)
+        if (parish && parish.dioceseId && !formData.dioceseId) {
+          setFormData(prev => ({ ...prev, dioceseId: parish.dioceseId }))
+        }
       }
-      // Parish admin ne peut créer que pour sa paroisse (déjà pré-rempli)
     } catch (error) {
       console.error("Erreur chargement données:", error)
     }

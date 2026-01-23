@@ -60,7 +60,7 @@ const sidebarItems: SidebarItem[] = [
     label: "Actualités",
     href: "/admin/news",
     icon: Newspaper,
-    roles: ["super_admin", "archdiocese_admin", "diocese_admin", "parish_admin", "church_admin"],
+    roles: ["archdiocese_admin", "diocese_admin", "parish_admin", "church_admin"],
   },
 
   {
@@ -91,7 +91,13 @@ const sidebarItems: SidebarItem[] = [
     label: "Fidèles",
     href: "/admin/fideles",
     icon: UserCircle,
-    roles: ["super_admin", "archdiocese_admin"],
+    roles: ["super_admin"],
+  },
+  {
+    label: "Statistiques",
+    href: "/admin/statistics",
+    icon: Activity,
+    roles: ["super_admin", "archdiocese_admin", "diocese_admin", "parish_admin"],
   },
   {
     label: "Paramètres",
@@ -156,7 +162,7 @@ export function Sidebar() {
               <Church className="w-6 h-6" />
             </div>
             <div>
-              <span className="font-bold text-xl tracking-wide block">Sama-Quête</span>
+              <span className="font-bold text-xl tracking-wide block">Jàngu Bi</span>
               <span className="text-xs text-white/80 block">{displayName}</span>
             </div>
           </>
@@ -177,29 +183,167 @@ export function Sidebar() {
         {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
       </button>
       
-      <nav className="flex-1 flex flex-col gap-1 mt-4">
-        {filteredItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8",
-                isActive ? "bg-white/20 font-semibold shadow-lg" : "",
-                collapsed ? 'justify-center px-3 rounded-full' : ''
-              )}
-              title={collapsed ? item.label : undefined}
-            >
-              <Icon className="w-6 h-6" />
-              {!collapsed && <span>{item.label}</span>}
-            </Link>
-          )
-        })}
+      <nav className="flex-1 flex flex-col gap-1 mt-4 overflow-y-auto">
+        {/* Dashboard - toujours en premier */}
+        {filteredItems
+          .filter(item => item.label === "Dashboard")
+          .map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8",
+                  isActive ? "bg-white/20 font-semibold shadow-lg" : "",
+                  collapsed ? 'justify-center px-3 rounded-full' : ''
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                <Icon className="w-6 h-6" />
+                {!collapsed && <span>{item.label}</span>}
+              </Link>
+            )
+          })}
+        
+        {/* GESTION */}
+        {!collapsed && filteredItems.some(item => ["Diocèses", "Paroisses", "Églises", "Utilisateurs", "Fidèles"].includes(item.label)) && (
+          <div className="px-6 py-2 mt-2">
+            <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">GESTION</p>
+          </div>
+        )}
+        {filteredItems
+          .filter(item => ["Diocèses", "Paroisses", "Églises", "Utilisateurs", "Fidèles"].includes(item.label))
+          .map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8",
+                  isActive ? "bg-white/20 font-semibold shadow-lg" : "",
+                  collapsed ? 'justify-center px-3 rounded-full' : ''
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                <Icon className="w-6 h-6" />
+                {!collapsed && <span>{item.label}</span>}
+              </Link>
+            )
+          })}
+        
+        {/* COMMUNICATION */}
+        {!collapsed && filteredItems.some(item => ["Actualités", "Heures de messes"].includes(item.label)) && (
+          <div className="px-6 py-2 mt-4">
+            <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">COMMUNICATION</p>
+          </div>
+        )}
+        {filteredItems
+          .filter(item => ["Actualités", "Heures de messes"].includes(item.label))
+          .map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8",
+                  isActive ? "bg-white/20 font-semibold shadow-lg" : "",
+                  collapsed ? 'justify-center px-3 rounded-full' : ''
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                <Icon className="w-6 h-6" />
+                {!collapsed && <span>{item.label}</span>}
+              </Link>
+            )
+          })}
+        
+        {/* FINANCES */}
+        {!collapsed && filteredItems.some(item => ["Types de dons", "Dons"].includes(item.label)) && (
+          <div className="px-6 py-2 mt-4">
+            <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">FINANCES</p>
+          </div>
+        )}
+        {filteredItems
+          .filter(item => ["Types de dons", "Dons"].includes(item.label))
+          .map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8",
+                  isActive ? "bg-white/20 font-semibold shadow-lg" : "",
+                  collapsed ? 'justify-center px-3 rounded-full' : ''
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                <Icon className="w-6 h-6" />
+                {!collapsed && <span>{item.label}</span>}
+              </Link>
+            )
+          })}
+        
+        {/* STATISTIQUES */}
+        {!collapsed && filteredItems.some(item => item.label === "Statistiques") && (
+          <div className="px-6 py-2 mt-4">
+            <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">STATISTIQUES</p>
+          </div>
+        )}
+        {filteredItems
+          .filter(item => item.label === "Statistiques")
+          .map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8",
+                  isActive ? "bg-white/20 font-semibold shadow-lg" : "",
+                  collapsed ? 'justify-center px-3 rounded-full' : ''
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                <Icon className="w-6 h-6" />
+                {!collapsed && <span>{item.label}</span>}
+              </Link>
+            )
+          })}
+        
+        {/* Paramètres - toujours en dernier */}
+        {filteredItems
+          .filter(item => item.label === "Paramètres")
+          .map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8",
+                  isActive ? "bg-white/20 font-semibold shadow-lg" : "",
+                  collapsed ? 'justify-center px-3 rounded-full' : ''
+                )}
+                title={collapsed ? item.label : undefined}
+              >
+                <Icon className="w-6 h-6" />
+                {!collapsed && <span>{item.label}</span>}
+              </Link>
+            )
+          })}
       </nav>
       {!collapsed && (
-        <div className="mt-auto p-4 text-xs text-center text-white/60">© {new Date().getFullYear()} Sama-Quête</div>
+        <div className="mt-auto p-4 text-xs text-center text-white/60">© {new Date().getFullYear()} Jàngu Bi</div>
       )}
     </aside>
   )

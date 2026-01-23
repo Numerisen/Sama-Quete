@@ -1,6 +1,6 @@
-# Sama-Quête Admin
+# Jàngu Bi Admin
 
-Interface d'administration web pour l'application mobile Sama-Quête.
+Interface d'administration web pour l'application mobile Jàngu Bi.
 
 ## 🏗️ Architecture
 

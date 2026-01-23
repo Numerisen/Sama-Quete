@@ -42,7 +42,32 @@ export default function LoginPage() {
       // Rediriger vers le dashboard après connexion
       router.push("/admin/dashboard")
     } catch (error: any) {
-      const errorMessage = error.message || "Email ou mot de passe incorrect"
+      // Gérer les erreurs Firebase de manière user-friendly
+      let errorMessage = "Email ou mot de passe incorrect"
+      
+      if (error.code) {
+        switch (error.code) {
+          case "auth/invalid-credential":
+          case "auth/wrong-password":
+          case "auth/user-not-found":
+          case "auth/invalid-email":
+            errorMessage = "Email ou mot de passe incorrect"
+            break
+          case "auth/too-many-requests":
+            errorMessage = "Trop de tentatives. Veuillez réessayer plus tard"
+            break
+          case "auth/user-disabled":
+            errorMessage = "Ce compte a été désactivé"
+            break
+          case "auth/network-request-failed":
+            errorMessage = "Erreur de connexion. Vérifiez votre connexion internet"
+            break
+          default:
+            // Pour les autres erreurs, utiliser un message générique
+            errorMessage = "Email ou mot de passe incorrect"
+        }
+      }
+      
       setError(errorMessage)
       toast({
         title: "Erreur de connexion",

@@ -128,19 +128,25 @@ service cloud.firestore {
          request.resource.data.dioceseId == getUserDioceseId() &&
          getUserDioceseId() != '')
       );
-      // Modification : super admin, archdiocese admin, diocese admin (dans son diocèse), ou parish admin (dans son diocèse)
+      // Modification : super admin, archdiocese admin, diocese admin (dans son diocèse), ou parish admin (dans sa paroisse ou son diocèse)
       allow update: if isAuthenticated() && (
         isSuperAdmin() || 
         isArchdioceseAdmin() ||
         (getUserRole() == 'diocese_admin' && resource.data.dioceseId == getUserDioceseId()) ||
-        (getUserRole() == 'parish_admin' && resource.data.dioceseId == getUserDioceseId())
+        (getUserRole() == 'parish_admin' && (
+          (resource.data.parishId != null && resource.data.parishId == getUserParishId() && getUserParishId() != '') ||
+          (resource.data.dioceseId != null && resource.data.dioceseId == getUserDioceseId() && getUserDioceseId() != '')
+        ))
       );
-      // Suppression : super admin, archdiocese admin, diocese admin (dans son diocèse), ou parish admin (dans son diocèse)
+      // Suppression : super admin, archdiocese admin, diocese admin (dans son diocèse), ou parish admin (dans sa paroisse ou son diocèse)
       allow delete: if isAuthenticated() && (
         isSuperAdmin() || 
         isArchdioceseAdmin() ||
         (getUserRole() == 'diocese_admin' && resource.data.dioceseId == getUserDioceseId()) ||
-        (getUserRole() == 'parish_admin' && resource.data.dioceseId == getUserDioceseId())
+        (getUserRole() == 'parish_admin' && (
+          (resource.data.parishId != null && resource.data.parishId == getUserParishId() && getUserParishId() != '') ||
+          (resource.data.dioceseId != null && resource.data.dioceseId == getUserDioceseId() && getUserDioceseId() != '')
+        ))
       );
     }
     
@@ -225,8 +231,13 @@ service cloud.firestore {
       // Création : super_admin, parish_admin (avec validatedByParish=true), church_admin (avec validatedByParish=false)
       allow create: if isAuthenticated() && (
         isSuperAdmin() ||
-        (canCreateAsParishAdmin() && 
+        // Parish admin peut créer si parishId correspond (avec ou sans vérification dioceseId)
+        (getUserRole() == 'parish_admin' && 
+         request.resource.data.parishId != null &&
+         request.resource.data.parishId == getUserParishId() &&
+         getUserParishId() != '' &&
          request.resource.data.validatedByParish == true) ||
+        // Church admin peut créer avec validatedByParish=false
         (canCreateAsChurchAdmin() &&
          request.resource.data.validatedByParish == false)
       );

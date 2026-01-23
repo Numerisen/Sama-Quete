@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "e37a5098-ab3a-48a0-831d-e9eb09af985d"
+      }
+    },
+    "android": {
+      "package": "com.sossane99.samaqueteadmin"
+    }
+  }
+}

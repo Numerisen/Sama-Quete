@@ -7,8 +7,8 @@ import { ErrorFilterScript } from "@/components/ErrorFilterScript"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Sama-Quête Admin",
-  description: "Interface d'administration Sama-Quête",
+  title: "Jàngu Bi Admin",
+  description: "Interface d'administration Jàngu Bi",
 }
 
 export default function RootLayout({
