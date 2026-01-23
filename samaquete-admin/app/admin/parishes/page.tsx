@@ -91,7 +91,7 @@ export default function ParishesPage() {
     })
   }, [parishes, filters, dioceses])
 
-  const filterConfigs: FilterConfig[] = [
+  const filterConfigs: FilterConfig[] = useMemo(() => [
     {
       type: "text",
       key: "name",
@@ -102,7 +102,9 @@ export default function ParishesPage() {
       type: "select",
       key: "diocese",
       label: "Diocèse",
-      options: dioceses.map(d => ({ value: d.dioceseId, label: d.name })),
+      options: dioceses.length > 0 
+        ? dioceses.map(d => ({ value: d.dioceseId, label: d.name }))
+        : [],
     },
     {
       type: "select",
@@ -113,7 +115,7 @@ export default function ParishesPage() {
         { value: "inactive", label: "Inactive" },
       ],
     },
-  ]
+  ], [dioceses])
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
@@ -178,13 +180,15 @@ export default function ParishesPage() {
           </div>
         </div>
 
-        {/* Filtres */}
-        <FiltersBar
-          filters={filterConfigs}
-          values={filters}
-          onChange={handleFilterChange}
-          onClear={handleClearFilters}
-        />
+        {/* Filtres - Ne rendre que si les données sont chargées */}
+        {!loading && (
+          <FiltersBar
+            filters={filterConfigs}
+            values={filters}
+            onChange={handleFilterChange}
+            onClear={handleClearFilters}
+          />
+        )}
 
         {filteredParishes.length === 0 && !loading && (
           <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
