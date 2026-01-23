@@ -127,7 +127,7 @@ export default function EditDonationTypePage() {
     try {
       // Forcer le rafraîchissement du token
       const { auth } = await import("@/lib/firebase")
-      if (auth.currentUser) {
+      if (auth && auth.currentUser) {
         await auth.currentUser.getIdToken(true)
       }
       

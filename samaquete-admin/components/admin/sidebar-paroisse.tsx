@@ -9,7 +9,7 @@ export default function AdminParoisseSidebar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { userRole } = useAuth()
-  const paroisse = userRole?.parishName || searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
+  const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
 
   const links = [
     { 

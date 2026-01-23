@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -27,7 +27,7 @@ import { useSearchParams } from "next/navigation"
  * - la liste des paroisses côté mobile
  * - l'écran "Votre église actuelle"
  */
-export default function InformationsParoissePage() {
+function InformationsParoisseContent() {
   const { toast } = useToast()
   const { userRole } = useAuth()
   const searchParams = useSearchParams()
@@ -271,5 +271,20 @@ export default function InformationsParoissePage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function InformationsParoissePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Chargement...</span>
+        </div>
+      </div>
+    }>
+      <InformationsParoisseContent />
+    </Suspense>
   )
 }

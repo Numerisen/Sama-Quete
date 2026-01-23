@@ -32,10 +32,7 @@ export default function CreatePrayerTimePage() {
     active: true,
     description: "",
     createdBy: "",
-    createdByRole: (claims?.role === "church_admin" ? "church_admin" : 
-                     claims?.role === "super_admin" ? "super_admin" :
-                     claims?.role === "archdiocese_admin" ? "archdiocese_admin" :
-                     claims?.role === "diocese_admin" ? "diocese_admin" : "parish_admin"),
+    createdByRole: (claims?.role === "church_admin" ? "church_admin" : "parish_admin") as "parish_admin" | "church_admin",
     churchId: claims?.churchId || undefined,
     validatedByParish: (claims?.role === "parish_admin" || 
                         claims?.role === "super_admin" || 
@@ -103,12 +100,12 @@ export default function CreatePrayerTimePage() {
     setLoading(true)
     try {
       // Forcer le rafraîchissement du token pour avoir les claims à jour
-      if (auth.currentUser) {
+      if (auth && auth.currentUser) {
         await auth.currentUser.getIdToken(true)
       }
       
       // Récupérer l'ID de l'utilisateur
-      const userId = auth.currentUser?.uid || ""
+      const userId = auth?.currentUser?.uid || ""
       
       // S'assurer que tous les champs requis sont présents
       const prayerTimeData = {

@@ -51,9 +51,16 @@ export interface Diocese {
 export class ParishService {
   // ===== GESTION DES DIOCÈSES =====
   
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
+  
   static async createDiocese(diocese: Omit<Diocese, 'id' | 'createdAt' | 'updatedAt'>): Promise<string | null> {
     try {
-      const diocesesRef = collection(db, 'dioceses')
+      const diocesesRef = collection(this.ensureDb(), 'dioceses')
       const docRef = await addDoc(diocesesRef, {
         ...diocese,
         createdAt: serverTimestamp(),
@@ -68,7 +75,7 @@ export class ParishService {
 
   static async getDioceses(): Promise<Diocese[]> {
     try {
-      const diocesesRef = collection(db, 'dioceses')
+      const diocesesRef = collection(this.ensureDb(), 'dioceses')
       const q = query(diocesesRef, where('isActive', '==', true))
       
       const snapshot = await getDocs(q)
@@ -87,7 +94,7 @@ export class ParishService {
 
   static async getDioceseById(dioceseId: string): Promise<Diocese | null> {
     try {
-      const dioceseRef = doc(db, 'dioceses', dioceseId)
+      const dioceseRef = doc(this.ensureDb(), 'dioceses', dioceseId)
       const dioceseDoc = await getDoc(dioceseRef)
       
       if (dioceseDoc.exists()) {
@@ -107,7 +114,7 @@ export class ParishService {
   
   static async createParish(parish: Omit<Parish, 'id' | 'createdAt' | 'updatedAt'>): Promise<string | null> {
     try {
-      const parishesRef = collection(db, 'parishes')
+      const parishesRef = collection(this.ensureDb(), 'parishes')
       const docRef = await addDoc(parishesRef, {
         ...parish,
         createdAt: serverTimestamp(),
@@ -125,7 +132,7 @@ export class ParishService {
     isActive?: boolean
   }): Promise<Parish[]> {
     try {
-      const parishesRef = collection(db, 'parishes')
+      const parishesRef = collection(this.ensureDb(), 'parishes')
       let q = query(parishesRef)
       
       if (filters?.dioceseId) {
@@ -152,7 +159,7 @@ export class ParishService {
 
   static async getParishById(parishId: string): Promise<Parish | null> {
     try {
-      const parishRef = doc(db, 'parishes', parishId)
+      const parishRef = doc(this.ensureDb(), 'parishes', parishId)
       const parishDoc = await getDoc(parishRef)
       
       if (parishDoc.exists()) {
@@ -170,7 +177,7 @@ export class ParishService {
 
   static async updateParish(parishId: string, updates: Partial<Parish>): Promise<boolean> {
     try {
-      const parishRef = doc(db, 'parishes', parishId)
+      const parishRef = doc(this.ensureDb(), 'parishes', parishId)
       await updateDoc(parishRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -184,7 +191,7 @@ export class ParishService {
 
   static async deleteParish(parishId: string): Promise<boolean> {
     try {
-      const parishRef = doc(db, 'parishes', parishId)
+      const parishRef = doc(this.ensureDb(), 'parishes', parishId)
       await deleteDoc(parishRef)
       return true
     } catch (error) {
@@ -195,7 +202,7 @@ export class ParishService {
 
   static async updateDiocese(dioceseId: string, updates: Partial<Diocese>): Promise<boolean> {
     try {
-      const dioceseRef = doc(db, 'dioceses', dioceseId)
+      const dioceseRef = doc(this.ensureDb(), 'dioceses', dioceseId)
       await updateDoc(dioceseRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -209,7 +216,7 @@ export class ParishService {
 
   static async deleteDiocese(dioceseId: string): Promise<boolean> {
     try {
-      const dioceseRef = doc(db, 'dioceses', dioceseId)
+      const dioceseRef = doc(this.ensureDb(), 'dioceses', dioceseId)
       await deleteDoc(dioceseRef)
       return true
     } catch (error) {
@@ -242,9 +249,7 @@ export class ParishService {
       return parishes.filter(parish => 
         parish.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         parish.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        parish.priest.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (parish.vicaire && parish.vicaire.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (parish.catechists && parish.catechists.toLowerCase().includes(searchTerm.toLowerCase()))
+        parish.priest.toLowerCase().includes(searchTerm.toLowerCase()) 
       )
     } catch (error) {
       console.error('Erreur lors de la recherche de paroisses:', error)

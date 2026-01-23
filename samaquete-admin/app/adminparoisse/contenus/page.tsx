@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,7 +27,11 @@ import { useAuth } from "@/lib/auth-context"
 import { ContentValidationService, ContentItem } from "@/lib/content-validation-service"
 import { ChurchService } from "@/lib/church-service"
 import { getUserRole } from "@/lib/user-service"
-import { motion } from "framer-motion"
+// import { motion } from "framer-motion"
+// Stub temporaire
+const motion = {
+  div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+}
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 
@@ -45,7 +49,7 @@ import { db } from '@/lib/firebase'
  * - Affiche UNIQUEMENT published = true
  * - Filtré par parishId
  */
-export default function ActualitesContenusPage() {
+function ActualitesContenusContent() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { userRole } = useAuth()
@@ -82,7 +86,7 @@ export default function ActualitesContenusPage() {
   }, [parishId])
 
   const loadContents = async () => {
-    if (!parishId) return
+    if (!parishId || !db) return
     
     try {
       setLoading(true)
@@ -222,6 +226,9 @@ export default function ActualitesContenusPage() {
     }
 
     try {
+      if (!db) {
+        throw new Error("Firestore n'est pas initialisé")
+      }
       const { addDoc, serverTimestamp } = await import('firebase/firestore')
       
       await addDoc(collection(db, 'admin_news'), {
@@ -544,5 +551,20 @@ export default function ActualitesContenusPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function ActualitesContenusPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Chargement...</span>
+        </div>
+      </div>
+    }>
+      <ActualitesContenusContent />
+    </Suspense>
   )
 }

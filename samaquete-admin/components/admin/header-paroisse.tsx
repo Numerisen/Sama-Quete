@@ -63,7 +63,7 @@ export default function AdminParoisseHeader({ openSidebar }: { openSidebar: () =
                 Administration Paroisse
               </h1>
               <p className="text-sm text-gray-600 truncate max-w-md">
-                {userRole?.parishName || paroisse}
+                {paroisse}
               </p>
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function AdminParoisseHeader({ openSidebar }: { openSidebar: () =
                     <User className="w-4 h-4 text-green-600" />
                   </div>
                   <span className="hidden sm:block text-sm font-medium">
-                    {userRole?.name || 'Admin Paroisse'}
+                    {userRole?.displayName || 'Admin Paroisse'}
                   </span>
                 </Button>
               </DropdownMenuTrigger>

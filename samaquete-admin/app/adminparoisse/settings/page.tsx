@@ -1,6 +1,6 @@
 "use client"
 export const dynamic = "force-dynamic"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -49,7 +49,7 @@ interface PasswordData {
   confirmPassword: string
 }
 
-export default function SettingsPage() {
+function SettingsContent() {
   const searchParams = useSearchParams()
   const eglise = searchParams.get('eglise') || 'Église Saint Jean Bosco'
   const tabParam = searchParams.get('tab')
@@ -1040,5 +1040,20 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Chargement...</span>
+        </div>
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   )
 }

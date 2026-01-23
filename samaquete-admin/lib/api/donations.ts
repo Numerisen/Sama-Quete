@@ -131,11 +131,11 @@ export async function fetchDonationStats(
     
     // Calculer les statistiques depuis les dons récupérés
     const total = donations.length;
-    const completed = donations.filter(d => d.status === "completed" || d.status === "paid").length;
+    const completed = donations.filter(d => d.status === "completed").length;
     const pending = donations.filter(d => d.status === "pending").length;
     const failed = donations.filter(d => d.status === "failed" || d.status === "cancelled").length;
     const totalAmount = donations
-      .filter(d => d.status === "completed" || d.status === "paid")
+      .filter(d => d.status === "completed")
       .reduce((sum, d) => sum + d.amount, 0);
 
     return {

@@ -50,11 +50,18 @@ export interface ParishSettings {
 export class ParishSettingsService {
   private static collection = 'parish_settings'
 
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
+
   // Récupérer les paramètres de la paroisse
   static async getSettings(parishId: string): Promise<ParishSettings | null> {
     try {
       const q = query(
-        collection(db, this.collection),
+        collection(this.ensureDb(), this.collection),
         where('parishId', '==', parishId)
       )
       
@@ -77,14 +84,14 @@ export class ParishSettingsService {
       
       if (existingSettings) {
         // Mettre à jour
-        const docRef = doc(db, this.collection, existingSettings.id)
+        const docRef = doc(this.ensureDb(), this.collection, existingSettings.id)
         await updateDoc(docRef, {
           ...settingsData,
           updatedAt: serverTimestamp()
         })
       } else {
         // Créer
-        const docRef = doc(collection(db, this.collection))
+        const docRef = doc(collection(this.ensureDb(), this.collection))
         await setDoc(docRef, {
           ...settingsData,
           parishId,

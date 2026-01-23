@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,7 +47,7 @@ const categories = [
   "Autre"
 ]
 
-export default function ParoisseNewsPage() {
+function ParoisseNewsContent() {
   const searchParams = useSearchParams()
   const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
   const { userRole } = useAuth()
@@ -566,6 +566,21 @@ export default function ParoisseNewsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function ParoisseNewsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Chargement...</span>
+        </div>
+      </div>
+    }>
+      <ParoisseNewsContent />
+    </Suspense>
   )
 }
 

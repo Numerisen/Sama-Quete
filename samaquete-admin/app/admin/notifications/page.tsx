@@ -21,7 +21,13 @@ export default function NotificationsPage() {
 
   async function loadNotifications() {
     try {
-      const data = await getNotifications(claims?.parishId, claims?.dioceseId)
+      let data = await getNotifications()
+      // Filtrer selon le rôle
+      if (claims?.role === "parish_admin" && claims.parishId) {
+        data = data.filter(n => n.parishId === claims.parishId)
+      } else if (claims?.role === "diocese_admin" && claims.dioceseId) {
+        data = data.filter(n => n.dioceseId === claims.dioceseId)
+      }
       setNotifications(data)
     } catch (error) {
       console.error("Erreur chargement notifications:", error)

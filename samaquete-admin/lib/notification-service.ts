@@ -23,6 +23,9 @@ export class AdminNotificationService {
    */
   static async create(notification: ParishNotification): Promise<string> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const docRef = await addDoc(collection(db, 'parish_notifications'), {
         ...notification,
         createdAt: serverTimestamp(),

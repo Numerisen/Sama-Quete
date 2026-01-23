@@ -62,10 +62,17 @@ export class UserProfileService {
   private static collection = 'user_profiles'
   private static activityCollection = 'activity_logs'
 
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
+
   // Récupérer le profil utilisateur
   static async getProfile(userId: string): Promise<UserProfile | null> {
     try {
-      const docRef = doc(db, this.collection, userId)
+      const docRef = doc(this.ensureDb(), this.collection, userId)
       const docSnap = await getDoc(docRef)
       
       if (docSnap.exists()) {
@@ -81,7 +88,7 @@ export class UserProfileService {
   // Mettre à jour le profil utilisateur
   static async updateProfile(userId: string, profileData: Partial<UserProfile>): Promise<void> {
     try {
-      const docRef = doc(db, this.collection, userId)
+      const docRef = doc(this.ensureDb(), this.collection, userId)
       await updateDoc(docRef, {
         ...profileData,
         updatedAt: serverTimestamp()
@@ -159,7 +166,7 @@ export class UserProfileService {
         }
       }
       
-      const docRef = doc(collection(db, this.activityCollection))
+      const docRef = doc(collection(this.ensureDb(), this.activityCollection))
       await setDoc(docRef, activityData)
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement de l\'activité:', error)
@@ -233,7 +240,7 @@ export class UserProfileService {
   static async getActivityLogs(userId: string, limitCount: number = 20): Promise<ActivityLog[]> {
     try {
       const q = query(
-        collection(db, this.activityCollection),
+        collection(this.ensureDb(), this.activityCollection),
         where('userId', '==', userId),
         orderBy('timestamp', 'desc'),
         limit(limitCount)
@@ -254,7 +261,7 @@ export class UserProfileService {
   static async getRecentLogins(userId: string): Promise<ActivityLog[]> {
     try {
       const q = query(
-        collection(db, this.activityCollection),
+        collection(this.ensureDb(), this.activityCollection),
         where('userId', '==', userId),
         where('action', '==', 'login'),
         orderBy('timestamp', 'desc'),

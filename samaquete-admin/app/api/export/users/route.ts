@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { initializeApp, cert, getApps } from "firebase-admin/app"
 import { getAuth } from "firebase-admin/auth"
 
+// Forcer le rendu dynamique pour cette route
+export const dynamic = 'force-dynamic'
+
 // Normalisation de la clé privée
 function normalizePrivateKey(key: string | undefined): string {
   if (!key) return ""

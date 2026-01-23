@@ -22,7 +22,13 @@ export default function ActivitiesPage() {
 
   async function loadActivities() {
     try {
-      const data = await getActivities(claims?.parishId, claims?.dioceseId)
+      let data = await getActivities()
+      // Filtrer selon le rôle
+      if (claims?.role === "parish_admin" && claims.parishId) {
+        data = data.filter(a => a.parishId === claims.parishId)
+      } else if (claims?.role === "diocese_admin" && claims.dioceseId) {
+        data = data.filter(a => a.dioceseId === claims.dioceseId)
+      }
       setActivities(data)
     } catch (error) {
       console.error("Erreur chargement activités:", error)

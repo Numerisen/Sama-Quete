@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { fetchDonations } from "@/lib/api/donations"
 
+// Forcer le rendu dynamique pour cette route
+export const dynamic = 'force-dynamic'
+
 // Fonction pour convertir en CSV
 function convertToCSV(data: any[]): string {
   if (data.length === 0) return ""

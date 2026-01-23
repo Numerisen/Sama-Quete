@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,7 +27,11 @@ import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { motion } from "framer-motion"
+// import { motion } from "framer-motion"
+// Stub temporaire
+const motion = {
+  div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+}
 
 /**
  * Page "Notifications" - Admin Paroisse
@@ -55,7 +59,7 @@ interface Notification {
   updatedAt?: any
 }
 
-export default function NotificationsPage() {
+function NotificationsContent() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { userRole } = useAuth()
@@ -88,7 +92,7 @@ export default function NotificationsPage() {
   }, [parishId])
 
   const loadNotifications = async () => {
-    if (!parishId) return
+    if (!parishId || !db) return
     
     try {
       setLoading(true)
@@ -129,6 +133,9 @@ export default function NotificationsPage() {
     }
 
     try {
+      if (!db) {
+        throw new Error("Firestore n'est pas initialisé")
+      }
       const published = formData.status === 'published'
       
       await addDoc(collection(db, 'notifications'), {
@@ -183,6 +190,9 @@ export default function NotificationsPage() {
     }
 
     try {
+      if (!db) {
+        throw new Error("Firestore n'est pas initialisé")
+      }
       const published = formData.status === 'published'
       
       await updateDoc(doc(db, 'notifications', editingNotification.id), {
@@ -226,6 +236,9 @@ export default function NotificationsPage() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette notification ?')) return
 
     try {
+      if (!db) {
+        throw new Error("Firestore n'est pas initialisé")
+      }
       await deleteDoc(doc(db, 'notifications', notificationId))
       toast({
         title: "Succès",
@@ -244,6 +257,9 @@ export default function NotificationsPage() {
 
   const handleTogglePublish = async (notification: Notification) => {
     try {
+      if (!db) {
+        throw new Error("Firestore n'est pas initialisé")
+      }
       const newStatus = notification.published ? 'draft' : 'published'
       const newPublished = !notification.published
       
@@ -676,5 +692,20 @@ export default function NotificationsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function NotificationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Chargement...</span>
+        </div>
+      </div>
+    }>
+      <NotificationsContent />
+    </Suspense>
   )
 }

@@ -25,7 +25,9 @@ interface Fidele {
   parishId?: string
   parishName?: string
   totalDonations: number
+  totalDonationsAmount?: number
   donationCount: number
+  donations?: Donation[]
   createdAt: any
   updatedAt: any
 }
@@ -47,6 +49,9 @@ export default function FidelesPage() {
 
   async function loadFideles() {
     try {
+      if (!db) {
+        throw new Error("Firestore n'est pas initialisé")
+      }
       setLoading(true)
       // Essayer avec orderBy, sinon récupérer sans tri
       let querySnapshot

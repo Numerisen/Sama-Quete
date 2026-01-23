@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -25,20 +25,55 @@ import {
   Settings
 } from "lucide-react"
 import Link from "next/link"
-import { motion } from "framer-motion"
-import { Bar, Line, Pie, Doughnut } from "react-chartjs-2"
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  PointElement,
-  LineElement,
-  ArcElement,
-} from "chart.js"
+// import { motion } from "framer-motion"
+// import { Bar, Line, Pie, Doughnut } from "react-chartjs-2"
+// Stubs temporaires
+const motion = {
+  div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+}
+const Bar = ({ data, options }: any) => <div className="p-4 border rounded">Graphique Bar (chart.js requis)</div>
+const Line = ({ data, options }: any) => <div className="p-4 border rounded">Graphique Line (chart.js requis)</div>
+const Pie = ({ data, options }: any) => <div className="p-4 border rounded">Graphique Pie (chart.js requis)</div>
+const Doughnut = ({ data, options }: any) => <div className="p-4 border rounded">Graphique Doughnut (chart.js requis)</div>
+// import {
+//   Chart as ChartJS,
+//   CategoryScale,
+//   LinearScale,
+//   BarElement,
+//   Title,
+//   Tooltip,
+//   Legend,
+//   PointElement,
+//   LineElement,
+//   ArcElement,
+// } from "chart.js"
+// Stubs temporaires pour chart.js (chart.js non installé)
+const ChartStubs = {
+  CategoryScale: {},
+  LinearScale: {},
+  BarElement: {},
+  Title: {},
+  Tooltip: {},
+  Legend: {},
+  PointElement: {},
+  LineElement: {},
+  ArcElement: {},
+}
+const CategoryScale = ChartStubs.CategoryScale
+const LinearScale = ChartStubs.LinearScale
+const BarElement = ChartStubs.BarElement
+const ChartTitle = ChartStubs.Title
+const Tooltip = ChartStubs.Tooltip
+const Legend = ChartStubs.Legend
+const PointElement = ChartStubs.PointElement
+const LineElement = ChartStubs.LineElement
+const ArcElement = ChartStubs.ArcElement
+const Chart = {
+  registerables: [],
+}
+const ChartJS = {
+  register: () => {},
+}
 import { useToast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
@@ -50,7 +85,8 @@ import {
   ParishUserService 
 } from "@/lib/parish-services"
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement, ArcElement)
+// ChartJS.register(CategoryScale, LinearScale, BarElement, ChartTitle, Tooltip, Legend, PointElement, LineElement, ArcElement)
+// Désactivé temporairement - chart.js non installé
 
 function formatAmount(amount: number) {
   return amount.toLocaleString("fr-FR").replace(/\s/g, " ");
@@ -86,7 +122,7 @@ interface ParoisseStats {
   paroisseName: string;
 }
 
-export default function ParoisseDashboardPage() {
+function ParoisseDashboardContent() {
   const searchParams = useSearchParams()
   const paroisse = searchParams.get('paroisse') || 'Paroisse Saint Jean Bosco'
   const { userRole } = useAuth()
@@ -631,5 +667,20 @@ export default function ParoisseDashboardPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function ParoisseDashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-emerald-100">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin text-green-600" />
+          <span className="text-lg text-gray-600">Chargement...</span>
+        </div>
+      </div>
+    }>
+      <ParoisseDashboardContent />
+    </Suspense>
   )
 }

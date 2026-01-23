@@ -44,6 +44,9 @@ export class ChurchService {
     church: Omit<Church, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<string | null> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       if (!church.parishId) {
         throw new Error('parishId est obligatoire pour créer une église')
       }
@@ -69,6 +72,9 @@ export class ChurchService {
     filters?: { isActive?: boolean }
   ): Promise<Church[]> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const churchesRef = collection(db, this.collectionName)
       let q = query(churchesRef, where('parishId', '==', parishId))
 
@@ -95,6 +101,9 @@ export class ChurchService {
    */
   static async getChurchById(churchId: string): Promise<Church | null> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const churchRef = doc(db, this.collectionName, churchId)
       const churchDoc = await getDoc(churchRef)
 
@@ -119,6 +128,9 @@ export class ChurchService {
     updates: Partial<Omit<Church, 'id' | 'createdAt'>>
   ): Promise<boolean> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const churchRef = doc(db, this.collectionName, churchId)
       await updateDoc(churchRef, {
         ...updates,
@@ -136,6 +148,9 @@ export class ChurchService {
    */
   static async deleteChurch(churchId: string): Promise<boolean> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const churchRef = doc(db, this.collectionName, churchId)
       await deleteDoc(churchRef)
       return true

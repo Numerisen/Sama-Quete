@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -9,12 +9,23 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import { Church, Plus, Edit, Trash2, RefreshCw, AlertCircle } from "lucide-react"
-import { motion } from "framer-motion"
+// import { motion } from "framer-motion"
+// Stub temporaire
+const motion = {
+  div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  tr: ({ children, ...props }: any) => <tr {...props}>{children}</tr>,
+  td: ({ children, ...props }: any) => <td {...props}>{children}</td>,
+  th: ({ children, ...props }: any) => <th {...props}>{children}</th>,
+}
 import { useSearchParams } from "next/navigation"
 import { Pagination } from "@/components/ui/pagination"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchService, Church as ChurchType } from "@/lib/church-service"
-import { createChurchAdmin } from "@/lib/admin-user-creation"
+// import { createChurchAdmin } from "@/lib/admin-user-creation"
+// Stub temporaire - fonctionnalité désactivée
+const createChurchAdmin = async (data: any): Promise<{ success: boolean; email?: string; message?: string; error?: string }> => {
+  return { success: false, message: "admin-user-creation non disponible - fonctionnalité désactivée temporairement", error: "Fonctionnalité désactivée" }
+}
 import { useAuth } from "@/lib/auth-context"
 
 /**
@@ -28,7 +39,7 @@ import { useAuth } from "@/lib/auth-context"
  * 
  * ⚠️ Les églises ne sont JAMAIS visibles côté mobile
  */
-export default function AdminParoisseEglisesPage() {
+function AdminParoisseEglisesContent() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { userRole } = useAuth()
@@ -144,12 +155,13 @@ export default function AdminParoisseEglisesPage() {
       if (churchId) {
         // Créer automatiquement un compte admin pour l'église
         if (userRole?.dioceseId) {
-          const adminResult = await createChurchAdmin(
+          // Fonctionnalité désactivée temporairement
+          const adminResult = await createChurchAdmin({
             churchId,
-            formData.name,
+            name: formData.name,
             parishId,
-            userRole.dioceseId
-          )
+            dioceseId: userRole.dioceseId
+          })
           
           if (adminResult.success) {
             toast({
@@ -673,5 +685,20 @@ export default function AdminParoisseEglisesPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function AdminParoisseEglisesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Chargement...</span>
+        </div>
+      </div>
+    }>
+      <AdminParoisseEglisesContent />
+    </Suspense>
   )
 }

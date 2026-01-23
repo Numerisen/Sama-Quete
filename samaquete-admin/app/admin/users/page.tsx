@@ -157,6 +157,17 @@ export default function UsersPage() {
     return labels[role] || role
   }
 
+  // Pagination
+  const totalPages = Math.ceil(users.length / itemsPerPage)
+  const paginatedUsers = users.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
   if (claims?.role !== "super_admin") {
     return (
       <div className="space-y-6">
@@ -169,17 +180,6 @@ export default function UsersPage() {
       </div>
     )
   }
-
-  // Pagination
-  const totalPages = Math.ceil(users.length / itemsPerPage)
-  const paginatedUsers = users.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [itemsPerPage])
 
   if (loading) {
     return (

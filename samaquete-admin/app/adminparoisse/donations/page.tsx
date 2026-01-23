@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -24,7 +25,14 @@ import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { ParishDonationService } from "@/lib/parish-services"
 import { DonationTypeService } from "@/lib/donation-type-service"
-import { motion } from "framer-motion"
+// import { motion } from "framer-motion"
+// Stub temporaire
+const motion = {
+  div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+  tr: ({ children, ...props }: any) => <tr {...props}>{children}</tr>,
+  td: ({ children, ...props }: any) => <td {...props}>{children}</td>,
+  th: ({ children, ...props }: any) => <th {...props}>{children}</th>,
+}
 
 /**
  * Page "Dons" - Admin Paroisse (LECTURE SEULE)
@@ -54,7 +62,7 @@ interface Donation {
   email?: string
 }
 
-export default function DonsPage() {
+function DonsContent() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { userRole } = useAuth()
@@ -467,5 +475,20 @@ export default function DonsPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function DonsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Chargement...</span>
+        </div>
+      </div>
+    }>
+      <DonsContent />
+    </Suspense>
   )
 }

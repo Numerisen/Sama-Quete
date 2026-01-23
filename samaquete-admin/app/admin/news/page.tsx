@@ -83,11 +83,11 @@ export default function NewsPage() {
     }
   }
 
-  async function handleTogglePublish(news: ParishNews) {
+  async function handleTogglePublish(newsItem: ParishNews) {
     try {
       const { updateParishNews } = await import("@/lib/firestore/services")
-      await updateParishNews(news.id!, { published: !news.published })
-      setNews(news.map(n => n.id === news.id ? { ...n, published: !n.published } : n))
+      await updateParishNews(newsItem.id!, { published: !newsItem.published })
+      setNews(news.map(n => n.id === newsItem.id ? { ...n, published: !n.published } : n))
     } catch (error) {
       console.error("Erreur mise à jour:", error)
     }

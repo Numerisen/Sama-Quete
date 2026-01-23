@@ -37,15 +37,20 @@ export default function PrayersPage() {
     try {
       let data: Prayer[] = []
       
-      if (claims?.role === "church_admin") {
+      let allData = await getPrayers()
+      // Filtrer selon le rôle
+      if (claims?.role === "church_admin" && claims.parishId) {
         // Église voit les prières de sa paroisse
-        data = await getPrayers(claims.parishId, claims.dioceseId)
-      } else if (claims?.role === "parish_admin") {
+        data = allData.filter(p => p.parishId === claims.parishId)
+      } else if (claims?.role === "parish_admin" && claims.parishId) {
         // Paroisse voit ses prières
-        data = await getPrayers(claims.parishId, claims.dioceseId)
+        data = allData.filter(p => p.parishId === claims.parishId)
+      } else if (claims?.role === "diocese_admin" && claims.dioceseId) {
+        // Diocèse voit les prières de son diocèse
+        data = allData.filter(p => p.dioceseId === claims.dioceseId)
       } else {
-        // Autres rôles voient selon leur scope
-        data = await getPrayers(claims?.parishId, claims?.dioceseId)
+        // Super admin et archidiocèse voient toutes les prières
+        data = allData
       }
       
       setPrayers(data)

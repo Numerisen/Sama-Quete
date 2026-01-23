@@ -4,7 +4,7 @@ import { UserRole, UserClaims } from "@/types";
 
 export async function getCurrentUser(): Promise<User | null> {
   return new Promise((resolve) => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || !auth) {
       resolve(null);
       return;
     }
@@ -30,5 +30,6 @@ export async function getUserClaims(): Promise<UserClaims | null> {
 }
 
 export async function logout(): Promise<void> {
+  if (!auth) throw new Error("Firebase Auth n'est pas initialisé")
   await signOut(auth);
 }

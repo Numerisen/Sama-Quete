@@ -292,23 +292,7 @@ export default function SettingsScreen({
         </View>
 
 
-        <View style={[styles.preferenceCard, { backgroundColor: colors.card }]}>
-          <View style={styles.preferenceItem}>
-            <View style={[styles.preferenceIcon, { backgroundColor: colors.border }]}>
-              <Ionicons name="shield-outline" size={24} color={colors.textSecondary} />
-            </View>
-            <View style={styles.preferenceContent}>
-              <Text style={[styles.preferenceTitle, { color: colors.text }]}>Authentification biométrique</Text>
-              <Text style={[styles.preferenceDescription, { color: colors.textSecondary }]}>Déverrouillez l'app avec Touch/Face ID</Text>
-            </View>
-            <Switch
-              value={biometricAuth}
-              onValueChange={setBiometricAuth}
-              trackColor={{ false: colors.border, true: colors.accent }}
-              thumbColor={biometricAuth ? '#ffffff' : '#ffffff'}
-            />
-          </View>
-        </View>
+        
 
 
         {/* Bouton de déconnexion (uniquement si connecté) */}

@@ -138,7 +138,7 @@ export default function CreateChurchPage() {
     setLoading(true)
     try {
       // Forcer le rafraîchissement du token
-      if (auth.currentUser) {
+      if (auth && auth.currentUser) {
         await auth.currentUser.getIdToken(true)
       }
 

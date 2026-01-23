@@ -11,6 +11,13 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 
+function ensureDb() {
+  if (!db) {
+    throw new Error('Firestore n\'est pas initialisé')
+  }
+  return db
+}
+
 export interface UserRole {
   uid: string
   email: string
@@ -49,7 +56,7 @@ export async function createUserWithRole(
   dioceseId?: string,
   parishId?: string
 ): Promise<void> {
-  const userRef = doc(db, 'users', uid)
+  const userRef = doc(ensureDb(), 'users', uid)
   
   // Définir les permissions selon le rôle
   const permissions = getPermissionsByRole(role)
@@ -71,7 +78,7 @@ export async function createUserWithRole(
 
 // Récupérer les données utilisateur avec rôle
 export async function getUserRole(uid: string): Promise<UserRole | null> {
-  const userRef = doc(db, 'users', uid)
+  const userRef = doc(ensureDb(), 'users', uid)
   const userSnap = await getDoc(userRef)
   
   if (userSnap.exists()) {
@@ -83,7 +90,7 @@ export async function getUserRole(uid: string): Promise<UserRole | null> {
 
 // Mettre à jour le dernier login
 export async function updateLastLogin(uid: string): Promise<void> {
-  const userRef = doc(db, 'users', uid)
+  const userRef = doc(ensureDb(), 'users', uid)
   await updateDoc(userRef, {
     lastLoginAt: serverTimestamp()
   })
@@ -92,7 +99,7 @@ export async function updateLastLogin(uid: string): Promise<void> {
 // Récupérer tous les utilisateurs d'un diocèse
 export async function getUsersByDiocese(dioceseId: string): Promise<UserRole[]> {
   const q = query(
-    collection(db, 'users'),
+    collection(ensureDb(), 'users'),
     where('dioceseId', '==', dioceseId),
     where('isActive', '==', true)
   )
@@ -104,7 +111,7 @@ export async function getUsersByDiocese(dioceseId: string): Promise<UserRole[]> 
 // Récupérer tous les utilisateurs d'une paroisse
 export async function getUsersByParish(parishId: string): Promise<UserRole[]> {
   const q = query(
-    collection(db, 'users'),
+    collection(ensureDb(), 'users'),
     where('parishId', '==', parishId),
     where('isActive', '==', true)
   )

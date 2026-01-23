@@ -111,12 +111,12 @@ export default function CreateDonationTypePage() {
     setLoading(true)
     try {
       // Forcer le rafraîchissement du token
-      if (auth.currentUser) {
+      if (auth && auth.currentUser) {
         await auth.currentUser.getIdToken(true)
       }
       
       // Récupérer l'ID de l'utilisateur
-      const userId = auth.currentUser?.uid || ""
+      const userId = auth?.currentUser?.uid || ""
       
       const donationTypeData = {
         ...formData,

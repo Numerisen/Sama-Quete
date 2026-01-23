@@ -128,7 +128,7 @@ export default function CreateParishPage() {
     setLoading(true)
     try {
       // Forcer le rafraîchissement du token pour avoir les claims à jour
-      if (auth.currentUser) {
+      if (auth && auth.currentUser) {
         await auth.currentUser.getIdToken(true) // true = force refresh
         console.log("🔄 Token rafraîchi")
       }

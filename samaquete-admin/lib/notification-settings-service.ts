@@ -44,11 +44,18 @@ export class NotificationSettingsService {
   private static settingsCollection = 'notification_settings'
   private static notificationsCollection = 'notifications'
 
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
+
   // Récupérer les paramètres de notification
   static async getSettings(userId: string): Promise<NotificationSettings | null> {
     try {
       const q = query(
-        collection(db, this.settingsCollection),
+        collection(this.ensureDb(), this.settingsCollection),
         where('userId', '==', userId)
       )
       
@@ -71,14 +78,14 @@ export class NotificationSettingsService {
       
       if (existingSettings) {
         // Mettre à jour
-        const docRef = doc(db, this.settingsCollection, existingSettings.id)
+        const docRef = doc(this.ensureDb(), this.settingsCollection, existingSettings.id)
         await updateDoc(docRef, {
           ...settings,
           updatedAt: serverTimestamp()
         })
       } else {
         // Créer
-        const docRef = doc(collection(db, this.settingsCollection))
+        const docRef = doc(collection(this.ensureDb(), this.settingsCollection))
         await setDoc(docRef, {
           ...settings,
           userId,
@@ -96,7 +103,7 @@ export class NotificationSettingsService {
   static async getUnreadNotifications(userId: string, limitCount: number = 10): Promise<Notification[]> {
     try {
       const q = query(
-        collection(db, this.notificationsCollection),
+        collection(this.ensureDb(), this.notificationsCollection),
         where('userId', '==', userId),
         where('read', '==', false),
         orderBy('createdAt', 'desc'),
@@ -117,7 +124,7 @@ export class NotificationSettingsService {
   // Marquer une notification comme lue
   static async markAsRead(notificationId: string): Promise<void> {
     try {
-      const docRef = doc(db, this.notificationsCollection, notificationId)
+      const docRef = doc(this.ensureDb(), this.notificationsCollection, notificationId)
       await updateDoc(docRef, {
         read: true,
         updatedAt: serverTimestamp()
@@ -149,7 +156,7 @@ export class NotificationSettingsService {
         data
       }
       
-      const docRef = doc(collection(db, this.notificationsCollection))
+      const docRef = doc(collection(this.ensureDb(), this.notificationsCollection))
       await setDoc(docRef, notificationData)
       
       // Ici on pourrait ajouter l'envoi réel par email, push, SMS

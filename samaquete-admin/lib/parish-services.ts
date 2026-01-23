@@ -186,10 +186,17 @@ export interface ParishSettings {
 
 // Service pour les heures de prières
 export class PrayerTimeService {
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
+
   static async getAll(parishId: string): Promise<PrayerTime[]> {
     try {
       const q = query(
-        collection(db, 'parish_prayer_times'),
+        collection(this.ensureDb(), 'parish_prayer_times'),
         where('parishId', '==', parishId)
       )
       const querySnapshot = await getDocs(q)
@@ -208,7 +215,7 @@ export class PrayerTimeService {
 
   static async getById(id: string): Promise<PrayerTime | null> {
     try {
-      const docRef = doc(db, 'parish_prayer_times', id)
+      const docRef = doc(this.ensureDb(), 'parish_prayer_times', id)
       const docSnap = await getDoc(docRef)
       if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() } as PrayerTime
@@ -222,7 +229,7 @@ export class PrayerTimeService {
 
   static async create(prayerTime: Omit<PrayerTime, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, 'parish_prayer_times'), {
+      const docRef = await addDoc(collection(this.ensureDb(), 'parish_prayer_times'), {
         ...prayerTime,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -236,7 +243,7 @@ export class PrayerTimeService {
 
   static async update(id: string, updates: Partial<PrayerTime>): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_prayer_times', id)
+      const docRef = doc(this.ensureDb(), 'parish_prayer_times', id)
       await updateDoc(docRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -249,7 +256,7 @@ export class PrayerTimeService {
 
   static async delete(id: string): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_prayer_times', id)
+      const docRef = doc(this.ensureDb(), 'parish_prayer_times', id)
       await deleteDoc(docRef)
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'heure de prière:', error)
@@ -260,11 +267,17 @@ export class PrayerTimeService {
 
 // Service pour les dons paroissiaux
 export class ParishDonationService {
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
   static async getAll(parishId: string): Promise<ParishDonation[]> {
     try {
       // 1) Dons saisis côté admin (collection parish_donations)
       const adminQ = query(
-        collection(db, 'parish_donations'),
+        collection(this.ensureDb(), 'parish_donations'),
         where('parishId', '==', parishId)
       )
       const adminSnap = await getDocs(adminQ)
@@ -278,7 +291,7 @@ export class ParishDonationService {
       let mobileDonations: ParishDonation[] = []
       try {
         const mobileQ = query(
-          collection(db, 'donations'),
+          collection(this.ensureDb(), 'donations'),
           where('parishId', '==', parishId)
         )
         const mobileSnap = await getDocs(mobileQ)
@@ -306,7 +319,7 @@ export class ParishDonationService {
       // 3) Dons issus de l'API de paiement (payment-api) synchronisés dans Firestore (admin_donations)
       try {
         const apiQ = query(
-          collection(db, 'admin_donations'),
+          collection(this.ensureDb(), 'admin_donations'),
           where('parishId', '==', parishId)
         )
         const apiSnap = await getDocs(apiQ)
@@ -340,7 +353,7 @@ export class ParishDonationService {
 
   static async getById(id: string): Promise<ParishDonation | null> {
     try {
-      const docRef = doc(db, 'parish_donations', id)
+      const docRef = doc(this.ensureDb(), 'parish_donations', id)
       const docSnap = await getDoc(docRef)
       if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() } as ParishDonation
@@ -354,7 +367,7 @@ export class ParishDonationService {
 
   static async create(donation: Omit<ParishDonation, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, 'parish_donations'), {
+      const docRef = await addDoc(collection(this.ensureDb(), 'parish_donations'), {
         ...donation,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -368,7 +381,7 @@ export class ParishDonationService {
 
   static async update(id: string, updates: Partial<ParishDonation>): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_donations', id)
+      const docRef = doc(this.ensureDb(), 'parish_donations', id)
       await updateDoc(docRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -381,7 +394,7 @@ export class ParishDonationService {
 
   static async delete(id: string): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_donations', id)
+      const docRef = doc(this.ensureDb(), 'parish_donations', id)
       await deleteDoc(docRef)
     } catch (error) {
       console.error('Erreur lors de la suppression du don:', error)
@@ -425,10 +438,16 @@ export class ParishDonationService {
 
 // Service pour les activités paroissiales
 export class ParishActivityService {
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
   static async getAll(parishId: string): Promise<ParishActivity[]> {
     try {
       const q = query(
-        collection(db, 'parish_activities'),
+        collection(this.ensureDb(), 'parish_activities'),
         where('parishId', '==', parishId)
       )
       const querySnapshot = await getDocs(q)
@@ -447,7 +466,7 @@ export class ParishActivityService {
 
   static async getById(id: string): Promise<ParishActivity | null> {
     try {
-      const docRef = doc(db, 'parish_activities', id)
+      const docRef = doc(this.ensureDb(), 'parish_activities', id)
       const docSnap = await getDoc(docRef)
       if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() } as ParishActivity
@@ -461,7 +480,7 @@ export class ParishActivityService {
 
   static async create(activity: Omit<ParishActivity, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, 'parish_activities'), {
+      const docRef = await addDoc(collection(this.ensureDb(), 'parish_activities'), {
         ...activity,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -475,7 +494,7 @@ export class ParishActivityService {
 
   static async update(id: string, updates: Partial<ParishActivity>): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_activities', id)
+      const docRef = doc(this.ensureDb(), 'parish_activities', id)
       await updateDoc(docRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -488,7 +507,7 @@ export class ParishActivityService {
 
   static async delete(id: string): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_activities', id)
+      const docRef = doc(this.ensureDb(), 'parish_activities', id)
       await deleteDoc(docRef)
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'activité:', error)
@@ -499,10 +518,16 @@ export class ParishActivityService {
 
 // Service pour les actualités paroissiales
 export class ParishNewsService {
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
   static async getAll(parishId: string): Promise<ParishNews[]> {
     try {
       const q = query(
-        collection(db, 'parish_news'),
+        collection(this.ensureDb(), 'parish_news'),
         where('parishId', '==', parishId)
       )
       const querySnapshot = await getDocs(q)
@@ -525,7 +550,7 @@ export class ParishNewsService {
 
   static async getById(id: string): Promise<ParishNews | null> {
     try {
-      const docRef = doc(db, 'parish_news', id)
+      const docRef = doc(this.ensureDb(), 'parish_news', id)
       const docSnap = await getDoc(docRef)
       if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() } as ParishNews
@@ -539,7 +564,7 @@ export class ParishNewsService {
 
   static async create(news: Omit<ParishNews, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, 'parish_news'), {
+      const docRef = await addDoc(collection(this.ensureDb(), 'parish_news'), {
         ...news,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -553,7 +578,7 @@ export class ParishNewsService {
 
   static async update(id: string, updates: Partial<ParishNews>): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_news', id)
+      const docRef = doc(this.ensureDb(), 'parish_news', id)
       await updateDoc(docRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -566,7 +591,7 @@ export class ParishNewsService {
 
   static async delete(id: string): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_news', id)
+      const docRef = doc(this.ensureDb(), 'parish_news', id)
       await deleteDoc(docRef)
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'actualité:', error)
@@ -577,10 +602,16 @@ export class ParishNewsService {
 
 // Service pour les utilisateurs paroissiaux
 export class ParishUserService {
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
   static async getAll(parishId: string): Promise<ParishUser[]> {
     try {
       const q = query(
-        collection(db, 'parish_users'),
+        collection(this.ensureDb(), 'parish_users'),
         where('parishId', '==', parishId)
       )
       const querySnapshot = await getDocs(q)
@@ -599,7 +630,7 @@ export class ParishUserService {
 
   static async getById(id: string): Promise<ParishUser | null> {
     try {
-      const docRef = doc(db, 'parish_users', id)
+      const docRef = doc(this.ensureDb(), 'parish_users', id)
       const docSnap = await getDoc(docRef)
       if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() } as ParishUser
@@ -613,7 +644,7 @@ export class ParishUserService {
 
   static async create(user: Omit<ParishUser, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, 'parish_users'), {
+      const docRef = await addDoc(collection(this.ensureDb(), 'parish_users'), {
         ...user,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -627,7 +658,7 @@ export class ParishUserService {
 
   static async update(id: string, updates: Partial<ParishUser>): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_users', id)
+      const docRef = doc(this.ensureDb(), 'parish_users', id)
       await updateDoc(docRef, {
         ...updates,
         updatedAt: serverTimestamp()
@@ -640,7 +671,7 @@ export class ParishUserService {
 
   static async delete(id: string): Promise<void> {
     try {
-      const docRef = doc(db, 'parish_users', id)
+      const docRef = doc(this.ensureDb(), 'parish_users', id)
       await deleteDoc(docRef)
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'utilisateur:', error)
@@ -651,10 +682,16 @@ export class ParishUserService {
 
 // Service pour les paramètres paroissiaux
 export class ParishSettingsService {
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
   static async get(parishId: string): Promise<ParishSettings | null> {
     try {
       const q = query(
-        collection(db, 'parish_settings'),
+        collection(this.ensureDb(), 'parish_settings'),
         where('parishId', '==', parishId)
       )
       const querySnapshot = await getDocs(q)
@@ -671,7 +708,7 @@ export class ParishSettingsService {
 
   static async create(settings: Omit<ParishSettings, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
-      const docRef = await addDoc(collection(db, 'parish_settings'), {
+      const docRef = await addDoc(collection(this.ensureDb(), 'parish_settings'), {
         ...settings,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -686,12 +723,12 @@ export class ParishSettingsService {
   static async update(parishId: string, updates: Partial<ParishSettings>): Promise<void> {
     try {
       const q = query(
-        collection(db, 'parish_settings'),
+        collection(this.ensureDb(), 'parish_settings'),
         where('parishId', '==', parishId)
       )
       const querySnapshot = await getDocs(q)
       if (!querySnapshot.empty) {
-        const docRef = doc(db, 'parish_settings', querySnapshot.docs[0].id)
+        const docRef = doc(this.ensureDb(), 'parish_settings', querySnapshot.docs[0].id)
         await updateDoc(docRef, {
           ...updates,
           updatedAt: serverTimestamp()
@@ -805,6 +842,12 @@ function uiToRawType(
 }
 
 export class ParishDonationTypeService {
+  private static ensureDb() {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
+    return db
+  }
   static async getAll(parishId: string): Promise<DonationType[]> {
     const types = await DonationTypeService.getAllDonationTypesByParish(parishId)
     return types.map((t) => rawToUiType(t, parishId))

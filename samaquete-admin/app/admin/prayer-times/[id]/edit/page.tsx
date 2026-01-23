@@ -140,7 +140,7 @@ export default function EditPrayerTimePage() {
     setSaving(true)
     try {
       // Forcer le rafraîchissement du token pour avoir les claims à jour
-      if (auth.currentUser) {
+      if (auth && auth.currentUser) {
         await auth.currentUser.getIdToken(true)
       }
       

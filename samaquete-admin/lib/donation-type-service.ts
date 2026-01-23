@@ -36,6 +36,9 @@ export class DonationTypeService {
     data: Omit<DonationType, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<string | null> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const docRef = await addDoc(collection(db, this.collectionName), {
         ...data,
         createdAt: serverTimestamp(),
@@ -53,6 +56,9 @@ export class DonationTypeService {
     parishId: string
   ): Promise<DonationType[]> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const q = query(
         collection(db, this.collectionName),
         where('parishId', '==', parishId),
@@ -76,6 +82,9 @@ export class DonationTypeService {
     parishId: string
   ): Promise<DonationType[]> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const q = query(
         collection(db, this.collectionName),
         where('parishId', '==', parishId),
@@ -99,6 +108,9 @@ export class DonationTypeService {
     updates: Partial<Omit<DonationType, 'id' | 'createdAt'>>
   ): Promise<boolean> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const docRef = doc(db, this.collectionName, id)
       await updateDoc(docRef, {
         ...updates,
@@ -114,6 +126,9 @@ export class DonationTypeService {
   // Supprimer un type de don
   static async deleteDonationType(id: string): Promise<boolean> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const docRef = doc(db, this.collectionName, id)
       await deleteDoc(docRef)
       return true
@@ -126,6 +141,9 @@ export class DonationTypeService {
   // Activer/Désactiver un type de don
   static async toggleDonationType(id: string, isActive: boolean): Promise<boolean> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const docRef = doc(db, this.collectionName, id)
       await updateDoc(docRef, {
         isActive,
@@ -143,6 +161,9 @@ export class DonationTypeService {
     parishId: string,
     callback: (types: DonationType[]) => void
   ): Unsubscribe {
+    if (!db) {
+      throw new Error('Firestore n\'est pas initialisé')
+    }
     const q = query(
       collection(db, this.collectionName),
       where('parishId', '==', parishId),

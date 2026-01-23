@@ -21,6 +21,16 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
 
+    if (!auth) {
+      toast({
+        title: "Erreur de connexion",
+        description: "Firebase Auth n'est pas initialisé",
+        variant: "destructive",
+      })
+      setLoading(false)
+      return
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password)
       // Rediriger vers le dashboard après connexion

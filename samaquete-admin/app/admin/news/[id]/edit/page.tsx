@@ -26,7 +26,9 @@ export default function EditNewsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState<Omit<ParishNews, "id" | "createdAt" | "updatedAt">>({
+    scope: "parish",
     parishId: claims?.parishId || "",
+    dioceseId: claims?.dioceseId || "",
     title: "",
     content: "",
     excerpt: "",
@@ -55,7 +57,10 @@ export default function EditNewsPage() {
       }
       
       setFormData({
+        scope: news.scope || "parish",
         parishId: news.parishId,
+        dioceseId: news.dioceseId,
+        archdioceseId: news.archdioceseId,
         title: news.title,
         content: news.content,
         excerpt: news.excerpt,

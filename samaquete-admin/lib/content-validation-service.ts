@@ -46,6 +46,9 @@ export class ContentValidationService {
    */
   static async getPendingContentsByParish(parishId: string, collectionName: string = 'admin_news'): Promise<ContentItem[]> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const q = query(
         collection(db, collectionName),
         where('parishId', '==', parishId),
@@ -72,6 +75,9 @@ export class ContentValidationService {
     collectionName: string = 'admin_news'
   ): Promise<void> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const docRef = doc(db, collectionName, contentId)
       await updateDoc(docRef, {
         status: 'published',
@@ -97,6 +103,9 @@ export class ContentValidationService {
     collectionName: string = 'admin_news'
   ): Promise<void> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const docRef = doc(db, collectionName, contentId)
       await updateDoc(docRef, {
         status: 'rejected',
@@ -117,6 +126,9 @@ export class ContentValidationService {
    */
   static async getPublishedContentsByParish(parishId: string, collectionName: string = 'admin_news'): Promise<ContentItem[]> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const q = query(
         collection(db, collectionName),
         where('parishId', '==', parishId),
@@ -141,6 +153,9 @@ export class ContentValidationService {
     collectionName: string = 'admin_news'
   ): Promise<ContentItem[]> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const q = query(
         collection(db, collectionName),
         where('churchId', '==', churchId)
@@ -168,6 +183,9 @@ export class ContentValidationService {
     if (!userParishId) return false
 
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const docRef = doc(db, collectionName, contentId)
       const docSnap = await getDoc(docRef)
 
@@ -191,6 +209,9 @@ export class ContentValidationService {
     total: number
   }> {
     try {
+      if (!db) {
+        throw new Error('Firestore n\'est pas initialisé')
+      }
       const q = query(
         collection(db, collectionName),
         where('parishId', '==', parishId)

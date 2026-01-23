@@ -36,9 +36,19 @@ function fromFirestoreDate(timestamp: any): Date | undefined {
   return new Date(timestamp);
 }
 
+function ensureDb() {
+  if (!db) {
+    throw new Error('Firestore n\'est pas initialisé')
+  }
+  return db
+}
+
 // ========== DIOCESES ==========
 export async function getDioceses(): Promise<Diocese[]> {
-  const q = query(collection(db, "dioceses"), orderBy("name"));
+  if (!db) {
+    throw new Error('Firestore n\'est pas initialisé')
+  }
+  const q = query(collection(ensureDb(), "dioceses"), orderBy("name"));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => ({
     ...doc.data(),
@@ -48,7 +58,10 @@ export async function getDioceses(): Promise<Diocese[]> {
 }
 
 export async function createDiocese(data: Omit<Diocese, "createdAt" | "updatedAt">): Promise<string> {
-  const docRef = doc(db, "dioceses", data.dioceseId);
+  if (!db) {
+    throw new Error('Firestore n\'est pas initialisé')
+  }
+  const docRef = doc(ensureDb(), "dioceses", data.dioceseId);
   await setDoc(docRef, {
     ...data,
     createdAt: Timestamp.now(),
@@ -59,8 +72,11 @@ export async function createDiocese(data: Omit<Diocese, "createdAt" | "updatedAt
 
 // ========== PAROISSES ==========
 export async function getParishes(dioceseId?: string): Promise<Parish[]> {
+  if (!db) {
+    throw new Error('Firestore n\'est pas initialisé')
+  }
   // Récupérer toutes les paroisses et filtrer côté client pour éviter les index composites
-  const q = query(collection(db, "parishes"));
+  const q = query(collection(ensureDb(), "parishes"));
   const snapshot = await getDocs(q);
   
   let parishes = snapshot.docs.map((doc) => ({
@@ -81,7 +97,7 @@ export async function getParishes(dioceseId?: string): Promise<Parish[]> {
 }
 
 export async function getParish(parishId: string): Promise<Parish | null> {
-  const docRef = doc(db, "parishes", parishId);
+  const docRef = doc(ensureDb(), "parishes", parishId);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return null;
   const data = docSnap.data();
@@ -93,7 +109,7 @@ export async function getParish(parishId: string): Promise<Parish | null> {
 }
 
 export async function createParish(data: Omit<Parish, "createdAt" | "updatedAt">): Promise<string> {
-  const docRef = doc(db, "parishes", data.parishId);
+  const docRef = doc(ensureDb(), "parishes", data.parishId);
   // Utiliser setDoc pour créer le document (merge: false pour créer uniquement)
   await setDoc(docRef, {
     ...data,
@@ -107,7 +123,7 @@ export async function updateParish(
   parishId: string,
   data: Partial<Omit<Parish, "parishId" | "createdAt">>
 ): Promise<void> {
-  const docRef = doc(db, "parishes", parishId);
+  const docRef = doc(ensureDb(), "parishes", parishId);
   await updateDoc(docRef, {
     ...data,
     updatedAt: Timestamp.now(),
@@ -115,13 +131,13 @@ export async function updateParish(
 }
 
 export async function deleteParish(parishId: string): Promise<void> {
-  const docRef = doc(db, "parishes", parishId);
+  const docRef = doc(ensureDb(), "parishes", parishId);
   await deleteDoc(docRef);
 }
 
 // ========== ÉGLISES ==========
 export async function getChurches(parishId?: string, dioceseId?: string): Promise<Church[]> {
-  const q = query(collection(db, "churches"));
+  const q = query(collection(ensureDb(), "churches"));
   const snapshot = await getDocs(q);
   
   let churches = snapshot.docs.map((doc) => ({
@@ -145,7 +161,7 @@ export async function getChurches(parishId?: string, dioceseId?: string): Promis
 }
 
 export async function getChurch(churchId: string): Promise<Church | null> {
-  const docRef = doc(db, "churches", churchId);
+  const docRef = doc(ensureDb(), "churches", churchId);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return null;
   const data = docSnap.data();
@@ -157,7 +173,7 @@ export async function getChurch(churchId: string): Promise<Church | null> {
 }
 
 export async function createChurch(data: Omit<Church, "createdAt" | "updatedAt">): Promise<string> {
-  const docRef = doc(db, "churches", data.churchId);
+  const docRef = doc(ensureDb(), "churches", data.churchId);
   await setDoc(docRef, {
     ...data,
     createdAt: Timestamp.now(),
@@ -170,7 +186,7 @@ export async function updateChurch(
   churchId: string,
   data: Partial<Omit<Church, "churchId" | "createdAt">>
 ): Promise<void> {
-  const docRef = doc(db, "churches", churchId);
+  const docRef = doc(ensureDb(), "churches", churchId);
   await updateDoc(docRef, {
     ...data,
     updatedAt: Timestamp.now(),
@@ -178,14 +194,14 @@ export async function updateChurch(
 }
 
 export async function deleteChurch(churchId: string): Promise<void> {
-  const docRef = doc(db, "churches", churchId);
+  const docRef = doc(ensureDb(), "churches", churchId);
   await deleteDoc(docRef);
 }
 
 // ========== ACTUALITÉS ==========
 export async function getParishNews(parishId?: string, dioceseId?: string): Promise<ParishNews[]> {
   // Récupérer toutes les actualités et filtrer côté client
-  const q = query(collection(db, "news"));
+  const q = query(collection(ensureDb(), "news"));
   const snapshot = await getDocs(q);
   
   let news = snapshot.docs.map((doc) => {
@@ -228,7 +244,7 @@ export async function getParishNews(parishId?: string, dioceseId?: string): Prom
 }
 
 export async function getParishNewsById(newsId: string): Promise<ParishNews | null> {
-  const docRef = doc(db, "news", newsId);
+  const docRef = doc(ensureDb(), "news", newsId);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return null;
   const data = docSnap.data();
@@ -254,7 +270,7 @@ export async function getParishNewsById(newsId: string): Promise<ParishNews | nu
 // Fonction utilitaire pour synchroniser une actualité vers parish_news
 export async function syncNewsToParishCollection(newsData: any): Promise<void> {
   try {
-    const parishCollectionRef = collection(db, "parish_news");
+    const parishCollectionRef = collection(ensureDb(), "parish_news");
     
     // Chercher si l'actualité existe déjà dans parish_news
     // Utiliser le titre et le scope pour identifier
@@ -295,7 +311,7 @@ export async function syncNewsToParishCollection(newsData: any): Promise<void> {
       console.log("✅ Actualité créée dans parish_news:", newParishDocRef.id);
     } else {
       // Mettre à jour dans parish_news
-      const parishDocRef = doc(db, "parish_news", parishSnapshot.docs[0].id);
+      const parishDocRef = doc(ensureDb(), "parish_news", parishSnapshot.docs[0].id);
       await updateDoc(parishDocRef, {
         ...parishNewsData,
         published: true,
@@ -330,7 +346,7 @@ export async function createParishNews(data: Omit<ParishNews, "id" | "createdAt"
   if (data.dioceseId) newsData.dioceseId = data.dioceseId;
   if (data.archdioceseId) newsData.archdioceseId = data.archdioceseId;
   
-  const docRef = await addDoc(collection(db, "news"), newsData);
+  const docRef = await addDoc(collection(ensureDb(), "news"), newsData);
   
   // Si publié, créer aussi dans parish_news pour l'app mobile
   if (newsData.published) {
@@ -356,7 +372,7 @@ export async function updateParishNews(
   newsId: string,
   data: Partial<Omit<ParishNews, "id" | "createdAt">>
 ): Promise<void> {
-  const docRef = doc(db, "news", newsId);
+  const docRef = doc(ensureDb(), "news", newsId);
   
   // Récupérer le document actuel pour vérifier l'état
   const currentDoc = await getDoc(docRef);
@@ -413,7 +429,7 @@ export async function updateParishNews(
   } else {
     // Désactiver dans parish_news si publié devient false
     try {
-      const parishCollectionRef = collection(db, "parish_news");
+      const parishCollectionRef = collection(ensureDb(), "parish_news");
       const parishQuery = query(
         parishCollectionRef,
         where("__originalId", "==", newsId) // Utiliser un champ pour identifier l'original
@@ -429,7 +445,7 @@ export async function updateParishNews(
         );
         const fallbackSnapshot = await getDocs(fallbackQuery);
         if (!fallbackSnapshot.empty) {
-          const parishDocRef = doc(db, "parish_news", fallbackSnapshot.docs[0].id);
+          const parishDocRef = doc(ensureDb(), "parish_news", fallbackSnapshot.docs[0].id);
           await updateDoc(parishDocRef, {
             published: false,
             updatedAt: Timestamp.now(),
@@ -437,7 +453,7 @@ export async function updateParishNews(
           console.log("⚠️ Actualité désactivée dans parish_news:", fallbackSnapshot.docs[0].id);
         }
       } else {
-        const parishDocRef = doc(db, "parish_news", parishSnapshot.docs[0].id);
+        const parishDocRef = doc(ensureDb(), "parish_news", parishSnapshot.docs[0].id);
         await updateDoc(parishDocRef, {
           published: false,
           updatedAt: Timestamp.now(),
@@ -451,13 +467,13 @@ export async function updateParishNews(
 }
 
 export async function deleteParishNews(newsId: string): Promise<void> {
-  const docRef = doc(db, "news", newsId);
+  const docRef = doc(ensureDb(), "news", newsId);
   await deleteDoc(docRef);
 }
 
 // ========== HEURES DE MESSES ==========
 export async function getPrayerTimes(parishId?: string): Promise<PrayerTime[]> {
-  const q = query(collection(db, "parish_prayer_times"));
+  const q = query(collection(ensureDb(), "parish_prayer_times"));
   const snapshot = await getDocs(q);
   
   let prayerTimes = snapshot.docs.map((doc) => ({
@@ -479,7 +495,7 @@ export async function getPrayerTimes(parishId?: string): Promise<PrayerTime[]> {
 }
 
 export async function getPrayerTimeById(prayerTimeId: string): Promise<PrayerTime | null> {
-  const docRef = doc(db, "parish_prayer_times", prayerTimeId);
+  const docRef = doc(ensureDb(), "parish_prayer_times", prayerTimeId);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return null;
   const data = docSnap.data();
@@ -503,10 +519,7 @@ export async function createPrayerTime(data: Omit<PrayerTime, "id" | "createdAt"
     createdByRole: data.createdByRole || "parish_admin",
     validatedByParish: data.validatedByParish !== undefined 
       ? data.validatedByParish 
-      : (data.createdByRole === "parish_admin" || 
-         data.createdByRole === "super_admin" || 
-         data.createdByRole === "archdiocese_admin" ||
-         data.createdByRole === "diocese_admin"),
+      : (data.createdByRole === "parish_admin"),
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
   };
@@ -516,7 +529,7 @@ export async function createPrayerTime(data: Omit<PrayerTime, "id" | "createdAt"
     prayerTimeData.churchId = data.churchId;
   }
   
-  const docRef = await addDoc(collection(db, "parish_prayer_times"), prayerTimeData);
+  const docRef = await addDoc(collection(ensureDb(), "parish_prayer_times"), prayerTimeData);
   return docRef.id;
 }
 
@@ -524,7 +537,7 @@ export async function updatePrayerTime(
   prayerTimeId: string,
   data: Partial<Omit<PrayerTime, "id" | "createdAt">>
 ): Promise<void> {
-  const docRef = doc(db, "parish_prayer_times", prayerTimeId);
+  const docRef = doc(ensureDb(), "parish_prayer_times", prayerTimeId);
   const updateData: any = {
     updatedAt: Timestamp.now(),
   };
@@ -541,12 +554,12 @@ export async function updatePrayerTime(
 }
 
 export async function deletePrayerTime(prayerTimeId: string): Promise<void> {
-  const docRef = doc(db, "parish_prayer_times", prayerTimeId);
+  const docRef = doc(ensureDb(), "parish_prayer_times", prayerTimeId);
   await deleteDoc(docRef);
 }
 
 export async function validatePrayerTime(prayerTimeId: string): Promise<void> {
-  const docRef = doc(db, "parish_prayer_times", prayerTimeId);
+  const docRef = doc(ensureDb(), "parish_prayer_times", prayerTimeId);
   await updateDoc(docRef, {
     validatedByParish: true,
     updatedAt: Timestamp.now(),
@@ -555,7 +568,7 @@ export async function validatePrayerTime(prayerTimeId: string): Promise<void> {
 
 // ========== PRIÈRES ==========
 export async function getPrayers(): Promise<Prayer[]> {
-  const q = query(collection(db, "prayers"));
+  const q = query(collection(ensureDb(), "prayers"));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => {
     const data = doc.data();
@@ -576,7 +589,7 @@ export async function getPrayers(): Promise<Prayer[]> {
 }
 
 export async function getPrayerById(prayerId: string): Promise<Prayer | null> {
-  const docRef = doc(db, "prayers", prayerId);
+  const docRef = doc(ensureDb(), "prayers", prayerId);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return null;
   const data = docSnap.data();
@@ -595,8 +608,8 @@ export async function getPrayerById(prayerId: string): Promise<Prayer | null> {
   } as Prayer;
 }
 
-export async function createPrayer(data: Omit<Prayer, "id" | "createdAt" | "updatedAt">): Promise<string> {
-  const docRef = await addDoc(collection(db, "prayers"), {
+export async function createPrayer(data: Omit<Prayer, "prayerId" | "createdAt" | "updatedAt">): Promise<string> {
+  const docRef = await addDoc(collection(ensureDb(), "prayers"), {
     ...data,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -606,9 +619,9 @@ export async function createPrayer(data: Omit<Prayer, "id" | "createdAt" | "upda
 
 export async function updatePrayer(
   prayerId: string,
-  data: Partial<Omit<Prayer, "id" | "createdAt">>
+  data: Partial<Omit<Prayer, "prayerId" | "createdAt">>
 ): Promise<void> {
-  const docRef = doc(db, "prayers", prayerId);
+  const docRef = doc(ensureDb(), "prayers", prayerId);
   await updateDoc(docRef, {
     ...data,
     updatedAt: Timestamp.now(),
@@ -616,14 +629,14 @@ export async function updatePrayer(
 }
 
 export async function deletePrayer(prayerId: string): Promise<void> {
-  const docRef = doc(db, "prayers", prayerId);
+  const docRef = doc(ensureDb(), "prayers", prayerId);
   await deleteDoc(docRef);
 }
 
 // ========== TYPES DE DONS ==========
 export async function getDonationTypes(): Promise<DonationType[]> {
   // Récupérer tous les types de dons et trier côté client
-  const q = query(collection(db, "donation_types"));
+  const q = query(collection(ensureDb(), "donation_types"));
   const snapshot = await getDocs(q);
   
   const donationTypes = snapshot.docs.map((doc) => ({
@@ -640,7 +653,7 @@ export async function getDonationTypes(): Promise<DonationType[]> {
 }
 
 export async function getDonationTypeById(donationTypeId: string): Promise<DonationType | null> {
-  const docRef = doc(db, "donation_types", donationTypeId);
+  const docRef = doc(ensureDb(), "donation_types", donationTypeId);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return null;
   const data = docSnap.data();
@@ -676,7 +689,7 @@ export async function createDonationType(
     donationTypeData.churchId = data.churchId;
   }
 
-  const docRef = await addDoc(collection(db, "donation_types"), donationTypeData);
+  const docRef = await addDoc(collection(ensureDb(), "donation_types"), donationTypeData);
 
   // Si validé par la paroisse et actif, créer aussi dans parish_donation_types pour l'app mobile
   if (donationTypeData.validatedByParish && donationTypeData.isActive) {
@@ -691,7 +704,7 @@ export async function createDonationType(
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       };
-      const parishDocRef = await addDoc(collection(db, "parish_donation_types"), parishDonationTypeData);
+      const parishDocRef = await addDoc(collection(ensureDb(), "parish_donation_types"), parishDonationTypeData);
       console.log("✅ Type de don créé dans parish_donation_types:", parishDocRef.id, "pour parishId:", donationTypeData.parishId);
     } catch (error) {
       console.error("❌ Erreur création dans parish_donation_types:", error);
@@ -708,7 +721,7 @@ export async function updateDonationType(
   donationTypeId: string,
   updateData: Partial<Omit<DonationType, "donationTypeId" | "createdAt">>
 ): Promise<void> {
-  const docRef = doc(db, "donation_types", donationTypeId);
+  const docRef = doc(ensureDb(), "donation_types", donationTypeId);
   
   // Construire l'objet de mise à jour en excluant undefined
   const updatePayload: any = {
@@ -735,7 +748,7 @@ export async function updateDonationType(
       (updateData.isActive !== undefined ? updateData.isActive : currentData.isActive);
     
     // Chercher dans parish_donation_types par parishId et name
-    const parishCollectionRef = collection(db, "parish_donation_types");
+    const parishCollectionRef = collection(ensureDb(), "parish_donation_types");
     const parishQuery = query(
       parishCollectionRef,
       where("parishId", "==", currentData.parishId),
@@ -753,7 +766,7 @@ export async function updateDonationType(
     } else {
       // Supprimer ou désactiver dans parish_donation_types
       if (!parishSnapshot.empty) {
-        const parishDocRef = doc(db, "parish_donation_types", parishSnapshot.docs[0].id);
+        const parishDocRef = doc(ensureDb(), "parish_donation_types", parishSnapshot.docs[0].id);
         await updateDoc(parishDocRef, {
           active: false,
           updatedAt: Timestamp.now(),
@@ -765,12 +778,12 @@ export async function updateDonationType(
 }
 
 export async function deleteDonationType(donationTypeId: string): Promise<void> {
-  const docRef = doc(db, "donation_types", donationTypeId);
+  const docRef = doc(ensureDb(), "donation_types", donationTypeId);
   await deleteDoc(docRef);
 }
 
 export async function validateDonationType(donationTypeId: string): Promise<void> {
-  const docRef = doc(db, "donation_types", donationTypeId);
+  const docRef = doc(ensureDb(), "donation_types", donationTypeId);
   const currentDoc = await getDoc(docRef);
   
   if (!currentDoc.exists()) {
@@ -796,7 +809,7 @@ export async function validateDonationType(donationTypeId: string): Promise<void
 // Fonction utilitaire pour synchroniser un type de don vers parish_donation_types
 export async function syncDonationTypeToParishCollection(donationTypeData: any): Promise<void> {
   try {
-    const parishCollectionRef = collection(db, "parish_donation_types");
+    const parishCollectionRef = collection(ensureDb(), "parish_donation_types");
     const parishQuery = query(
       parishCollectionRef,
       where("parishId", "==", donationTypeData.parishId),
@@ -820,7 +833,7 @@ export async function syncDonationTypeToParishCollection(donationTypeData: any):
       console.log("✅ Type de don synchronisé dans parish_donation_types:", newParishDocRef.id, "pour parishId:", donationTypeData.parishId);
     } else {
       // Mettre à jour dans parish_donation_types
-      const parishDocRef = doc(db, "parish_donation_types", parishSnapshot.docs[0].id);
+      const parishDocRef = doc(ensureDb(), "parish_donation_types", parishSnapshot.docs[0].id);
       await updateDoc(parishDocRef, {
         name: donationTypeData.name,
         description: donationTypeData.description || null,
@@ -885,7 +898,7 @@ async function createNotificationForNews(newsData: any, newsId: string): Promise
     
     // Créer une notification pour chaque paroisse
     const notificationPromises = parishesToNotify.map(parishId =>
-      addDoc(collection(db, "parish_notifications"), {
+      addDoc(collection(ensureDb(), "parish_notifications"), {
         parishId,
         type: "news",
         title: "📰 Nouvelle actualité",
@@ -907,7 +920,7 @@ async function createNotificationForNews(newsData: any, newsId: string): Promise
 }
 
 export async function getNotifications(): Promise<Notification[]> {
-  const q = query(collection(db, "notifications"), orderBy("createdAt", "desc"));
+  const q = query(collection(ensureDb(), "notifications"), orderBy("createdAt", "desc"));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => {
     const data = doc.data();
@@ -928,7 +941,7 @@ export async function getNotifications(): Promise<Notification[]> {
 
 // ========== ACTIVITÉS ==========
 export async function getActivities(): Promise<Activity[]> {
-  const q = query(collection(db, "activities"), orderBy("createdAt", "desc"));
+  const q = query(collection(ensureDb(), "activities"), orderBy("createdAt", "desc"));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((doc) => ({
     activityId: doc.id,

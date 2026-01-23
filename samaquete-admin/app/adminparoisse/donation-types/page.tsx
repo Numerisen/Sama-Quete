@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +24,11 @@ import { useToast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { DonationTypeService, DonationType } from "@/lib/donation-type-service"
-import { motion } from "framer-motion"
+// import { motion } from "framer-motion"
+// Stub temporaire
+const motion = {
+  div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+}
 
 /**
  * Page "Types de dons" - Admin Paroisse
@@ -38,7 +42,7 @@ import { motion } from "framer-motion"
  * 📱 Ces données sont consommées directement par le mobile
  * ⚠️ Si un type est inactif, il ne doit jamais apparaître côté mobile
  */
-export default function TypesDonsPage() {
+function TypesDonsContent() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { userRole } = useAuth()
@@ -595,5 +599,20 @@ export default function TypesDonsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function TypesDonsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <span className="text-lg">Chargement...</span>
+        </div>
+      </div>
+    }>
+      <TypesDonsContent />
+    </Suspense>
   )
 }
