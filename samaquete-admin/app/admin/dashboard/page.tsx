@@ -5,7 +5,8 @@ import { useAuth } from "@/components/auth/AuthProvider"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { fetchDonationStats } from "@/lib/api/donations"
 import { getParishes, getChurches, getParishNews } from "@/lib/firestore/services"
-import { Users, Church, Newspaper, Heart } from "lucide-react"
+import { Users, Church, Newspaper, Heart, RefreshCw, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function DashboardPage() {
   const { claims } = useAuth()
@@ -107,65 +108,171 @@ export default function DashboardPage() {
     }
   }, [claims])
 
+  const formatAmount = (amount: number) => {
+    return amount.toLocaleString("fr-FR").replace(/\s/g, " ")
+  }
+
   if (loading) {
-    return <div>Chargement...</div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-white to-orange-50">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
+          <span className="text-lg text-gray-600">Chargement du tableau de bord...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Bienvenue dans l'interface d'administration
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {claims?.role !== "church_admin" && (
-          <>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Paroisses</CardTitle>
-                <Church className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.parishes}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Églises</CardTitle>
-                <Church className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.churches}</div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Actualités</CardTitle>
-            <Newspaper className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.news}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Dons</CardTitle>
-            <Heart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.donations.total}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.donations.totalAmount > 0 
-                ? `${stats.donations.totalAmount.toLocaleString()} FCFA`
-                : "Aucun don"}
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* En-tête avec actions */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
+            <p className="text-gray-600 mt-1">
+              Bienvenue dans l'interface d'administration Sama-Quête
             </p>
-          </CardContent>
-        </Card>
+          </div>
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Actualiser
+          </Button>
+        </div>
+
+        {/* Statistiques principales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {claims?.role !== "church_admin" && (
+            <>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-sm font-medium">Paroisses</p>
+                      <p className="text-3xl font-bold">{stats.parishes}</p>
+                      <p className="text-blue-100 text-sm mt-1">Enregistrées</p>
+                    </div>
+                    <Church className="w-12 h-12 text-blue-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-100 text-sm font-medium">Églises</p>
+                      <p className="text-3xl font-bold">{stats.churches}</p>
+                      <p className="text-purple-100 text-sm mt-1">Enregistrées</p>
+                    </div>
+                    <Church className="w-12 h-12 text-purple-200" />
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+          
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-orange-100 text-sm font-medium">Actualités</p>
+                  <p className="text-3xl font-bold">{stats.news}</p>
+                  <p className="text-orange-100 text-sm mt-1">Publiées</p>
+                </div>
+                <Newspaper className="w-12 h-12 text-orange-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm font-medium">Total Collecté</p>
+                  <p className="text-3xl font-bold">
+                    {stats.donations.totalAmount > 0 
+                      ? `${formatAmount(stats.donations.totalAmount)} FCFA`
+                      : "0 FCFA"}
+                  </p>
+                  <p className="text-green-100 text-sm mt-1">{stats.donations.total} dons</p>
+                </div>
+                <Heart className="w-12 h-12 text-green-200" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Informations supplémentaires */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                Vue d'ensemble
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">Rôle actuel</span>
+                  <span className="font-semibold text-gray-900">
+                    {claims?.role?.replace("_", " ").toUpperCase() || "Non défini"}
+                  </span>
+                </div>
+                {claims?.dioceseId && (
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-600">Diocèse ID</span>
+                    <span className="font-semibold text-gray-900">{claims.dioceseId}</span>
+                  </div>
+                )}
+                {claims?.parishId && (
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-600">Paroisse ID</span>
+                    <span className="font-semibold text-gray-900">{claims.parishId}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="w-5 h-5 text-green-500" />
+                Statistiques des dons
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">Nombre total de dons</span>
+                  <span className="font-semibold text-gray-900">{stats.donations.total}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600">Montant total</span>
+                  <span className="font-semibold text-green-600">
+                    {stats.donations.totalAmount > 0 
+                      ? `${formatAmount(stats.donations.totalAmount)} FCFA`
+                      : "0 FCFA"}
+                  </span>
+                </div>
+                {stats.donations.total > 0 && (
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="text-gray-600">Don moyen</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatAmount(Math.round(stats.donations.totalAmount / stats.donations.total))} FCFA
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

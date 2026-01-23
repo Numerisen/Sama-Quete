@@ -6,6 +6,7 @@ import { useAuth } from "@/components/auth/AuthProvider"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
 import { getParish, getChurch, getDioceses } from "@/lib/firestore/services"
+import { useSidebar } from "./SidebarContext"
 import {
   LayoutDashboard,
   Building2,
@@ -19,6 +20,8 @@ import {
   BookOpen,
   Clock,
   UserCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 
 interface SidebarItem {
@@ -102,6 +105,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const { claims } = useAuth()
   const [entityName, setEntityName] = useState<string>("")
+  const { collapsed, setCollapsed } = useSidebar()
 
   useEffect(() => {
     async function loadEntityName() {
@@ -144,14 +148,36 @@ export function Sidebar() {
   const displayName = entityName || claims?.role?.replace("_", " ").toUpperCase() || ""
 
   return (
-    <div className="w-64 bg-card border-r border-border h-screen fixed left-0 top-0 overflow-y-auto">
-      <div className="p-6">
-        <h2 className="text-xl font-bold">Sama-Quête Admin</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {displayName}
-        </p>
+    <aside className={`fixed left-0 top-0 h-full bg-gradient-to-b from-amber-600 to-orange-600 text-white shadow-lg z-40 flex flex-col transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
+      <div className={`flex items-center gap-2 p-6 border-b border-white/10 ${collapsed ? 'justify-center' : ''}`}>
+        {!collapsed && (
+          <>
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+              <Church className="w-6 h-6" />
+            </div>
+            <div>
+              <span className="font-bold text-xl tracking-wide block">Sama-Quête</span>
+              <span className="text-xs text-white/80 block">{displayName}</span>
+            </div>
+          </>
+        )}
+        {collapsed && (
+          <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+            <Church className="w-6 h-6" />
+          </div>
+        )}
       </div>
-      <nav className="px-4 pb-4">
+      
+      {/* Bouton pour plier/déplier */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="absolute top-20 -right-3 w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center text-amber-600 hover:bg-amber-50 transition-colors z-50"
+        aria-label={collapsed ? "Déplier" : "Plier"}
+      >
+        {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+      </button>
+      
+      <nav className="flex-1 flex flex-col gap-1 mt-4">
         {filteredItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || pathname?.startsWith(item.href + "/")
@@ -160,18 +186,21 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-lg mb-1 transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-accent text-foreground"
+                "flex items-center gap-3 px-6 py-3 rounded-l-full transition-all duration-200 hover:bg-white/10 hover:pl-8",
+                isActive ? "bg-white/20 font-semibold shadow-lg" : "",
+                collapsed ? 'justify-center px-3 rounded-full' : ''
               )}
+              title={collapsed ? item.label : undefined}
             >
-              <Icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <Icon className="w-6 h-6" />
+              {!collapsed && <span>{item.label}</span>}
             </Link>
           )
         })}
       </nav>
-    </div>
+      {!collapsed && (
+        <div className="mt-auto p-4 text-xs text-center text-white/60">© {new Date().getFullYear()} Sama-Quête</div>
+      )}
+    </aside>
   )
 }

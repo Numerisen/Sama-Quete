@@ -3,35 +3,41 @@
 import { useAuth } from "@/components/auth/AuthProvider"
 import { logout } from "@/lib/auth"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { LogOut, User } from "lucide-react"
+import { LogOut } from "lucide-react"
+import { useSidebar } from "./SidebarContext"
 
 export function Header() {
   const { user, claims } = useAuth()
   const router = useRouter()
+  const { collapsed } = useSidebar()
 
   const handleLogout = async () => {
     await logout()
     router.push("/login")
   }
 
+  const getUserDisplayName = () => {
+    if (user?.displayName) return user.displayName
+    if (user?.email) return user.email.split('@')[0]
+    return 'Admin'
+  }
+
   return (
-    <header className="h-16 border-b border-border bg-background fixed top-0 right-0 left-64 z-10">
-      <div className="flex items-center justify-between h-full px-6">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold">Administration</h1>
+    <header className={`flex items-center justify-between p-4 bg-white shadow sticky top-0 z-30 transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-64'}`}>
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 border-2 border-amber-600 flex items-center justify-center text-white font-semibold">
+          {getUserDisplayName().charAt(0).toUpperCase()}
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <User className="h-4 w-4" />
-            <span>{user?.email}</span>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Déconnexion
-          </Button>
-        </div>
+        <span className="font-medium text-amber-600 text-lg">
+          Bonjour, {getUserDisplayName()}
+        </span>
       </div>
+      <button 
+        onClick={handleLogout}
+        className="text-red-600 flex items-center gap-1 hover:underline transition"
+      >
+        <LogOut className="w-5 h-5" /> Déconnexion
+      </button>
     </header>
   )
 }

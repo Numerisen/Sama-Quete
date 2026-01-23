@@ -8,20 +8,26 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
+import { Church, Shield, Building2, MapPin, Home, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [loginType, setLoginType] = useState<'admin' | 'archdiocese' | 'diocese' | 'paroisse' | 'eglise'>('admin')
   const router = useRouter()
   const { toast } = useToast()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError("")
 
     if (!auth) {
+      setError("Firebase Auth n'est pas initialisé")
       toast({
         title: "Erreur de connexion",
         description: "Firebase Auth n'est pas initialisé",
@@ -36,9 +42,11 @@ export default function LoginPage() {
       // Rediriger vers le dashboard après connexion
       router.push("/admin/dashboard")
     } catch (error: any) {
+      const errorMessage = error.message || "Email ou mot de passe incorrect"
+      setError(errorMessage)
       toast({
         title: "Erreur de connexion",
-        description: error.message || "Email ou mot de passe incorrect",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -47,39 +55,136 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Connexion Admin</CardTitle>
-          <CardDescription>
-            Connectez-vous à votre compte administrateur
-          </CardDescription>
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
+              <Church className="w-10 h-10 text-white" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl font-bold text-gray-900">
+            Connexion SamaQuete
+          </CardTitle>
+          <p className="text-gray-600 mt-2">Accès à l'interface d'administration</p>
         </CardHeader>
+        
         <CardContent>
+          {/* Sélecteur de type de connexion - 5 niveaux hiérarchiques */}
+          <div className="mb-6 space-y-2">
+            {/* Ligne 1: Super Admin, Archidiocèse, Diocèse */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => setLoginType('admin')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-md transition-colors ${
+                  loginType === 'admin'
+                    ? 'bg-red-50 text-red-600 shadow-sm border-2 border-red-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                <span className="text-xs font-medium">Super Admin</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginType('archdiocese')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-md transition-colors ${
+                  loginType === 'archdiocese'
+                    ? 'bg-orange-50 text-orange-600 shadow-sm border-2 border-orange-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                <span className="text-xs font-medium">Archidiocèse</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginType('diocese')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-md transition-colors ${
+                  loginType === 'diocese'
+                    ? 'bg-yellow-50 text-yellow-600 shadow-sm border-2 border-yellow-200'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <MapPin className="w-4 h-4" />
+                <span className="text-xs font-medium">Diocèse</span>
+              </button>
+            </div>
+            
+            {/* Ligne 2: Paroisse, Église */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setLoginType('paroisse')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-lg transition-colors ${
+                  loginType === 'paroisse'
+                    ? 'bg-green-50 text-green-600 shadow-sm border-2 border-green-200'
+                    : 'bg-gray-100 text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Home className="w-4 h-4" />
+                <span className="text-xs font-medium">Paroisse</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginType('eglise')}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 px-2 rounded-lg transition-colors ${
+                  loginType === 'eglise'
+                    ? 'bg-blue-50 text-blue-600 shadow-sm border-2 border-blue-200'
+                    : 'bg-gray-100 text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Church className="w-4 h-4" />
+                <span className="text-xs font-medium">Église</span>
+              </button>
+            </div>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@example.com"
+                placeholder="admin@admin.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Connexion..." : "Se connecter"}
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Connexion...
+                </>
+              ) : (
+                'Se connecter'
+              )}
             </Button>
           </form>
         </CardContent>
