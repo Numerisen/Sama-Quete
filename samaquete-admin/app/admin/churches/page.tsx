@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getChurches, deleteChurch, getDioceses, getParishes } from "@/lib/firestore/services"
 import { Church, Diocese, Parish } from "@/types"
@@ -9,6 +9,16 @@ import { Button } from "@/components/ui/button"
 import { Plus, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { ViewToggle, ViewMode } from "@/components/ui/view-toggle"
+import { Pagination } from "@/components/ui/pagination"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +38,9 @@ export default function ChurchesPage() {
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [churchToDelete, setChurchToDelete] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>("cards")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     loadChurches()
@@ -89,6 +102,18 @@ export default function ChurchesPage() {
     }
   }
 
+  // Pagination
+  const totalPages = Math.ceil(churches.length / itemsPerPage)
+  const paginatedChurches = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return churches.slice(start, end)
+  }, [churches, currentPage, itemsPerPage])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
   if (loading) {
     return <div>Chargement...</div>
   }
@@ -99,20 +124,23 @@ export default function ChurchesPage() {
         <div>
           <h1 className="text-3xl font-bold">Églises</h1>
           <p className="text-muted-foreground mt-2">
-            Liste des églises (internes)
+            Liste des églises (internes) • {churches.length} église{churches.length > 1 ? "s" : ""}
           </p>
         </div>
-        {(claims?.role === "super_admin" || 
-          claims?.role === "archdiocese_admin" ||
-          claims?.role === "diocese_admin" || 
-          claims?.role === "parish_admin") && (
-          <Link href="/admin/churches/create">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle église
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          {(claims?.role === "super_admin" || 
+            claims?.role === "archdiocese_admin" ||
+            claims?.role === "diocese_admin" || 
+            claims?.role === "parish_admin") && (
+            <Link href="/admin/churches/create">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle église
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {churches.length === 0 && !loading && (
@@ -125,8 +153,9 @@ export default function ChurchesPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {churches.map((church) => (
+      {viewMode === "cards" && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {paginatedChurches.map((church) => (
           <Card key={church.churchId}>
             <CardHeader>
               <div className="flex items-start justify-between gap-2">
@@ -180,8 +209,78 @@ export default function ChurchesPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode === "list" && (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead>Diocèse</TableHead>
+                <TableHead>Paroisse</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedChurches.map((church) => (
+                <TableRow key={church.churchId}>
+                  <TableCell className="font-medium">{church.name}</TableCell>
+                  <TableCell>{getDioceseName(church.dioceseId)}</TableCell>
+                  <TableCell>{church.parishId ? getParishName(church.parishId) : "-"}</TableCell>
+                  <TableCell>
+                    <Badge variant={church.isActive ? "default" : "secondary"}>
+                      {church.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/admin/churches/${church.churchId}/edit`}>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Modifier
+                        </Button>
+                      </Link>
+                      {(claims?.role === "super_admin" || 
+                        claims?.role === "archdiocese_admin" ||
+                        claims?.role === "diocese_admin" || 
+                        claims?.role === "parish_admin") && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            setChurchToDelete(church.churchId)
+                            setDeleteDialogOpen(true)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {churches.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={churches.length}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newItemsPerPage) => {
+            setItemsPerPage(newItemsPerPage)
+            setCurrentPage(1)
+          }}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

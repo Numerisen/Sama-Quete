@@ -1,13 +1,23 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { fetchDonations, fetchDonationStats } from "@/lib/api/donations"
 import { Donation } from "@/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { format } from "date-fns"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ViewToggle, ViewMode } from "@/components/ui/view-toggle"
 import { Pagination } from "@/components/ui/pagination"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 
 export default function DonationsPage() {
   const { claims } = useAuth()
@@ -23,6 +33,7 @@ export default function DonationsPage() {
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [viewMode, setViewMode] = useState<ViewMode>("cards")
 
   useEffect(() => {
     loadDonations()
@@ -89,10 +100,11 @@ export default function DonationsPage() {
         <div>
           <h1 className="text-3xl font-bold">Dons</h1>
           <p className="text-muted-foreground mt-2">
-            Consultation des dons (lecture seule)
+            Consultation des dons (lecture seule) • {donations.length} don{donations.length > 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
           <Select value={sortOrder} onValueChange={(value: "newest" | "oldest") => setSortOrder(value)}>
             <SelectTrigger className="w-[200px]">
               <SelectValue />
@@ -163,39 +175,76 @@ export default function DonationsPage() {
         </Card>
       )}
 
-      <div className="space-y-4">
-        {paginatedDonations.map((donation) => (
-          <Card key={donation.donationId}>
-            <CardHeader>
-              <CardTitle className="text-lg">
-                {donation.amount.toLocaleString()} FCFA
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Statut: {donation.status}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Méthode: {donation.paymentMethod}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {format(new Date(donation.createdAt), "PPpp")}
-                  </p>
+      {viewMode === "cards" && (
+        <div className="space-y-4">
+          {paginatedDonations.map((donation) => (
+            <Card key={donation.donationId}>
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  {donation.amount.toLocaleString()} FCFA
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Statut: {donation.status}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Méthode: {donation.paymentMethod}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {format(new Date(donation.createdAt), "PPpp")}
+                    </p>
+                  </div>
+                  <Badge variant={
+                    donation.status === "completed" ? "default" :
+                    donation.status === "pending" ? "secondary" :
+                    "destructive"
+                  }>
+                    {donation.status}
+                  </Badge>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-sm ${
-                  donation.status === "completed" ? "bg-green-100 text-green-800" :
-                  donation.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                  "bg-red-100 text-red-800"
-                }`}>
-                  {donation.status}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {viewMode === "list" && (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Montant</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Méthode</TableHead>
+                <TableHead>Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedDonations.map((donation) => (
+                <TableRow key={donation.donationId}>
+                  <TableCell className="font-medium">
+                    {donation.amount.toLocaleString()} FCFA
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      donation.status === "completed" ? "default" :
+                      donation.status === "pending" ? "secondary" :
+                      "destructive"
+                    }>
+                      {donation.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{donation.paymentMethod}</TableCell>
+                  <TableCell>{format(new Date(donation.createdAt), "PPpp")}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
 
       {sortedDonations.length > 0 && (
         <Pagination

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getPrayerTimes, deletePrayerTime, validatePrayerTime } from "@/lib/firestore/services"
 import { PrayerTime, DAYS_OF_WEEK } from "@/types"
@@ -10,6 +10,16 @@ import { Plus, Edit, Trash2, Clock, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
+import { ViewToggle, ViewMode } from "@/components/ui/view-toggle"
+import { Pagination } from "@/components/ui/pagination"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +38,9 @@ export default function PrayerTimesPage() {
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [prayerTimeToDelete, setPrayerTimeToDelete] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>("cards")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     loadPrayerTimes()
@@ -110,6 +123,19 @@ export default function PrayerTimesPage() {
     return days.join(", ")
   }
 
+  // Pagination
+  const totalPages = Math.ceil(prayerTimes.length / itemsPerPage)
+  const paginatedPrayerTimes = useMemo(() => {
+    return prayerTimes.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    )
+  }, [prayerTimes, currentPage, itemsPerPage])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
   if (loading) {
     return <div>Chargement...</div>
   }
@@ -120,17 +146,20 @@ export default function PrayerTimesPage() {
         <div>
           <h1 className="text-3xl font-bold">Heures de messes</h1>
           <p className="text-muted-foreground mt-2">
-            Gestion des heures de messes de la paroisse (visibles dans l'app mobile)
+            Gestion des heures de messes de la paroisse (visibles dans l'app mobile) • {prayerTimes.length} heure{prayerTimes.length > 1 ? "s" : ""}
           </p>
         </div>
-        {(claims?.role === "parish_admin" || claims?.role === "church_admin") && (
-          <Link href="/admin/prayer-times/create">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle heure de messe
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          {(claims?.role === "parish_admin" || claims?.role === "church_admin") && (
+            <Link href="/admin/prayer-times/create">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle heure de messe
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {prayerTimes.length === 0 && !loading && (
@@ -143,8 +172,9 @@ export default function PrayerTimesPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {prayerTimes.map((prayerTime) => (
+      {viewMode === "cards" && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {paginatedPrayerTimes.map((prayerTime) => (
           <Card key={prayerTime.id}>
             <CardHeader>
               <div className="flex items-start justify-between gap-2">
@@ -234,8 +264,101 @@ export default function PrayerTimesPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode === "list" && (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead>Heure</TableHead>
+                <TableHead>Jours</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Validation</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedPrayerTimes.map((prayerTime) => (
+                <TableRow key={prayerTime.id}>
+                  <TableCell className="font-medium">{prayerTime.name}</TableCell>
+                  <TableCell className="text-lg font-bold">{prayerTime.time}</TableCell>
+                  <TableCell>{getDaysBadge(prayerTime.days)}</TableCell>
+                  <TableCell>
+                    <Badge variant={prayerTime.active ? "default" : "secondary"}>
+                      {prayerTime.active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {!prayerTime.validatedByParish && prayerTime.createdByRole === "church_admin" ? (
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                        En attente
+                      </Badge>
+                    ) : prayerTime.validatedByParish ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-800">
+                        Validée
+                      </Badge>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/admin/prayer-times/${prayerTime.id}/edit`}>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Modifier
+                        </Button>
+                      </Link>
+                      {claims?.role === "parish_admin" && 
+                       prayerTime.parishId === claims.parishId && 
+                       !prayerTime.validatedByParish && 
+                       prayerTime.createdByRole === "church_admin" && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleValidate(prayerTime.id!)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          Valider
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setPrayerTimeToDelete(prayerTime.id!)
+                          setDeleteDialogOpen(true)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {prayerTimes.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={prayerTimes.length}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newItemsPerPage) => {
+            setItemsPerPage(newItemsPerPage)
+            setCurrentPage(1)
+          }}
+        />
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

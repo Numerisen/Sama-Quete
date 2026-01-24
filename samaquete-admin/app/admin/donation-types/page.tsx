@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getDonationTypes, deleteDonationType, validateDonationType, syncDonationTypeToParishCollection } from "@/lib/firestore/services"
 import { DonationType } from "@/types"
@@ -10,7 +10,16 @@ import { Plus, Edit, Trash2, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/components/ui/use-toast"
+import { ViewToggle, ViewMode } from "@/components/ui/view-toggle"
 import { Pagination } from "@/components/ui/pagination"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +40,7 @@ export default function DonationTypesPage() {
   const [donationTypeToDelete, setDonationTypeToDelete] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [viewMode, setViewMode] = useState<ViewMode>("cards")
 
   useEffect(() => {
     loadDonationTypes()
@@ -131,10 +141,12 @@ export default function DonationTypesPage() {
 
   // Pagination
   const totalPages = Math.ceil(donationTypes.length / itemsPerPage)
-  const paginatedDonationTypes = donationTypes.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  const paginatedDonationTypes = useMemo(() => {
+    return donationTypes.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    )
+  }, [donationTypes, currentPage, itemsPerPage])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -150,19 +162,22 @@ export default function DonationTypesPage() {
         <div>
           <h1 className="text-3xl font-bold">Types de dons</h1>
           <p className="text-muted-foreground mt-2">
-            Gérez les types de dons disponibles pour les paroisses
+            Gestion des types de dons disponibles pour les contributions • {donationTypes.length} type{donationTypes.length > 1 ? "s" : ""}
           </p>
         </div>
-        {(claims?.role === "super_admin" || 
-          claims?.role === "parish_admin" || 
-          claims?.role === "church_admin") && (
-          <Link href="/admin/donation-types/create">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Créer un type de don
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          {(claims?.role === "super_admin" || 
+            claims?.role === "parish_admin" || 
+            claims?.role === "church_admin") && (
+            <Link href="/admin/donation-types/create">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Créer un type de don
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {donationTypes.length === 0 ? (
@@ -171,15 +186,9 @@ export default function DonationTypesPage() {
             <p className="text-muted-foreground">Aucun type de don trouvé</p>
           </CardContent>
         </Card>
-      ) : (
-        <>
-          <div className="mb-4">
-            <p className="text-sm text-muted-foreground">
-              Total: <span className="font-semibold">{donationTypes.length}</span> type{donationTypes.length > 1 ? 's' : ''} de don{donationTypes.length > 1 ? 's' : ''}
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {paginatedDonationTypes.map((type) => (
+      ) : viewMode === "cards" ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {paginatedDonationTypes.map((type) => (
               <Card key={type.donationTypeId}>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -280,8 +289,76 @@ export default function DonationTypesPage() {
               </CardContent>
               </Card>
             ))}
-          </div>
-        </>
+        </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Montants</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Validation</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedDonationTypes.map((type) => (
+                <TableRow key={type.donationTypeId}>
+                  <TableCell className="font-medium">{type.name}</TableCell>
+                  <TableCell className="max-w-md truncate">{type.description || "-"}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {type.defaultAmounts.slice(0, 3).map((amount, idx) => (
+                        <span key={idx} className="text-xs px-1.5 py-0.5 bg-secondary rounded">
+                          {amount.toLocaleString()} FCFA
+                        </span>
+                      ))}
+                      {type.defaultAmounts.length > 3 && (
+                        <span className="text-xs text-muted-foreground">+{type.defaultAmounts.length - 3}</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={type.isActive ? "default" : "secondary"}>
+                      {type.isActive ? "Actif" : "Inactif"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={type.validatedByParish ? "default" : "outline"}>
+                      {type.validatedByParish ? "Validé" : "En attente"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/admin/donation-types/${type.donationTypeId}/edit`}>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Modifier
+                        </Button>
+                      </Link>
+                      {(claims?.role === "super_admin" || 
+                        (claims?.role === "parish_admin" && type.parishId === claims.parishId) ||
+                        (claims?.role === "church_admin" && type.churchId === claims.churchId && type.createdByRole === "church_admin")) && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            setDonationTypeToDelete(type.donationTypeId)
+                            setDeleteDialogOpen(true)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

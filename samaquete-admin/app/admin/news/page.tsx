@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getParishNews, deleteParishNews } from "@/lib/firestore/services"
 import { ParishNews, NEWS_CATEGORIES } from "@/types"
@@ -10,6 +10,15 @@ import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
+import { ViewToggle, ViewMode } from "@/components/ui/view-toggle"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +39,7 @@ export default function NewsPage() {
   const [newsToDelete, setNewsToDelete] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [viewMode, setViewMode] = useState<ViewMode>("cards")
 
   useEffect(() => {
     loadNews()
@@ -129,21 +139,26 @@ export default function NewsPage() {
         <div>
           <h1 className="text-3xl font-bold">Actualités</h1>
           <p className="text-muted-foreground mt-2">
-            {claims?.role === "archdiocese_admin" 
+            {claims?.role === "super_admin"
+              ? "Consultation des actualités (lecture seule)"
+              : claims?.role === "archdiocese_admin" 
               ? "Gestion des actualités archidiocésaines (visibles dans toutes les paroisses)"
               : claims?.role === "diocese_admin"
               ? "Gestion des actualités diocésaines (visibles dans toutes les paroisses du diocèse)"
-              : "Gestion des actualités de la paroisse (visibles dans l'app mobile)"}
+              : "Gestion des actualités de la paroisse (visibles dans l'app mobile)"} • {news.length} actualité{news.length > 1 ? "s" : ""}
           </p>
         </div>
-        {claims?.role !== "church_admin" && (
-          <Link href="/admin/news/create">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle actualité
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          {claims?.role !== "church_admin" && claims?.role !== "super_admin" && (
+            <Link href="/admin/news/create">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle actualité
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {news.length === 0 && !loading && (
@@ -156,8 +171,9 @@ export default function NewsPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {paginatedNews.map((item) => (
+      {viewMode === "cards" && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {paginatedNews.map((item) => (
           <Card key={item.id} className="flex flex-col">
             {item.image && (
               <div className="aspect-video w-full overflow-hidden rounded-t-lg bg-muted">
@@ -198,39 +214,118 @@ export default function NewsPage() {
                   <span>Par {item.author}</span>
                 )}
               </div>
-              <div className="mt-4 flex gap-2">
-                <Link href={`/admin/news/${item.id}/edit`} className="flex-1">
-                  <Button variant="outline" size="sm" className="w-full">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Modifier
+              {/* Super admin ne peut pas modifier/supprimer les actualités */}
+              {claims?.role !== "super_admin" && (
+                <div className="mt-4 flex gap-2">
+                  <Link href={`/admin/news/${item.id}/edit`} className="flex-1">
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Modifier
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTogglePublish(item)}
+                  >
+                    {item.published ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
-                </Link>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleTogglePublish(item)}
-                >
-                  {item.published ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    setNewsToDelete(item.id!)
-                    setDeleteDialogOpen(true)
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setNewsToDelete(item.id!)
+                      setDeleteDialogOpen(true)
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode === "list" && (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Titre</TableHead>
+                <TableHead>Catégorie</TableHead>
+                <TableHead>Scope</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedNews.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.title}</TableCell>
+                  <TableCell>{getCategoryBadge(item.category)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {item.scope === "archdiocese" 
+                        ? "🏛️ Archidiocèse" 
+                        : item.scope === "diocese"
+                        ? "⛪ Diocèse"
+                        : "📍 Paroisse"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={item.published ? "default" : "secondary"}>
+                      {item.published ? "Publié" : "Brouillon"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {item.createdAt && format(new Date(item.createdAt), "PP")}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {claims?.role !== "super_admin" && (
+                      <div className="flex justify-end gap-2">
+                        <Link href={`/admin/news/${item.id}/edit`}>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4 mr-1" />
+                            Modifier
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTogglePublish(item)}
+                        >
+                          {item.published ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            setNewsToDelete(item.id!)
+                            setDeleteDialogOpen(true)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

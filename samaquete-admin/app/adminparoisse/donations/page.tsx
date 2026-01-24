@@ -146,18 +146,17 @@ function DonsContent() {
     return matchSearch && matchType && matchStatus && matchDate
   })
 
-  // Statistiques
+  // Statistiques - seulement les terminés (confirmed/completed)
+  const confirmedDonations = filteredDonations.filter(d => d.status === 'confirmed' || d.status === 'completed');
+  const pendingDonations = filteredDonations.filter(d => d.status === 'pending');
+  
   const stats = {
-    total: filteredDonations.reduce((sum, d) => sum + d.amount, 0),
+    total: confirmedDonations.reduce((sum, d) => sum + d.amount, 0), // Seulement les terminés
     totalCount: filteredDonations.length,
-    confirmed: filteredDonations
-      .filter(d => d.status === 'confirmed')
-      .reduce((sum, d) => sum + d.amount, 0),
-    confirmedCount: filteredDonations.filter(d => d.status === 'confirmed').length,
-    pending: filteredDonations
-      .filter(d => d.status === 'pending')
-      .reduce((sum, d) => sum + d.amount, 0),
-    pendingCount: filteredDonations.filter(d => d.status === 'pending').length
+    confirmed: confirmedDonations.reduce((sum, d) => sum + d.amount, 0),
+    confirmedCount: confirmedDonations.length,
+    pending: pendingDonations.reduce((sum, d) => sum + d.amount, 0), // Pour affichage seulement
+    pendingCount: pendingDonations.length
   }
 
   // Statistiques par type

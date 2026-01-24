@@ -151,23 +151,26 @@ service cloud.firestore {
     }
     
     // News - Lecture publique pour les documents publiés (support status et published)
+    // Super admin peut seulement lire, pas créer/modifier/supprimer
     match /news/{newsId} {
       allow read: if isAuthenticated() || 
                    (request.auth == null && (
                      resource.data.status == 'published' || 
                      resource.data.published == true
                    ));
-      allow create: if isAuthenticated() && getUserRole() != 'church_admin';
+      allow create: if isAuthenticated() && 
+                     getUserRole() != 'church_admin' && 
+                     getUserRole() != 'super_admin';
       allow update: if isAuthenticated() && (
-        isSuperAdmin() || 
-        isArchdioceseAdmin() || 
-        isDioceseAdmin() || 
-        isParishAdmin()
+        (isArchdioceseAdmin() || 
+         isDioceseAdmin() || 
+         isParishAdmin()) &&
+        !isSuperAdmin()
       );
       allow delete: if isAuthenticated() && (
-        isSuperAdmin() || 
-        isDioceseAdmin() || 
-        isParishAdmin()
+        (isDioceseAdmin() || 
+         isParishAdmin()) &&
+        !isSuperAdmin()
       );
     }
     
@@ -177,10 +180,8 @@ service cloud.firestore {
       allow read: if isAuthenticated() || 
                    (request.auth == null && resource.data.published == true);
       
-      // Création selon le scope
+      // Création selon le scope - Super admin ne peut PAS créer
       allow create: if isAuthenticated() && (
-        // Super admin peut créer tout
-        isSuperAdmin() ||
         // Archidiocèse peut créer des actualités archidiocésaines (DAKAR)
         (isArchdioceseAdmin() && request.resource.data.scope == 'archdiocese' && request.resource.data.archdioceseId == 'DAKAR') ||
         // Diocèse peut créer des actualités diocésaines (son diocèse) ou paroissiales (ses paroisses)
@@ -192,11 +193,10 @@ service cloud.firestore {
         (getUserRole() == 'parish_admin' && 
          request.resource.data.scope == 'parish' && 
          request.resource.data.parishId == getUserParishId())
-      );
+      ) && !isSuperAdmin();
       
-      // Modification selon le scope
+      // Modification selon le scope - Super admin ne peut PAS modifier
       allow update: if isAuthenticated() && (
-        isSuperAdmin() ||
         // Archidiocèse peut modifier ses actualités archidiocésaines
         (isArchdioceseAdmin() && resource.data.scope == 'archdiocese' && resource.data.archdioceseId == 'DAKAR') ||
         // Diocèse peut modifier ses actualités diocésaines et celles de ses paroisses
@@ -208,11 +208,10 @@ service cloud.firestore {
         (getUserRole() == 'parish_admin' && 
          resource.data.scope == 'parish' && 
          resource.data.parishId == getUserParishId())
-      );
+      ) && !isSuperAdmin();
       
-      // Suppression selon le scope
+      // Suppression selon le scope - Super admin ne peut PAS supprimer
       allow delete: if isAuthenticated() && (
-        isSuperAdmin() ||
         (isArchdioceseAdmin() && resource.data.scope == 'archdiocese' && resource.data.archdioceseId == 'DAKAR') ||
         (getUserRole() == 'diocese_admin' && (
           (resource.data.scope == 'diocese' && resource.data.dioceseId == getUserDioceseId()) ||
@@ -221,7 +220,7 @@ service cloud.firestore {
         (getUserRole() == 'parish_admin' && 
          resource.data.scope == 'parish' && 
          resource.data.parishId == getUserParishId())
-      );
+      ) && !isSuperAdmin();
     }
     
     // Donation Types - Lecture publique pour les types actifs et validés

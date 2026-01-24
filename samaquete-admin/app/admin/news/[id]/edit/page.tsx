@@ -25,6 +25,18 @@ export default function EditNewsPage() {
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  
+  // Super admin ne peut pas modifier d'actualités
+  useEffect(() => {
+    if (claims?.role === "super_admin") {
+      router.push("/admin/news")
+      toast({
+        title: "Accès refusé",
+        description: "Le super admin ne peut pas modifier d'actualités",
+        variant: "destructive",
+      })
+    }
+  }, [claims, router, toast])
   const [formData, setFormData] = useState<Omit<ParishNews, "id" | "createdAt" | "updatedAt">>({
     scope: "parish",
     parishId: claims?.parishId || "",

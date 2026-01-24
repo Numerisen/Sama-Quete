@@ -21,9 +21,22 @@ export default function CreateNewsPage() {
   const { claims, user } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  
+  // Super admin ne peut pas créer d'actualités
+  useEffect(() => {
+    if (claims?.role === "super_admin") {
+      router.push("/admin/news")
+      toast({
+        title: "Accès refusé",
+        description: "Le super admin ne peut pas créer d'actualités",
+        variant: "destructive",
+      })
+    }
+  }, [claims, router, toast])
+  
   // Déterminer le scope selon le rôle
   const getScope = (): "parish" | "diocese" | "archdiocese" => {
-    if (claims?.role === "archdiocese_admin" || claims?.role === "super_admin") {
+    if (claims?.role === "archdiocese_admin") {
       return "archdiocese";
     }
     if (claims?.role === "diocese_admin") {

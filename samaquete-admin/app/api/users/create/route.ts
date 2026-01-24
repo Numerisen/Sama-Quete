@@ -38,12 +38,20 @@ const DEFAULT_PASSWORD = "J@ngubi26"
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { email, role, entityType, entityId, name } = body
+    const { email, role, entityType, entityId, name, dioceseId, parishId } = body
 
     // Validation
     if (!email || !role || !entityType) {
       return NextResponse.json(
         { error: "Email, rôle et type d'entité sont requis" },
+        { status: 400 }
+      )
+    }
+    
+    // Pour église, dioceseId est requis même si entityId est vide
+    if (entityType === "church" && !dioceseId) {
+      return NextResponse.json(
+        { error: "Diocèse requis pour créer un utilisateur église" },
         { status: 400 }
       )
     }
@@ -74,27 +82,28 @@ export async function POST(req: NextRequest) {
       mustChangePassword: true, // Forcer le changement de mot de passe
     }
 
-    let dioceseId = ""
-    let parishId = ""
-    let churchId = ""
-    let archdioceseId = ""
-
     if (entityType === "diocese" && entityId) {
-      dioceseId = entityId
       customClaims.dioceseId = entityId
     } else if (entityType === "archdiocese" && entityId) {
-      archdioceseId = entityId
       customClaims.archdioceseId = entityId
     } else if (entityType === "parish" && entityId) {
       // Pour une paroisse, on doit récupérer le dioceseId
       // Pour simplifier, on suppose que entityId contient les infos nécessaires
-      parishId = entityId
       customClaims.parishId = entityId
       // TODO: Récupérer le dioceseId depuis la paroisse
-    } else if (entityType === "church" && entityId) {
-      churchId = entityId
-      customClaims.churchId = entityId
-      // TODO: Récupérer le parishId et dioceseId depuis l'église
+    } else if (entityType === "church") {
+      // Pour église, dioceseId est toujours requis (envoyé depuis le frontend)
+      if (dioceseId) {
+        customClaims.dioceseId = dioceseId
+      }
+      // parishId est optionnel
+      if (parishId) {
+        customClaims.parishId = parishId
+      }
+      // churchId (entityId) est optionnel
+      if (entityId) {
+        customClaims.churchId = entityId
+      }
     }
 
     // Créer l'utilisateur

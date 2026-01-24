@@ -174,9 +174,9 @@ function ParoisseDashboardContent() {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      // Statistiques des dons
-      const totalAmount = donations.reduce((sum, d) => sum + (d.amount || 0), 0);
-      const confirmedDonations = donations.filter(d => d.status === 'confirmed');
+      // Statistiques des dons - seulement les terminés (confirmed/completed)
+      const confirmedDonations = donations.filter(d => d.status === 'confirmed' || d.status === 'completed');
+      const totalAmount = confirmedDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
       const todayDonations = donations.filter(d => d.date?.startsWith(today)).length;
       const weekDonations = donations.filter(d => d.date && d.date >= weekAgo).length;
       const monthDonations = donations.filter(d => d.date && d.date >= monthAgo).length;

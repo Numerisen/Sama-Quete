@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getDioceses, getParishes, getChurches } from "@/lib/firestore/services"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +8,15 @@ import { Button } from "@/components/ui/button"
 import { Plus, Edit, Trash2, Mail, User } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
+import { ViewToggle, ViewMode } from "@/components/ui/view-toggle"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +60,7 @@ export default function UsersPage() {
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [viewMode, setViewMode] = useState<ViewMode>("cards")
 
   useEffect(() => {
     if (claims?.role === "super_admin") {
@@ -72,7 +82,17 @@ export default function UsersPage() {
         throw new Error("Erreur lors du chargement des utilisateurs")
       }
       const data = await response.json()
-      setUsers(data.users || [])
+      // Filtrer pour ne garder que les utilisateurs admin (exclure les fidèles de l'app mobile)
+      const adminUsers = (data.users || []).filter((user: User) => {
+        const role = user.role || ""
+        // Garder seulement les utilisateurs avec un rôle admin
+        return role === "super_admin" || 
+               role === "archdiocese_admin" || 
+               role === "diocese_admin" || 
+               role === "parish_admin" || 
+               role === "church_admin"
+      })
+      setUsers(adminUsers)
       setDioceses(diocesesData)
       setParishes(parishesData)
       setChurches(churchesData)
@@ -159,10 +179,12 @@ export default function UsersPage() {
 
   // Pagination
   const totalPages = Math.ceil(users.length / itemsPerPage)
-  const paginatedUsers = users.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  const paginatedUsers = useMemo(() => {
+    return users.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    )
+  }, [users, currentPage, itemsPerPage])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -198,15 +220,18 @@ export default function UsersPage() {
         <div>
           <h1 className="text-3xl font-bold">Utilisateurs</h1>
           <p className="text-muted-foreground mt-2">
-            Gestion des utilisateurs du système
+            Gestion des utilisateurs du système • {users.length} utilisateur{users.length > 1 ? "s" : ""}
           </p>
         </div>
-        <Link href="/admin/users/create">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvel utilisateur
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          <Link href="/admin/users/create">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvel utilisateur
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {users.length === 0 ? (
@@ -215,7 +240,7 @@ export default function UsersPage() {
             <p className="text-muted-foreground">Aucun utilisateur trouvé</p>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === "cards" ? (
         <Card>
           <CardHeader>
             <CardTitle>Liste des utilisateurs ({users.length})</CardTitle>
@@ -286,6 +311,58 @@ export default function UsersPage() {
               ))}
             </div>
           </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Nom</TableHead>
+                <TableHead>Rôle</TableHead>
+                <TableHead>Entité</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedUsers.map((user) => (
+                <TableRow key={user.uid}>
+                  <TableCell className="font-medium">{user.email}</TableCell>
+                  <TableCell>{user.displayName || "-"}</TableCell>
+                  <TableCell>
+                    <Badge>{getRoleLabel(user.role)}</Badge>
+                  </TableCell>
+                  <TableCell>{getEntityLabel(user)}</TableCell>
+                  <TableCell>
+                    <Badge variant={user.disabled ? "destructive" : "default"}>
+                      {user.disabled ? "Désactivé" : "Actif"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/admin/users/${user.uid}/edit`}>
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Modifier
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setUserToDelete(user.uid)
+                          setDeleteDialogOpen(true)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </Card>
       )}
 

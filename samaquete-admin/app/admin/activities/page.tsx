@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getActivities } from "@/lib/firestore/services"
 import { Activity, ContentStatus } from "@/types"
@@ -10,11 +10,24 @@ import { Plus } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
+import { ViewToggle, ViewMode } from "@/components/ui/view-toggle"
+import { Pagination } from "@/components/ui/pagination"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 export default function ActivitiesPage() {
   const { claims } = useAuth()
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<ViewMode>("cards")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     loadActivities()
@@ -50,6 +63,18 @@ export default function ActivitiesPage() {
     )
   }
 
+  // Pagination
+  const totalPages = Math.ceil(activities.length / itemsPerPage)
+  const paginatedActivities = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return activities.slice(start, end)
+  }, [activities, currentPage, itemsPerPage])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
   if (loading) {
     return <div>Chargement...</div>
   }
@@ -60,21 +85,25 @@ export default function ActivitiesPage() {
         <div>
           <h1 className="text-3xl font-bold">Activités</h1>
           <p className="text-muted-foreground mt-2">
-            Gestion des activités
+            Gestion des activités • {activities.length} activité{activities.length > 1 ? "s" : ""}
           </p>
         </div>
-        {claims?.role === "church_admin" && (
-          <Link href="/admin/activities/create">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle activité
-            </Button>
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          {claims?.role === "church_admin" && (
+            <Link href="/admin/activities/create">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle activité
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {activities.map((activity) => (
+      {viewMode === "cards" && (
+        <div className="space-y-4">
+          {paginatedActivities.map((activity) => (
           <Card key={activity.activityId}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -96,8 +125,50 @@ export default function ActivitiesPage() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode === "list" && (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Titre</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Lieu</TableHead>
+                <TableHead>Statut</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedActivities.map((activity) => (
+                <TableRow key={activity.activityId}>
+                  <TableCell className="font-medium">{activity.title}</TableCell>
+                  <TableCell className="max-w-md truncate">{activity.description}</TableCell>
+                  <TableCell>{format(new Date(activity.date), "PP")}</TableCell>
+                  <TableCell>{activity.location || "-"}</TableCell>
+                  <TableCell>{getStatusBadge(activity.status)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {activities.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={activities.length}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newItemsPerPage) => {
+            setItemsPerPage(newItemsPerPage)
+            setCurrentPage(1)
+          }}
+        />
+      )}
     </div>
   )
 }

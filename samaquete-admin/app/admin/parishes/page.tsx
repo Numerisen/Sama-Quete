@@ -11,6 +11,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { ViewToggle, ViewMode } from "@/components/ui/view-toggle"
 import { FiltersBar, FilterConfig } from "@/components/ui/filters-bar"
+import { Pagination } from "@/components/ui/pagination"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +44,8 @@ export default function ParishesPage() {
     diocese: "",
     status: "",
   })
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     loadData()
@@ -136,6 +139,18 @@ export default function ParishesPage() {
     }
   }
 
+  // Pagination
+  const totalPages = Math.ceil(filteredParishes.length / itemsPerPage)
+  const paginatedParishes = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    const end = start + itemsPerPage
+    return filteredParishes.slice(start, end)
+  }, [filteredParishes, currentPage, itemsPerPage])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage, filters])
+
   const canEdit = (parish: Parish): boolean => {
     if (!claims) return false
     if (claims.role === "super_admin") return true
@@ -205,7 +220,7 @@ export default function ParishesPage() {
         {/* Vue Cartes */}
         {viewMode === "cards" && filteredParishes.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredParishes.map((parish) => (
+            {paginatedParishes.map((parish) => (
               <Card key={parish.parishId} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
@@ -287,7 +302,7 @@ export default function ParishesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredParishes.map((parish) => (
+                  {paginatedParishes.map((parish) => (
                     <TableRow key={parish.parishId} className="hover:bg-gray-50">
                       <TableCell className="font-medium text-gray-900">
                         {parish.name}
@@ -355,6 +370,20 @@ export default function ParishesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {filteredParishes.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredParishes.length}
+          onPageChange={setCurrentPage}
+          onItemsPerPageChange={(newItemsPerPage) => {
+            setItemsPerPage(newItemsPerPage)
+            setCurrentPage(1)
+          }}
+        />
+      )}
     </div>
   )
 }

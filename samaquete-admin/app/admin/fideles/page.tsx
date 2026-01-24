@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { collection, getDocs, query, orderBy } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -12,7 +12,16 @@ import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { fetchDonations } from "@/lib/api/donations"
 import { Donation } from "@/types"
+import { ViewToggle, ViewMode } from "@/components/ui/view-toggle"
 import { Pagination } from "@/components/ui/pagination"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 interface Fidele {
   uid: string
@@ -40,6 +49,7 @@ export default function FidelesPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [viewMode, setViewMode] = useState<ViewMode>("cards")
 
   useEffect(() => {
     if (claims?.role === "super_admin" || claims?.role === "archdiocese_admin") {
@@ -127,10 +137,12 @@ export default function FidelesPage() {
 
   // Pagination
   const totalPages = Math.ceil(filteredFideles.length / itemsPerPage)
-  const paginatedFideles = filteredFideles.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  const paginatedFideles = useMemo(() => {
+    return filteredFideles.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    )
+  }, [filteredFideles, currentPage, itemsPerPage])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -166,10 +178,11 @@ export default function FidelesPage() {
         <div>
           <h1 className="text-3xl font-bold">Fidèles</h1>
           <p className="text-muted-foreground mt-2">
-            Liste des fidèles inscrits sur l'application mobile ({fideles.length})
+            Liste des fidèles inscrits sur l'application mobile • {fideles.length} fidèle{fideles.length > 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
           <Button
             variant="outline"
             onClick={async () => {
@@ -252,7 +265,7 @@ export default function FidelesPage() {
                 {searchTerm ? "Aucun fidèle trouvé" : "Aucun fidèle inscrit"}
               </p>
             </div>
-          ) : (
+          ) : viewMode === "cards" ? (
             <div className="space-y-4">
               {paginatedFideles.map((fidele) => (
                 <div
@@ -308,6 +321,41 @@ export default function FidelesPage() {
                 </div>
               ))}
             </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nom</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Téléphone</TableHead>
+                  <TableHead>Paroisse</TableHead>
+                  <TableHead>Dons</TableHead>
+                  <TableHead>Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedFideles.map((fidele) => (
+                  <TableRow key={fidele.uid}>
+                    <TableCell className="font-medium">
+                      {fidele.firstName} {fidele.lastName}
+                    </TableCell>
+                    <TableCell>{fidele.email}</TableCell>
+                    <TableCell>{fidele.phone}</TableCell>
+                    <TableCell>
+                      {fidele.parishName ? (
+                        <Badge variant="outline">{fidele.parishName}</Badge>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell>{fidele.donations?.length || fidele.donationCount || 0}</TableCell>
+                    <TableCell className="font-semibold">
+                      {(fidele.totalDonationsAmount || fidele.totalDonations || 0).toLocaleString()} FCFA
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
