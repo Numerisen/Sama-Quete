@@ -36,7 +36,7 @@ function getFirebaseAdmin() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { uid, email, role, entityType, entityId, name } = body
+    const { uid, email, role, entityType, entityId, name, dioceseId, parishId } = body
 
     if (!uid) {
       return NextResponse.json(
@@ -48,8 +48,20 @@ export async function POST(req: NextRequest) {
     const app = getFirebaseAdmin()
     const auth = getAuth(app)
 
-    // Récupérer l'utilisateur actuel pour préserver les claims existants
-    const currentUser = await auth.getUser(uid)
+    // Vérifier que l'utilisateur existe
+    let currentUser
+    try {
+      currentUser = await auth.getUser(uid)
+    } catch (error: any) {
+      if (error.code === "auth/user-not-found") {
+        return NextResponse.json(
+          { error: "Cet utilisateur n'existe pas" },
+          { status: 404 }
+        )
+      }
+      throw error
+    }
+    
     const currentClaims = currentUser.customClaims || {}
 
     // Préparer les mises à jour
@@ -82,39 +94,65 @@ export async function POST(req: NextRequest) {
       await auth.updateUser(uid, updateData)
     }
 
-    // Préparer les custom claims
+    // Préparer les custom claims - réinitialiser tous les IDs d'abord
     const customClaims: any = {
-      ...currentClaims,
-    }
-
-    if (role) {
-      customClaims.role = role
+      role: role || currentClaims.role || "",
+      mustChangePassword: currentClaims.mustChangePassword || false,
+      dioceseId: "",
+      parishId: "",
+      churchId: "",
+      archdioceseId: "",
     }
 
     // Mettre à jour les IDs selon le type d'entité
     if (entityType === "diocese" && entityId) {
       customClaims.dioceseId = entityId
-      customClaims.parishId = ""
-      customClaims.churchId = ""
-      customClaims.archdioceseId = ""
     } else if (entityType === "archdiocese" && entityId) {
       customClaims.archdioceseId = entityId
-      customClaims.dioceseId = ""
-      customClaims.parishId = ""
-      customClaims.churchId = ""
     } else if (entityType === "parish" && entityId) {
       customClaims.parishId = entityId
-      customClaims.churchId = ""
-      customClaims.archdioceseId = ""
-      // Garder le dioceseId existant si présent
-    } else if (entityType === "church" && entityId) {
+      // dioceseId est requis pour une paroisse
+      if (dioceseId) {
+        customClaims.dioceseId = dioceseId
+      } else if (currentClaims.dioceseId) {
+        // Garder l'existant si pas fourni
+        customClaims.dioceseId = currentClaims.dioceseId
+      }
+    } else if (entityType === "church") {
+      // Pour église, dioceseId est toujours requis
+      if (!dioceseId && !currentClaims.dioceseId) {
+        return NextResponse.json(
+          { error: "Diocèse requis pour un utilisateur église" },
+          { status: 400 }
+        )
+      }
+      customClaims.dioceseId = dioceseId || currentClaims.dioceseId
+      
+      // parishId est optionnel
+      if (parishId) {
+        customClaims.parishId = parishId
+      }
+      
+      // churchId (entityId) est requis pour église
+      if (!entityId) {
+        return NextResponse.json(
+          { error: "Église requise pour un utilisateur église" },
+          { status: 400 }
+        )
+      }
       customClaims.churchId = entityId
-      customClaims.archdioceseId = ""
-      // Garder le parishId et dioceseId existants si présents
     }
 
     // Mettre à jour les claims
     await auth.setCustomUserClaims(uid, customClaims)
+    
+    // Invalider le token pour forcer le rafraîchissement des claims
+    try {
+      await auth.revokeRefreshTokens(uid)
+    } catch (revokeError) {
+      // Ignorer l'erreur si l'utilisateur n'a pas de refresh token
+      console.warn("Impossible de révoquer les refresh tokens:", revokeError)
+    }
 
     return NextResponse.json({
       success: true,

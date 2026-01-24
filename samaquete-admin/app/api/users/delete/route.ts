@@ -48,6 +48,19 @@ export async function POST(req: NextRequest) {
     const app = getFirebaseAdmin()
     const auth = getAuth(app)
 
+    // Vérifier que l'utilisateur existe avant de le supprimer
+    try {
+      await auth.getUser(uid)
+    } catch (error: any) {
+      if (error.code === "auth/user-not-found") {
+        return NextResponse.json(
+          { error: "Cet utilisateur n'existe pas ou a déjà été supprimé" },
+          { status: 404 }
+        )
+      }
+      throw error
+    }
+
     // Supprimer l'utilisateur
     await auth.deleteUser(uid)
 
@@ -57,9 +70,18 @@ export async function POST(req: NextRequest) {
     })
   } catch (error: any) {
     console.error("Erreur suppression utilisateur:", error)
+    
+    // Messages d'erreur plus explicites
+    let errorMessage = "Erreur lors de la suppression de l'utilisateur"
+    if (error.code === "auth/user-not-found") {
+      errorMessage = "Cet utilisateur n'existe pas ou a déjà été supprimé"
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
     return NextResponse.json(
-      { error: error.message || "Erreur lors de la suppression de l'utilisateur" },
-      { status: 500 }
+      { error: errorMessage },
+      { status: error.code === "auth/user-not-found" ? 404 : 500 }
     )
   }
 }

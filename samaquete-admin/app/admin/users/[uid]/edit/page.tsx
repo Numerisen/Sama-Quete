@@ -50,8 +50,9 @@ export default function EditUserPage() {
   useEffect(() => {
     if (formData.entityType === "parish" && selectedDioceseId) {
       loadParishes(selectedDioceseId)
-    } else if (formData.entityType === "church" && selectedParishId) {
-      loadChurches(selectedParishId)
+    } else if (formData.entityType === "church" && selectedDioceseId) {
+      // Charger les églises directement par diocèse (sans paroisse)
+      loadChurches(selectedParishId || undefined, selectedDioceseId)
     }
   }, [formData.entityType, selectedDioceseId, selectedParishId])
 
@@ -94,11 +95,13 @@ export default function EditUserPage() {
       } else if (user.churchId) {
         entityType = "church"
         entityId = user.churchId
-        // Récupérer le parishId et dioceseId depuis l'église
+        // Récupérer le dioceseId depuis l'église (paroisse optionnelle)
         const church = await getChurch(user.churchId)
         if (church) {
-          setSelectedParishId(church.parishId)
           setSelectedDioceseId(church.dioceseId)
+          if (church.parishId) {
+            setSelectedParishId(church.parishId)
+          }
         }
       }
 
@@ -139,9 +142,9 @@ export default function EditUserPage() {
     }
   }
 
-  async function loadChurches(parishId: string) {
+  async function loadChurches(parishId?: string, dioceseId?: string) {
     try {
-      const data = await getChurches(parishId)
+      const data = await getChurches(parishId, dioceseId)
       setChurches(data)
     } catch (error) {
       console.error("Erreur chargement églises:", error)
@@ -160,21 +163,48 @@ export default function EditUserPage() {
       return
     }
 
+    // Validation pour église
+    if (formData.entityType === "church" && !selectedDioceseId) {
+      toast({
+        title: "Erreur",
+        description: "Diocèse requis pour un utilisateur église",
+        variant: "destructive",
+      })
+      return
+    }
+
     setSaving(true)
     try {
+      const requestBody: any = {
+        uid,
+        email: formData.email,
+        name: formData.name,
+        role: formData.role,
+        entityType: formData.entityType,
+        entityId: formData.entityId,
+      }
+      
+      // Pour église, ajouter le dioceseId
+      if (formData.entityType === "church" && selectedDioceseId) {
+        requestBody.dioceseId = selectedDioceseId
+      }
+      
+      // Pour paroisse, ajouter le dioceseId si disponible
+      if (formData.entityType === "parish" && selectedDioceseId) {
+        requestBody.dioceseId = selectedDioceseId
+      }
+      
+      // Pour église, ajouter le parishId si disponible
+      if (formData.entityType === "church" && selectedParishId) {
+        requestBody.parishId = selectedParishId
+      }
+      
       const response = await fetch("/api/users/update", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          uid,
-          email: formData.email,
-          name: formData.name,
-          role: formData.role,
-          entityType: formData.entityType,
-          entityId: formData.entityId,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
@@ -184,8 +214,12 @@ export default function EditUserPage() {
 
       toast({
         title: "Succès",
-        description: "Utilisateur mis à jour avec succès",
+        description: "Utilisateur mis à jour avec succès. Les modifications seront visibles après rafraîchissement.",
       })
+      
+      // Attendre un peu pour que les claims soient propagés
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       router.push("/admin/users")
     } catch (error: any) {
       console.error("Erreur mise à jour:", error)
@@ -393,47 +427,43 @@ export default function EditUserPage() {
                 </div>
                 {selectedDioceseId && (
                   <div className="space-y-2">
-                    <Label htmlFor="parish">Paroisse *</Label>
-                    <Select
-                      value={selectedParishId}
-                      onValueChange={(value) => {
-                        setSelectedParishId(value)
-                        setFormData({ ...formData, entityId: "" })
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner une paroisse" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {parishes.map((parish) => (
-                          <SelectItem key={parish.parishId} value={parish.parishId}>
-                            {parish.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {selectedParishId && (
-                  <div className="space-y-2">
                     <Label htmlFor="church">Église *</Label>
                     <Select
                       value={formData.entityId}
                       onValueChange={(value) => {
                         setFormData({ ...formData, entityId: value })
                       }}
+                      required
+                      disabled={!selectedDioceseId || churches.length === 0}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner une église" />
+                        <SelectValue placeholder={
+                          !selectedDioceseId
+                            ? "Sélectionnez d'abord un diocèse"
+                            : churches.length === 0
+                            ? "Aucune église trouvée"
+                            : "Sélectionner une église"
+                        } />
                       </SelectTrigger>
                       <SelectContent>
-                        {churches.map((church) => (
-                          <SelectItem key={church.churchId} value={church.churchId}>
-                            {church.name}
+                        {churches.length === 0 && selectedDioceseId ? (
+                          <SelectItem value="__no_church__" disabled>
+                            Aucune église trouvée
                           </SelectItem>
-                        ))}
+                        ) : (
+                          churches.map((church) => (
+                            <SelectItem key={church.churchId} value={church.churchId}>
+                              {church.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
+                    {churches.length === 0 && selectedDioceseId && (
+                      <p className="text-xs text-red-600">
+                        Aucune église trouvée pour ce diocèse. Veuillez créer une église avant de modifier l'utilisateur.
+                      </p>
+                    )}
                   </div>
                 )}
               </>

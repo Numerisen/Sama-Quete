@@ -128,8 +128,10 @@ export default function UsersPage() {
         description: "Utilisateur supprimé avec succès",
       })
 
-      // Recharger la liste
-      loadUsers()
+      // Recharger la liste après un court délai
+      setTimeout(() => {
+        loadUsers()
+      }, 300)
     } catch (error: any) {
       console.error("Erreur suppression:", error)
       toast({
