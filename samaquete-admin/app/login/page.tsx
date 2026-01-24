@@ -38,7 +38,51 @@ export default function LoginPage() {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      
+      // Vérifier que le type de compte correspond au filtre sélectionné
+      const user = userCredential.user
+      const tokenResult = await user.getIdTokenResult(true)
+      const userRole = tokenResult.claims.role as string
+      
+      // Mapping entre loginType et les rôles attendus
+      const roleMapping: Record<string, string[]> = {
+        'admin': ['super_admin'],
+        'archdiocese': ['archdiocese_admin'],
+        'diocese': ['diocese_admin'],
+        'paroisse': ['parish_admin'],
+        'eglise': ['church_admin']
+      }
+      
+      const allowedRoles = roleMapping[loginType] || []
+      
+      if (!allowedRoles.includes(userRole)) {
+        // Déconnecter l'utilisateur immédiatement si le rôle ne correspond pas
+        await auth.signOut()
+        
+        // Déterminer le type réel du compte pour le message d'erreur
+        const roleToType: Record<string, string> = {
+          'super_admin': 'Super Admin',
+          'archdiocese_admin': 'Archidiocèse',
+          'diocese_admin': 'Diocèse',
+          'parish_admin': 'Paroisse',
+          'church_admin': 'Église'
+        }
+        
+        const typeLabels: Record<string, string> = {
+          'admin': 'Super Admin',
+          'archdiocese': 'Archidiocèse',
+          'diocese': 'Diocèse',
+          'paroisse': 'Paroisse',
+          'eglise': 'Église'
+        }
+        
+        const actualType = roleToType[userRole] || 'inconnu'
+        const selectedType = typeLabels[loginType]
+        
+        throw new Error(`Cet utilisateur n'est pas un compte ${selectedType}. C'est un compte ${actualType}. Veuillez sélectionner le bon type de compte.`)
+      }
+      
       // Rediriger vers le dashboard après connexion
       router.push("/admin/dashboard")
     } catch (error: any) {
@@ -95,8 +139,11 @@ export default function LoginPage() {
         </CardHeader>
         
         <CardContent>
-          {/* Sélecteur de type de connexion - 5 niveaux hiérarchiques */}
+          {/* Sélecteur de type de connexion - Filtre opérationnel */}
           <div className="mb-6 space-y-2">
+            <p className="text-xs text-gray-600 text-center mb-2">
+              Sélectionnez le type de compte pour vous connecter
+            </p>
             {/* Ligne 1: Super Admin, Archidiocèse, Diocèse */}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
