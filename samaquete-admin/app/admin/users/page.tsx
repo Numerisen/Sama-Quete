@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getDioceses, getParishes, getChurches } from "@/lib/firestore/services"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -62,13 +62,7 @@ export default function UsersPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [viewMode, setViewMode] = useState<ViewMode>("cards")
 
-  useEffect(() => {
-    if (claims?.role === "super_admin") {
-      loadUsers()
-    }
-  }, [claims])
-
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     try {
       setLoading(true)
       const [response, diocesesData, parishesData, churchesData] = await Promise.all([
@@ -106,7 +100,13 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    if (claims?.role === "super_admin") {
+      loadUsers()
+    }
+  }, [claims?.role, loadUsers])
 
   async function handleDelete(uid: string) {
     try {
@@ -264,11 +264,6 @@ export default function UsersPage() {
                           <p className="font-semibold">
                             {user.displayName || user.email}
                           </p>
-                          {user.mustChangePassword && (
-                            <Badge variant="destructive" className="text-xs">
-                              Mot de passe à changer
-                            </Badge>
-                          )}
                           {user.disabled && (
                             <Badge variant="secondary" className="text-xs">
                               Désactivé

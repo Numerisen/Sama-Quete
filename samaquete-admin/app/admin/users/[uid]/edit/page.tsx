@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getDioceses, getParishes, getChurches, getParish, getChurch } from "@/lib/firestore/services"
@@ -38,25 +38,7 @@ export default function EditUserPage() {
     role: "diocese_admin" as UserRole,
   })
 
-  useEffect(() => {
-    if (claims?.role !== "super_admin") {
-      router.push("/admin/users")
-      return
-    }
-    loadUserData()
-    loadDioceses()
-  }, [uid])
-
-  useEffect(() => {
-    if (formData.entityType === "parish" && selectedDioceseId) {
-      loadParishes(selectedDioceseId)
-    } else if (formData.entityType === "church" && selectedDioceseId) {
-      // Charger les églises directement par diocèse (sans paroisse)
-      loadChurches(selectedParishId || undefined, selectedDioceseId)
-    }
-  }, [formData.entityType, selectedDioceseId, selectedParishId])
-
-  async function loadUserData() {
+  const loadUserData = useCallback(async () => {
     try {
       const response = await fetch("/api/users/list")
       if (!response.ok) throw new Error("Erreur chargement utilisateurs")
@@ -122,34 +104,52 @@ export default function EditUserPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [uid, router, toast])
 
-  async function loadDioceses() {
+  const loadDioceses = useCallback(async () => {
     try {
       const data = await getDioceses()
       setDioceses(data)
     } catch (error) {
       console.error("Erreur chargement diocèses:", error)
     }
-  }
+  }, [])
 
-  async function loadParishes(dioceseId: string) {
+  const loadParishes = useCallback(async (dioceseId: string) => {
     try {
       const data = await getParishes(dioceseId)
       setParishes(data)
     } catch (error) {
       console.error("Erreur chargement paroisses:", error)
     }
-  }
+  }, [])
 
-  async function loadChurches(parishId?: string, dioceseId?: string) {
+  const loadChurches = useCallback(async (parishId?: string, dioceseId?: string) => {
     try {
       const data = await getChurches(parishId, dioceseId)
       setChurches(data)
     } catch (error) {
       console.error("Erreur chargement églises:", error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (claims?.role !== "super_admin") {
+      router.push("/admin/users")
+      return
+    }
+    loadUserData()
+    loadDioceses()
+  }, [uid, claims?.role, router, loadUserData, loadDioceses])
+
+  useEffect(() => {
+    if (formData.entityType === "parish" && selectedDioceseId) {
+      loadParishes(selectedDioceseId)
+    } else if (formData.entityType === "church" && selectedDioceseId) {
+      // Charger les églises directement par diocèse (sans paroisse)
+      loadChurches(selectedParishId || undefined, selectedDioceseId)
+    }
+  }, [formData.entityType, selectedDioceseId, selectedParishId, loadParishes, loadChurches])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

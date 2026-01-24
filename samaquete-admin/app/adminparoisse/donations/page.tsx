@@ -147,7 +147,7 @@ function DonsContent() {
   })
 
   // Statistiques - seulement les terminés (confirmed/completed)
-  const confirmedDonations = filteredDonations.filter(d => d.status === 'confirmed' || d.status === 'completed');
+  const confirmedDonations = filteredDonations.filter((d: any) => d.status === 'confirmed' || d.status === 'completed');
   const pendingDonations = filteredDonations.filter(d => d.status === 'pending');
   
   const stats = {

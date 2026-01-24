@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth/AuthProvider"
 import { getDioceses, getParishes, getChurches } from "@/lib/firestore/services"
@@ -35,16 +35,53 @@ export default function CreateUserPage() {
     role: "diocese_admin" as UserRole,
   })
 
+  const [loadingParishes, setLoadingParishes] = useState(false)
+  const [loadingChurches, setLoadingChurches] = useState(false)
+
+  const loadDioceses = useCallback(async () => {
+    try {
+      const data = await getDioceses()
+      setDioceses(data)
+    } catch (error) {
+      console.error("Erreur chargement diocèses:", error)
+    }
+  }, [])
+
+  const loadParishes = useCallback(async (dioceseId: string) => {
+    try {
+      setLoadingParishes(true)
+      setParishes([]) // Réinitialiser avant le chargement
+      const data = await getParishes(dioceseId)
+      setParishes(data)
+    } catch (error) {
+      console.error("Erreur chargement paroisses:", error)
+      setParishes([])
+    } finally {
+      setLoadingParishes(false)
+    }
+  }, [])
+
+  const loadChurches = useCallback(async (parishId?: string, dioceseId?: string) => {
+    try {
+      setLoadingChurches(true)
+      setChurches([]) // Réinitialiser avant le chargement
+      const data = await getChurches(parishId, dioceseId)
+      setChurches(data)
+    } catch (error) {
+      console.error("Erreur chargement églises:", error)
+      setChurches([])
+    } finally {
+      setLoadingChurches(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (claims?.role !== "super_admin") {
       router.push("/admin/users")
       return
     }
     loadDioceses()
-  }, [])
-
-  const [loadingParishes, setLoadingParishes] = useState(false)
-  const [loadingChurches, setLoadingChurches] = useState(false)
+  }, [claims?.role, router, loadDioceses])
 
   useEffect(() => {
     if (formData.entityType === "parish" && selectedDioceseId) {
@@ -53,7 +90,7 @@ export default function CreateUserPage() {
       // Charger les églises directement par diocèse (sans paroisse)
       loadChurches(undefined, selectedDioceseId)
     }
-  }, [formData.entityType, selectedDioceseId])
+  }, [formData.entityType, selectedDioceseId, loadParishes, loadChurches])
 
   useEffect(() => {
     // Mettre à jour le rôle selon le type d'entité
@@ -66,42 +103,24 @@ export default function CreateUserPage() {
     setFormData(prev => ({ ...prev, role: roleMap[prev.entityType] }))
   }, [formData.entityType])
 
-  async function loadDioceses() {
-    try {
-      const data = await getDioceses()
-      setDioceses(data)
-    } catch (error) {
-      console.error("Erreur chargement diocèses:", error)
+  useEffect(() => {
+    if (formData.entityType === "parish" && selectedDioceseId) {
+      loadParishes(selectedDioceseId)
+    } else if (formData.entityType === "church" && selectedDioceseId) {
+      loadChurches(undefined, selectedDioceseId)
     }
-  }
+  }, [formData.entityType, selectedDioceseId, loadParishes, loadChurches])
 
-  async function loadParishes(dioceseId: string) {
-    try {
-      setLoadingParishes(true)
-      setParishes([]) // Réinitialiser avant le chargement
-      const data = await getParishes(dioceseId)
-      setParishes(data)
-    } catch (error) {
-      console.error("Erreur chargement paroisses:", error)
-      setParishes([])
-    } finally {
-      setLoadingParishes(false)
+  useEffect(() => {
+    // Mettre à jour le rôle selon le type d'entité
+    const roleMap: Record<EntityType, UserRole> = {
+      diocese: "diocese_admin",
+      archdiocese: "archdiocese_admin",
+      parish: "parish_admin",
+      church: "church_admin",
     }
-  }
-
-  async function loadChurches(parishId?: string, dioceseId?: string) {
-    try {
-      setLoadingChurches(true)
-      setChurches([]) // Réinitialiser avant le chargement
-      const data = await getChurches(parishId, dioceseId)
-      setChurches(data)
-    } catch (error) {
-      console.error("Erreur chargement églises:", error)
-      setChurches([])
-    } finally {
-      setLoadingChurches(false)
-    }
-  }
+    setFormData(prev => ({ ...prev, role: roleMap[prev.entityType] }))
+  }, [formData.entityType])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
